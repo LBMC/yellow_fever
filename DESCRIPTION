@@ -6,6 +6,8 @@ Authors@R: person("Laurent", "Modolo", email = "laurent.modolo@ens-lyon.fr",
 Description: The package scRNASeq provides a set of function to perform quality
   control, classification, differential analysis and visualisation of scRNASeq
   data.
-Depends: R (>= 3.4.0)
+Depends: R (>= 3.4.1), R6 (>= 2.2.1)
 License: file LICENSE
 LazyData: true
+Suggests: testthat
+RoxygenNote: 6.0.1
