@@ -1,11 +1,10 @@
 #' scRNASeq data object
 #'
-#' @param infos a data.frame of cells (rows) features (columns)
-#' @param counts a matrix of counts with cells as rows and genes as columns
-#' @return an scdata R6 R object
-#' @examples
-#' data <- scrna$new(infos, counts)
+#' @docType class
+#' @importFrom R6 R6Class
 #' @export scdata
+#' @format An \code{\link{R6Class}} generator object
+#' @keywords infos counts
 scdata <- R6::R6Class("scdata",
   private = list(
     genes = NULL,
@@ -43,7 +42,9 @@ scdata <- R6::R6Class("scdata",
 #' @return a list with infos and counts associated and formated for the others
 #' scRNASeq functions
 #' @examples
+#' \dontrun{
 #' data <- load_data('data/infos.csv', 'data/counts.csv')
+#' }
 #' @export load_data
 load_data <- function(infos, counts) {
   data <- scdata$new(

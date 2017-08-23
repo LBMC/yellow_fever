@@ -21,5 +21,7 @@ scRNASeq functions
 load scRNASeq data
 }
 \examples{
+\dontrun{
 data <- load_data('data/infos.csv', 'data/counts.csv')
+}
 }
