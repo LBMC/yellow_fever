@@ -39,6 +39,7 @@ scdata <- R6::R6Class("scdata",
 #' features in columns
 #' @param counts a text tabular count file for cells in rows and genes in
 #' columns
+#' @param ... additional argument to be passed to read.table function
 #' @return a list with infos and counts associated and formated for the others
 #' scRNASeq functions
 #' @examples
@@ -46,10 +47,10 @@ scdata <- R6::R6Class("scdata",
 #' data <- load_data('data/infos.csv', 'data/counts.csv')
 #' }
 #' @export load_data
-load_data <- function(infos, counts) {
+load_data <- function(infos, counts, ...) {
   data <- scdata$new(
-    infos = read.table(infos),
-    counts = read.table(counts)
+    infos = utils::read.table(infos, ...),
+    counts = utils::read.table(counts, ...)
     )
   return(data)
 }
