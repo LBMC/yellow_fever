@@ -4,7 +4,7 @@
 \alias{load_data}
 \title{load scRNASeq data}
 \usage{
-load_data(infos, counts)
+load_data(infos, counts, ...)
 }
 \arguments{
 \item{infos}{a text tabular information file on cells with cells in rows and
@@ -12,6 +12,8 @@ features in columns}
 
 \item{counts}{a text tabular count file for cells in rows and genes in
 columns}
+
+\item{...}{additional argument to be passed to read.table function}
 }
 \value{
 a list with infos and counts associated and formated for the others
