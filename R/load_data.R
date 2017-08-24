@@ -42,7 +42,7 @@ scdata <- R6::R6Class("scdata",
     order_by_cells = function() {
       private$counts <- private$counts[order(private$cells), ]
       private$features <- private$features[order(private$cells), ]
-      private$cells <- private$cells[order(private$cells), ]
+      private$cells <- private$cells[order(private$cells)]
     }
     ),
   public = list(
@@ -54,7 +54,7 @@ scdata <- R6::R6Class("scdata",
       if (nrow(private$features) != nrow(private$counts)) {
         stop("error: number of cells differ between infos and counts")
       }
-      if ("id" %in% colnames(features)) {
+      if ("id" %in% colnames(private$features)) {
         if (length(intersect(private$cells, as.vector(private$features$id))) !=
           length(private$cells)) {
           stop("error: id's in infos don't match cells name in counts")
@@ -64,7 +64,30 @@ scdata <- R6::R6Class("scdata",
       self$summary()
     },
     add = function(infos = NA, counts = NA) {
-      print("test")
+      genes <- colnames(counts)
+      cells <- rownames(counts)
+      features <- as.data.frame(infos)
+      counts <- as.matrix(counts)
+      if (nrow(features) != nrow(counts)) {
+        stop("error: number of cells differ between infos and counts")
+      }
+      if (length(intersect(private$cells, cells)) != 0) {
+        stop("error: trying to add cells already present")
+      }
+      if (length(intersect(private$genes, genes)) != length(private$genes)) {
+        stop("error: genes set don't match existing genes set")
+      }
+
+      if ("id" %in% colnames(features)) {
+        if (length(intersect(cells, as.vector(features$id))) !=
+          length(cells)) {
+          stop("error: id's in infos don't match cells name in counts")
+        }
+      }
+      private$cells <- c(private$cells, cells)
+      private$counts <- rbind(private$counts, counts)
+      private$features <- rbind(private$features, features)
+      private$order_by_cells()
     },
     summary = function() {
       cat(paste0("ncol: ", ncol(private$counts), ".\n"))
