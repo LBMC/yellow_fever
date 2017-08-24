@@ -169,3 +169,15 @@ test_that("adding data", {
     )
   )
 })
+
+
+rdata_test <- random_sample_data(data_test, 4)
+
+test_that("sampling data", {
+  expect_equal(
+    rdata_test$getngenes,
+    data_test$getngenes)
+  expect_equal(
+    rdata_test$getncells,
+    4)
+})

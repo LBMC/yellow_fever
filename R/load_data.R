@@ -146,6 +146,12 @@ scdata <- R6::R6Class("scdata",
     },
     getgenes = function() {
       return(private$genes)
+    },
+    getncells = function() {
+      return(length(private$cells))
+    },
+    getngenes = function() {
+      return(length(private$genes))
     }
   )
 )
@@ -205,4 +211,25 @@ load_multiple_file <- function(infos, counts, regexp, ...) {
       )
   }
   return(data)
+}
+
+#' random sample of scRNASeq data
+#'
+#' @param data a scdata object
+#' @param number number of cells to sample
+#' @param replace should sampling be with replacement?
+#' @return a scdata object with number of cells
+#' @examples
+#' \dontrun{
+#' rdata <- random_sample_data(data, 150)
+#' }
+#' @export load_data
+random_sample_data <- function(data, number, replace = FALSE) {
+  number <- min(number, data$getncells)
+  cells <- sample(data$getcells, number, replace = FALSE)
+  rdata <- scdata$new(
+      infos = data$getfeaturesw(cells = cells),
+      counts = data$getcountsw(cells = cells)
+    )
+  return(rdata)
 }
