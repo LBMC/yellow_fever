@@ -1,4 +1,4 @@
-library(scRNASeq)
+library(scRNAtools)
 context("load scRNASeq data")
 
 data_test <- scdata$new(

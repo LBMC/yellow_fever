@@ -1,4 +1,4 @@
 library(testthat)
-library(scRNASeq)
+library(scRNAtools)
 
-test_check("scRNASeq")
+test_check("scRNAtools")
