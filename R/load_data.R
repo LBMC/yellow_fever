@@ -38,6 +38,11 @@ scdata <- R6::R6Class("scdata",
       cat(paste0("ncol: ", length(c_num), ".\n"))
       cat(paste0("nrow: ", length(r_num), ".\n"))
       return(list(c_num = c_num, r_num = r_num))
+    },
+    order_by_cells = function() {
+      private$counts <- private$counts[order(private$cells), ]
+      private$features <- private$features[order(private$cells), ]
+      private$cells <- private$cells[order(private$cells), ]
     }
     ),
   public = list(
@@ -46,7 +51,20 @@ scdata <- R6::R6Class("scdata",
       private$cells <- rownames(counts)
       private$features <- as.data.frame(infos)
       private$counts <- as.matrix(counts)
+      if (nrow(private$features) != nrow(private$counts)) {
+        stop("error: number of cells differ between infos and counts")
+      }
+      if ("id" %in% colnames(features)) {
+        if (length(intersect(private$cells, as.vector(private$features$id))) !=
+          length(private$cells)) {
+          stop("error: id's in infos don't match cells name in counts")
+        }
+        private$order_by_cells()
+      }
       self$summary()
+    },
+    add = function(infos = NA, counts = NA) {
+      print("test")
     },
     summary = function() {
       cat(paste0("ncol: ", ncol(private$counts), ".\n"))
@@ -73,7 +91,7 @@ scdata <- R6::R6Class("scdata",
       rc_num <- private$get_rc_counts(cells = cells, genes = genes)
       return(private$counts[-rc_num$r_num, -rc_num$c_num])
     },
-    getfeatureso= function(cells = NULL, features = NULL) {
+    getfeatureso = function(cells = NULL, features = NULL) {
       rc_num <- private$get_rc_features(cells = cells, features = features)
       return(private$features[-rc_num$r_num, -rc_num$c_num])
     }
@@ -110,9 +128,13 @@ scdata <- R6::R6Class("scdata",
 #' }
 #' @export load_data
 load_data <- function(infos, counts, ...) {
-  data <- scdata$new(
-    infos = utils::read.table(infos, ...),
-    counts = utils::read.table(counts, ...)
-    )
+  if (base::file.info(counts)$isdir) {
+
+  } else {
+    data <- scdata$new(
+      infos = utils::read.table(infos, ...),
+      counts = utils::read.table(counts, ...)
+      )
+  }
   return(data)
 }

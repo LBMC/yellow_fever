@@ -4,13 +4,14 @@ context("load scRNASeq data")
 data_test <- scdata$new(
   infos = data.frame(
     size = c(1:10),
-    sex = c(rep("F", 5), rep("M", 5))
+    sex = c(rep("F", 5), rep("M", 5)),
+    id = paste0("cell", 10:1)
   ),
   counts = matrix(
     1:1000,
     nrow = 10,
     dimname = list(
-      paste0("cell", 1:10),
+      paste0("cell", 10:1),
       paste0("gene", 1:100)
       )
   ))
