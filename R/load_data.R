@@ -7,10 +7,11 @@
 #' @keywords infos counts
 scdata <- R6::R6Class("scdata",
   private = list(
-    genes = NULL,
-    cells = NULL,
-    counts = NULL,
-    features = NULL,
+    genes = NULL, # a vector of genes names
+    cells = NULL, # a vector of cells id
+    counts = NULL, # a matrix of counts
+    features = NULL, # a data.frame of cells features
+    # private methods go get position of cells and genes in rows and columns
     get_rc_counts = function(cells = NULL, genes = NULL) {
       c_num <- 1:length(private$genes)
       if (!is.null(genes)) {
@@ -24,6 +25,7 @@ scdata <- R6::R6Class("scdata",
       cat(paste0("nrow: ", length(r_num), ".\n"))
       return(list(c_num = c_num, r_num = r_num))
     },
+    # private methods go get position of cells and features in rows and columns
     get_rc_features = function(cells = NULL, features = NULL) {
       c_num <- 1:length(private$features)
       if (!is.null(features)) {
@@ -51,6 +53,7 @@ scdata <- R6::R6Class("scdata",
       cat(paste0("nrow: ", nrow(private$counts), ".\n"))
       cat(paste0("features: ", ncol(private$features), ".\n"))
     },
+    # accessors methods
     getfeature = function(feature) {
       return(private$features[[feature]])
     },
@@ -76,6 +79,7 @@ scdata <- R6::R6Class("scdata",
     }
   ),
   active = list(
+    # accessors methods without arguments
     getcounts = function() {
       return(private$counts)
     },
