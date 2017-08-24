@@ -150,13 +150,41 @@ scdata <- R6::R6Class("scdata",
 #' data <- load_data('data/infos.csv', 'data/counts.csv')
 #' }
 #' @export load_data
-load_data <- function(infos, counts, ...) {
+load_data <- function(infos, counts, regexp = ".*", ...) {
   if (base::file.info(counts)$isdir) {
-
+    return(load_multiple_file(
+      infos = infos,
+      counts = counts,
+      regexp = regexp,
+      ...
+      )
+    )
   } else {
-    data <- scdata$new(
-      infos = utils::read.table(infos, ...),
-      counts = utils::read.table(counts, ...)
+    return(scdata$new(
+        infos = utils::read.table(infos, ...),
+        counts = utils::read.table(counts, ...)
+      )
+    )
+  }
+}
+
+get_files <- function(counts, regexp) {
+  file_list <- list.files(path = counts, full.names = TRUE, recursive = TRUE)
+  file_list <- file_list[grepl(regexp, file_list, perl = T)]
+  return(file_list)
+}
+
+load_multiple_file <- function(infos, counts, regexp, ...) {
+  features <- utils::read.table(infos, ...)
+  files_list <- get_files(counts = counts, regexp = regexp)
+  data <- scdata$new(
+      infos = features,
+      counts = utils::read.table(files_list[1], ...),
+    )
+  for (counts_file in files_list[-1]) {
+    data$add(
+        infos = features,
+        counts = utils::read.table(counts_file, ...),
       )
   }
   return(data)

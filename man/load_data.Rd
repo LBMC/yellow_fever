@@ -4,14 +4,18 @@
 \alias{load_data}
 \title{load scRNASeq data}
 \usage{
-load_data(infos, counts, ...)
+load_data(infos, counts, regexp = ".*", ...)
 }
 \arguments{
 \item{infos}{a text tabular information file on cells with cells in rows and
 features in columns}
 
 \item{counts}{a text tabular count file for cells in rows and genes in
-columns}
+columns. Can also be a folder in which case every files in the subtree will
+be loaded'}
+
+\item{regexp}{a regular expression marching the file we want to load in case
+of counts is a folder}
 
 \item{...}{additional argument to be passed to read.table function}
 }
