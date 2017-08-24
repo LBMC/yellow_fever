@@ -11,7 +11,7 @@ scdata <- R6::R6Class("scdata",
     cells = NULL, # a vector of cells id
     counts = NULL, # a matrix of counts
     features = NULL, # a data.frame of cells features
-    # private methods go get position of cells and genes in rows and columns
+    # private method to get position of cells and genes in rows and columns
     get_rc_counts = function(cells = NULL, genes = NULL) {
       c_num <- 1:length(private$genes)
       if (!is.null(genes)) {
@@ -25,7 +25,7 @@ scdata <- R6::R6Class("scdata",
       cat(paste0("nrow: ", length(r_num), ".\n"))
       return(list(c_num = c_num, r_num = r_num))
     },
-    # private methods go get position of cells and features in rows and columns
+    # private method to get position of cells and features in rows and columns
     get_rc_features = function(cells = NULL, features = NULL) {
       c_num <- 1:length(private$features)
       if (!is.null(features)) {
@@ -39,6 +39,13 @@ scdata <- R6::R6Class("scdata",
       cat(paste0("nrow: ", length(r_num), ".\n"))
       return(list(c_num = c_num, r_num = r_num))
     },
+    # private method to get position of cells in common between features and counts
+    get_common_cells = function(features, counts) {
+      common_cells <- intersect(as.vector(features$id), rownames(counts))
+      r_features <- which(as.vector(features$id) %in% common_cells)
+      r_counts <- which(rownames(counts) %in% common_cells)
+      return(list(features = r_features, counts = r_counts))
+    },
     order_by_cells = function() {
       private$counts <- private$counts[order(private$cells), ]
       private$features <- private$features[order(private$cells), ]
@@ -51,15 +58,19 @@ scdata <- R6::R6Class("scdata",
       private$cells <- rownames(counts)
       private$features <- as.data.frame(infos)
       private$counts <- as.matrix(counts)
-      if (nrow(private$features) != nrow(private$counts)) {
-        stop("error: number of cells differ between infos and counts")
-      }
       if ("id" %in% colnames(private$features)) {
         if (length(intersect(private$cells, as.vector(private$features$id))) !=
           length(private$cells)) {
           stop("error: id's in infos don't match cells name in counts")
         }
+        rr_num <- private$get_common_cells(private$features, private$counts)
+        private$features <- private$features[rr_num$features, ]
+        private$counts <- private$counts[rr_num$counts, ]
         private$order_by_cells()
+      } else {
+        if (nrow(private$features) != nrow(private$counts)) {
+          stop("error: number of cells differ between infos and counts")
+        }
       }
       self$summary()
     },
@@ -68,22 +79,25 @@ scdata <- R6::R6Class("scdata",
       cells <- rownames(counts)
       features <- as.data.frame(infos)
       counts <- as.matrix(counts)
-      if (nrow(features) != nrow(counts)) {
-        stop("error: number of cells differ between infos and counts")
-      }
       if (length(intersect(private$cells, cells)) != 0) {
         stop("error: trying to add cells already present")
       }
       if (length(intersect(private$genes, genes)) != length(private$genes)) {
         stop("error: genes set don't match existing genes set")
       }
-
       if ("id" %in% colnames(features)) {
         if (length(intersect(cells, as.vector(features$id))) !=
           length(cells)) {
           stop("error: id's in infos don't match cells name in counts")
         }
+      } else {
+        if (nrow(features) != nrow(counts)) {
+          stop("error: number of cells differ between infos and counts")
+        }
       }
+      rr_num <- private$get_common_cells(features, counts)
+      features <- features[rr_num$features, ]
+      counts <- counts[rr_num$counts, ]
       private$cells <- c(private$cells, cells)
       private$counts <- rbind(private$counts, counts)
       private$features <- rbind(private$features, features)
@@ -141,7 +155,10 @@ scdata <- R6::R6Class("scdata",
 #' @param infos a text tabular information file on cells with cells in rows and
 #' features in columns
 #' @param counts a text tabular count file for cells in rows and genes in
-#' columns
+#' columns. Can also be a folder in which case every files in the subtree will
+#' be loaded'
+#' @param regexp a regular expression marching the file we want to load in case
+#' of counts is a folder
 #' @param ... additional argument to be passed to read.table function
 #' @return a list with infos and counts associated and formated for the others
 #' scRNASeq functions
