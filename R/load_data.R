@@ -50,15 +50,24 @@ scdata <- R6::R6Class("scdata",
       private$counts <- private$counts[order(private$cells), ]
       private$features <- private$features[order(private$cells), ]
       private$cells <- private$cells[order(private$cells)]
+    },
+    transpose_count = function(counts) {
+      counts <- as.matrix(counts)
+      if (nrow(private$features) < ncol(counts)) {
+        print("transposing counts...")
+        return(t(counts))
+      }
+      return(counts)
     }
     ),
   public = list(
     initialize = function(infos = NA, counts = NA) {
-      private$genes <- colnames(counts)
-      private$cells <- rownames(counts)
       private$features <- as.data.frame(infos)
-      private$counts <- as.matrix(counts)
+      private$counts <- private$transpose_count(counts)
+      private$genes <- colnames(private$counts)
+      private$cells <- rownames(private$counts)
       if ("id" %in% colnames(private$features)) {
+        print("id column found in infos")
         if (length(intersect(private$cells, as.vector(private$features$id))) !=
           length(private$cells)) {
           stop("error: id's in infos don't match cells name in counts")
@@ -69,16 +78,20 @@ scdata <- R6::R6Class("scdata",
         private$order_by_cells()
       } else {
         if (nrow(private$features) != nrow(private$counts)) {
-          stop("error: number of cells differ between infos and counts")
+          stop(
+            paste0("error: number of cells (",
+              nrow(private$features),
+              ") differ between infos and counts (",
+              nrow(private$counts)))
         }
       }
       self$summary()
     },
     add = function(infos = NA, counts = NA) {
+      features <- as.data.frame(infos)
+      counts <- private$transpose_count(counts)
       genes <- colnames(counts)
       cells <- rownames(counts)
-      features <- as.data.frame(infos)
-      counts <- as.matrix(counts)
       if (length(intersect(private$cells, cells)) != 0) {
         stop("error: trying to add cells already present")
       }
@@ -86,13 +99,18 @@ scdata <- R6::R6Class("scdata",
         stop("error: genes set don't match existing genes set")
       }
       if ("id" %in% colnames(features)) {
+        print("id column found in infos")
         if (length(intersect(cells, as.vector(features$id))) !=
           length(cells)) {
           stop("error: id's in infos don't match cells name in counts")
         }
       } else {
         if (nrow(features) != nrow(counts)) {
-          stop("error: number of cells differ between infos and counts")
+          stop(
+            paste0("error: number of cells (",
+              nrow(private$features),
+              ") differ between infos and counts (",
+              nrow(private$counts)))
         }
       }
       rr_num <- private$get_common_cells(features, counts)
@@ -183,9 +201,11 @@ load_data <- function(infos, counts, regexp = ".*", ...) {
       )
     )
   } else {
+    print(paste0("loading ", infos))
+    print(paste0("loading ", counts))
     return(scdata$new(
-        infos = utils::read.table(infos, ...),
-        counts = utils::read.table(counts, ...)
+        infos = utils::read.table(infos, fill = T, h = T, ...),
+        counts = utils::read.table(counts, h = T, ...)
       )
     )
   }
@@ -198,16 +218,19 @@ get_files <- function(counts, regexp) {
 }
 
 load_multiple_file <- function(infos, counts, regexp, ...) {
-  features <- utils::read.table(infos, ...)
+  print(paste0("loading ", infos))
+  features <- utils::read.table(infos, fill = T, h = T, ...)
   files_list <- get_files(counts = counts, regexp = regexp)
+  print(paste0("loading ", files_list[1]))
   data <- scdata$new(
       infos = features,
-      counts = utils::read.table(files_list[1], ...),
+      counts = utils::read.table(files_list[1], h = T, ...)
     )
   for (counts_file in files_list[-1]) {
+    print(paste0("loading ", counts_file))
     data$add(
         infos = features,
-        counts = utils::read.table(counts_file, ...),
+        counts = utils::read.table(counts_file, h = T, ...)
       )
   }
   return(data)
