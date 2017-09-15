@@ -39,7 +39,8 @@ scdata <- R6::R6Class("scdata",
       cat(paste0("nrow: ", length(r_num), ".\n"))
       return(list(c_num = c_num, r_num = r_num))
     },
-    # private method to get position of cells in common between features and counts
+    # private method to get position of cells in common between features and
+    # counts
     get_common_cells = function(features, counts) {
       common_cells <- intersect(as.vector(features$id), rownames(counts))
       print(
@@ -122,8 +123,6 @@ scdata <- R6::R6Class("scdata",
       if ("id" %in% colnames(features)) {
         print("id column found in infos")
         if (length(intersect(cells, as.vector(features$id))) == 0) {
-          print(cells)
-          print(as.vector(features$id))
           stop("error: id's in infos don't match cells name in counts")
         }
       } else {
@@ -151,6 +150,12 @@ scdata <- R6::R6Class("scdata",
     # accessors methods
     getfeature = function(feature) {
       return(private$features[[feature]])
+    },
+    addfeature = function(feature) {
+      private$features[[feature]] <- NA
+    },
+    setfeature = function(feature, value) {
+      private$features[[feature]] <- value
     },
     getgene = function(gene) {
       c_num <- which(private$genes %in% gene)
