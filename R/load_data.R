@@ -42,6 +42,9 @@ scdata <- R6::R6Class("scdata",
     # private method to get position of cells in common between features and counts
     get_common_cells = function(features, counts) {
       common_cells <- intersect(as.vector(features$id), rownames(counts))
+      print(
+        paste0(length(common_cells),
+          " cells in common between infos and counts"))
       r_features <- which(as.vector(features$id) %in% common_cells)
       r_counts <- which(rownames(counts) %in% common_cells)
       return(list(features = r_features, counts = r_counts))
@@ -53,11 +56,25 @@ scdata <- R6::R6Class("scdata",
     },
     transpose_count = function(counts) {
       counts <- as.matrix(counts)
-      if (nrow(private$features) < ncol(counts)) {
+      if (nrow(private$features) < nrow(counts)) {
         print("transposing counts...")
         return(t(counts))
       }
       return(counts)
+    },
+    display_dim = function(infos, counts) {
+      print(
+        paste0("dim of infos :",
+          nrow(infos),
+          " x ",
+          ncol(infos)
+        ))
+      print(
+        paste0("dim of counts :",
+          nrow(counts),
+          " x ",
+          ncol(counts)
+        ))
     }
     ),
   public = list(
@@ -66,10 +83,13 @@ scdata <- R6::R6Class("scdata",
       private$counts <- private$transpose_count(counts)
       private$genes <- colnames(private$counts)
       private$cells <- rownames(private$counts)
+      private$display_dim(private$features, private$counts)
       if ("id" %in% colnames(private$features)) {
         print("id column found in infos")
-        if (length(intersect(private$cells, as.vector(private$features$id))) !=
-          length(private$cells)) {
+        if (length(intersect(private$cells, as.vector(private$features$id)))
+          == 0) {
+            print(private$cells)
+            print(as.vector(private$features$id))
           stop("error: id's in infos don't match cells name in counts")
         }
         rr_num <- private$get_common_cells(private$features, private$counts)
@@ -92,6 +112,7 @@ scdata <- R6::R6Class("scdata",
       counts <- private$transpose_count(counts)
       genes <- colnames(counts)
       cells <- rownames(counts)
+      private$display_dim(features, counts)
       if (length(intersect(private$cells, cells)) != 0) {
         stop("error: trying to add cells already present")
       }
@@ -100,8 +121,9 @@ scdata <- R6::R6Class("scdata",
       }
       if ("id" %in% colnames(features)) {
         print("id column found in infos")
-        if (length(intersect(cells, as.vector(features$id))) !=
-          length(cells)) {
+        if (length(intersect(cells, as.vector(features$id))) == 0) {
+          print(cells)
+          print(as.vector(features$id))
           stop("error: id's in infos don't match cells name in counts")
         }
       } else {
