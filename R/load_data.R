@@ -266,11 +266,6 @@ load_data <- function(infos, counts, regexp = ".*", ...) {
   }
 }
 
-get_files <- function(counts, regexp) {
-  file_list <- list.files(path = counts, full.names = TRUE, recursive = TRUE)
-  file_list <- file_list[grepl(regexp, file_list, perl = T)]
-  return(file_list)
-}
 
 load_multiple_file <- function(infos, counts, regexp, ...) {
   print(paste0("loading ", infos))
