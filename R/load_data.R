@@ -176,6 +176,34 @@ scdata <- R6::R6Class("scdata",
     getfeatureso = function(cells = NULL, features = NULL) {
       rc_num <- private$get_rc_features(cells = cells, features = features)
       return(private$features[-rc_num$r_num, -rc_num$c_num])
+    },
+    copy = function(
+      cells = NULL, genes = NULL, features = NULL, b_cells = NULL){
+      if (is.null(b_cells)){
+        b_select <- T
+      }
+      return(
+        scdata$new(
+          infos = self$getfeaturesw(
+            cells = cells, features = features)[b_cells, ],
+          counts = self$getcountsw(
+            cells = cells, genes = genesm)[b_cells, ]
+        )
+      )
+    },
+    select = function(
+      cells = NULL, genes = NULL, features = NULL, b_cells = NULL){
+      if (is.null(b_cells)){
+        b_select <- T
+      }
+      return(
+        scdata$new(
+          infos = self$getfeaturesw(
+            cells = cells, features = features)[b_cells, ],
+          counts = self$getcountsw(
+            cells = cells, genes = genesm)[b_cells, ]
+        )
+      )
     }
   ),
   active = list(
