@@ -40,12 +40,32 @@ scRNAtools::QC_paraload_parameters(
   job_boot_number = 50
 )
 
+# launch paraload server
 system("
 bin/paraload --server \
-    --port 13469 \
-    --input results/QC/paraload.csv \
-    --output results/QC/paraload_run.txt \
-    --log results/QC/paraload.log \
-    -r results/QC/paraload_report.txt \
-    --conf results/QC/paraload.csv
+--port 13469 \
+--input results/QC/paraload.csv \
+--output results/QC/paraload_run.txt \
+--log results/QC/paraload.log \
+--report results/QC/paraload_report.txt \
+--conf src/pbs/QC/paraload.csv
+")
+
+# launch paralod clients
+system("
+bin/paraload --client --port 13469 --host pbil-deb
+")
+
+system("
+while [ $(ps -u modolo | grep paraload | wc -l) -gt 0 ]
+do
+stat | wc -l
+iter=$(echo 1000 - $(stat | wc -l) | bc)
+for ((i = 1;i <= $iter;i += 1))
+do
+qsub src/pbs/QC/QC.pbs &
+sleep 0.5
+done
+sleep 3600
+done
 ")
