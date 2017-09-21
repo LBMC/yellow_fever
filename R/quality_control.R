@@ -101,6 +101,7 @@ QC_paraload_parameters <- function(
 #' helper function to run QC in a script
 #'
 #' @param scd_file RData file with an scTools data object 'data' saved in it
+#' @param QC_folder folder where to save QC_boot results
 #' @param Args agument passsed when used within a script
 #' @return write a paraload ready table with the parameters (as line) on which
 #' to run every QC_boot() commands
@@ -108,7 +109,7 @@ QC_paraload_parameters <- function(
 #' \dontrun{
 #' QC_paraload_parameters('results/QC/paraload_file.txt')
 #' }
-#' @export QC_boot
+#' @export QC_pbs
 QC_pbs <- function(scd_file, QC_folder, Args = commandArgs()) {
   if (length(Args) > 4) {
       args        <- utils::read.table(Args[6])

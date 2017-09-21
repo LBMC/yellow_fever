@@ -4,10 +4,12 @@
 \alias{QC_pbs}
 \title{helper function to run QC in a script}
 \usage{
-QC_pbs(scd_file, Args = commandArgs())
+QC_pbs(scd_file, QC_folder, Args = commandArgs())
 }
 \arguments{
 \item{scd_file}{RData file with an scTools data object 'data' saved in it}
+
+\item{QC_folder}{folder where to save QC_boot results}
 
 \item{Args}{agument passsed when used within a script}
 }
