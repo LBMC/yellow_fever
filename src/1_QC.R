@@ -25,12 +25,12 @@ system("rm data/matrix_output/female/single_end/2017_09_15_count_genes_D15_P1373
 
 
 devtools::load_all("../scRNAtools/", reset = T)
-data <- scRNAtools::load_data(
+scd <- scRNAtools::load_data(
   infos = "data/2017_09_14_Summary_SSEQ_170825.csv",
   counts = "data/matrix_output",
   regexp = ".*count_genes.*"
 )
 
-save(data, "results/raw_counts.Rdata")
+save(scd, file = "results/raw_counts.Rdata")
 
 system("mkdir -p results/QC/QC_paraload")
