@@ -13,8 +13,8 @@ ERCC <- function(data, minus = false) {
   return(data$getgenes[grep('ERCC\\.', data$getgenes)])
 }
 
-get_files <- function(counts, regexp) {
-  file_list <- list.files(path = counts, full.names = TRUE, recursive = TRUE)
+get_files <- function(path, regexp) {
+  file_list <- list.files(path = path, full.names = TRUE, recursive = TRUE)
   file_list <- file_list[grepl(regexp, file_list, perl = T)]
   return(file_list)
 }

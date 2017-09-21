@@ -266,11 +266,10 @@ load_data <- function(infos, counts, regexp = ".*", ...) {
   }
 }
 
-
 load_multiple_file <- function(infos, counts, regexp, ...) {
   print(paste0("loading ", infos))
   features <- utils::read.table(infos, fill = T, h = T, ...)
-  files_list <- get_files(counts = counts, regexp = regexp)
+  files_list <- get_files(path = counts, regexp = regexp)
   print(paste0("loading ", files_list[1]))
   data <- scdata$new(
       infos = features,
