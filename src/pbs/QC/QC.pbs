@@ -1,6 +1,6 @@
 #PBS -q q1hour
 #PBS -j oe
-#PBS -o /pandata/modolo/yellow_fever/results/QC/QC_paraload/QC_client.log
+#PBS -o /pandata/modolo/yellow_fever/results/QC/QC_client.log
 #PBS -N task
 #PBS -l pmem=4gb,nodes=1:ppn=1
 #PBS -S /bin/bash
@@ -8,5 +8,5 @@
 
 echo $HOSTNAME
 
-cd /pandata/modolo/yellow_fever/pbs/QC/
-../../bin/paraload --client --port 13469 --host pbil-deb
+cd /pandata/modolo/yellow_fever/
+bin/paraload --client --port 13469 --host pbil-deb
