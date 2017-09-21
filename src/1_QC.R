@@ -35,7 +35,17 @@ save(scd, file = "results/raw_counts.Rdata")
 system("mkdir -p results/QC/QC_paraload")
 
 scRNAtools::QC_paraload_parameters(
-  paraload_file = "results/QC/QC_paraload/paraload.csv",
+  paraload_file = "results/QC/paraload.csv",
   bootstraps = 100000,
   job_boot_number = 50
 )
+
+system("
+bin/paraload --server \
+    --port 13469 \
+    --input results/QC/paraload.csv \
+    --output results/QC/paraload_run.txt \
+    --log results/QC/paraload.log \
+    -r results/QC/paraload_report.txt \
+    --conf results/QC/paraload.csv
+")
