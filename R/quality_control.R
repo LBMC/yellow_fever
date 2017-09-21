@@ -79,8 +79,8 @@ QC_fit <- function(class_labels, counts) {
 #' @export QC_boot
 QC_paraload_parameters <- function(
   paraload_file,
-  bootstraps=500000,
-  job_boot_number=50
+  bootstraps = 500000,
+  job_boot_number = 50
 ) {
   boot_number <- bootstraps / job_boot_number
   print(boot_number)
