@@ -30,7 +30,12 @@ scd <- scRNAtools::load_data(
   counts = "data/matrix_output",
   regexp = ".*count_genes.*"
 )
-
 save(scd, file = "results/raw_counts.Rdata")
 
 system("mkdir -p results/QC/QC_paraload")
+
+scRNAtools::QC_paraload_parameters(
+  paraload_file = "results/QC/QC_paraload/paraload.csv",
+  bootstraps = 100000,
+  job_boot_number = 50
+)
