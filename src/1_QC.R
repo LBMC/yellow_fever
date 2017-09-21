@@ -48,7 +48,7 @@ bin/paraload --server \
 --output results/QC/paraload_run.txt \
 --log results/QC/paraload.log \
 --report results/QC/paraload_report.txt \
---conf src/pbs/QC/paraload.csv
+--conf src/pbs/QC/QC.conf
 ")
 
 # launch paralod clients
