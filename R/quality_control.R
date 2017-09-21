@@ -109,7 +109,7 @@ QC_paraload_parameters <- function(
 #' QC_paraload_parameters('results/QC/paraload_file.txt')
 #' }
 #' @export QC_boot
-QC_pbs <- function(scd_file, Args = commandArgs()) {
+QC_pbs <- function(scd_file, QC_folder, Args = commandArgs()) {
   if (length(Args) > 4) {
       args        <- utils::read.table(Args[6])
       boot_number <- as.numeric(args[2])
@@ -125,8 +125,9 @@ QC_pbs <- function(scd_file, Args = commandArgs()) {
         iter = boot_number,
         sample_size = length(which(scd$getfeature("cell_number") == 0)),
         is_blank = scd$getfeature("cell_number") == 0,
-        output_file = file)
+        output_file = paste0("QC_folder", file))
   }
+  print("QC_pbs done.")
 }
 
 #' helper function for QC for scRNASeq data
