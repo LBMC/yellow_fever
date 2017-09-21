@@ -271,18 +271,18 @@ load_multiple_file <- function(infos, counts, regexp, ...) {
   features <- utils::read.table(infos, fill = T, h = T, ...)
   files_list <- get_files(path = counts, regexp = regexp)
   print(paste0("loading ", files_list[1]))
-  data <- scdata$new(
+  scd <- scdata$new(
       infos = features,
       counts = utils::read.table(files_list[1], h = T, ...)
     )
   for (counts_file in files_list[-1]) {
     print(paste0("loading ", counts_file))
-    data$add(
+    scd$add(
         infos = features,
         counts = utils::read.table(counts_file, h = T, ...)
       )
   }
-  return(data)
+  return(scd)
 }
 
 #' random sample of scRNASeq data

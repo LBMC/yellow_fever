@@ -1,28 +1,29 @@
 #' QC for scRNASeq data
 #'
-#' @param data is a scRNASeq data object
+#' @param scd is a scRNASeq data object
 #' @param iter is the number of bootstrap sample to perform
-#' @param size of the cells sample to draw (the number of blanks for examples)
+#' @param sample_size of the cells sample to draw (the number of blanks for examples)
 #' @param is_blank boolean vector set to TRUE if a cells is a blank
 #' @param output_file if non empty file to save the classification results
 #' @return a list() with the number of time each cells is classied as 'good' (
 #' non is_blank looking) or 'bad' (blank looking)
 #' @examples
 #' \dontrun{
-#' classification <- QC_boot(data, 500000)
+#' classification <- QC_boot(scd, 500000)
 #' }
+#' @importFrom stats predict
 #' @export QC_boot
 QC_boot <- function(
-  data,
+  scd,
   iter,
-  sample_size = length(which(data$getfeature["cell_number"] == 0)),
-  is_blank = data$getfeature["cell_number"] == 0,
+  sample_size = length(which(scd$getfeature["cell_number"] == 0)),
+  is_blank = scd$getfeature["cell_number"] == 0,
   output_file = ""
 ) {
-  cell_id <- 1:data$getncells
+  cell_id <- 1:scd$getncells
   classification <- list(
-    good = rep(0, data$getncells),
-    bad = rep(0, data$getncells))
+    good = rep(0, scd$getncells),
+    bad = rep(0, scd$getncells))
   for (i in 1:iter) {
     print(paste0("iteration ", i))
     # index of non-blank cells to select for the QC_fit
@@ -35,8 +36,8 @@ QC_boot <- function(
     class_labels <- rep(TRUE, sum(selected))
     class_labels[is_blank[selected]] <- FALSE
     # fit
-    fit <- QC_fit(class_labels, data$getcounts[selected, ])
-    prediction <- as.vector(predict(fit, data$getcounts[!selected, ]))
+    fit <- QC_fit(class_labels, scd$getcounts[selected, ])
+    prediction <- as.vector(stats::predict(fit, scd$getcounts[!selected, ]))
     # counts the number of time a given cell is classified as good or bad
     classification$bad[!selected] <- classification$bad[!selected] +
       ifelse(prediction, 0, 1)
@@ -54,7 +55,7 @@ QC_fit <- function(class_labels, counts) {
   class_weights <- 100 / table(as.factor(class_labels))
   return(
     suppressWarnings(
-      svm(
+      e1071::svm(
         x = counts,
         y = as.factor(class_labels),
         kernel = "linear",
@@ -66,9 +67,9 @@ QC_fit <- function(class_labels, counts) {
 
 #' helper function for QC for scRNASeq data
 #'
-#' @param paraload table file
-#' @param total number of bootstrap to perform
-#' @param number of bootstrap per paraload jobs
+#' @param paraload_file paraload table file
+#' @param bootstraps total number of bootstrap to perform
+#' @param job_boot_number  of bootstrap per paraload jobs
 #' @return write a paraload ready table with the parameters (as line) on which
 #' to run every QC_boot() commands
 #' @examples
@@ -89,7 +90,7 @@ QC_paraload_parameters <- function(
                            rep(job_boot_number, boot_number),
                            1:boot_number)
                      )
-  write.table(parameters,
+  utils::write.table(parameters,
     file = paraload_file,
     append = FALSE,
     row.names = FALSE,
@@ -99,9 +100,8 @@ QC_paraload_parameters <- function(
 
 #' helper function to run QC in a script
 #'
-#' @param data_file RData file with an scTools data object 'data' saved in it
-#' @param args
-#' @param number of bootstrap per paraload jobs
+#' @param scd_file RData file with an scTools data object 'data' saved in it
+#' @param Args agument passsed when used within a script
 #' @return write a paraload ready table with the parameters (as line) on which
 #' to run every QC_boot() commands
 #' @examples
@@ -109,29 +109,29 @@ QC_paraload_parameters <- function(
 #' QC_paraload_parameters('results/QC/paraload_file.txt')
 #' }
 #' @export QC_boot
-QC_pbs <- function(data_file, Args = commandArgs()) {
+QC_pbs <- function(scd_file, Args = commandArgs()) {
   if (length(Args) > 4) {
-      args        <- read.table(Args[6])
+      args        <- utils::read.table(Args[6])
       boot_number <- as.numeric(args[2])
       col         <- as.numeric(args[3])
       file        <- Args[7]
       print(date())
-      load(data_file, v = T)
-      genes <- ERCC(data, minus = T)
-      b_cells <- data$getfeature("cell_number") == 1 | \
-        data$getfeature("cell_number") == 0
+      load(scd_file, verbose = T)
+      genes <- ERCC(scd, minus = T)
+      b_cells <- scd$getfeature("cell_number") == 1 |
+        scd$getfeature("cell_number") == 0
       QC_boot(
-        data = data$select(genes = genes, b_cells = b_cells),
+        scd = scd$select(genes = genes, b_cells = b_cells),
         iter = boot_number,
-        sample_size = length(which(data$getfeature("cell_number") == 0)),
-        is_blank = data$getfeature("cell_number") == 0,
+        sample_size = length(which(scd$getfeature("cell_number") == 0)),
+        is_blank = scd$getfeature("cell_number") == 0,
         output_file = file)
   }
 }
 
 #' helper function for QC for scRNASeq data
 #'
-#' @param data scdata object
+#' @param scd scdata object
 #' @param paraload_folder dir where the QC_pbs output are saved
 #' @return return scdata object with a "QC_score" feature
 #' @examples
@@ -139,66 +139,67 @@ QC_pbs <- function(data_file, Args = commandArgs()) {
 #' QC_paraload_parameters('results/QC/paraload_file.txt')
 #' }
 #' @export QC_load_bootstraps
-QC_load_bootstraps <- function(data, paraload_folder) {
-  data$addfeature("QC_score")
+QC_load_bootstraps <- function(scd, paraload_folder) {
+  scd$addfeature("QC_score")
   files_list <- get_files(path = paraload_folder, regexp = "*.Rdata")
-  print(paste0("loading QC results...")
+  print(paste0("loading QC results..."))
   classification_summary <- list(
-    bad = rep(0, data$getncells),
-    good = rep(0, data$getncells)
+    bad = rep(0, scd$getncells),
+    good = rep(0, scd$getncells)
   )
   for (classif_file in files_list) {
     load(classif_file)
-    classification_summary$bad = \
-      classification_summary$bad + calssification$bad
-    classification_summary$good = \
-      classification_summary$good + calssification$good
+    classification_summary$bad =
+      classification_summary$bad + classification$bad
+    classification_summary$good =
+      classification_summary$good + classification$good
   }
-  b_cells <- data$getfeature("cell_number") == 1 | \
-        data$getfeature("cell_number") == 0
-  QC_score <- rep(NA, data$getncells)
-  QC_good <- rep(NA, data$getncells)
-  QC_score[b_cells] <- classification_summary$good / \
+  b_cells <- scd$getfeature("cell_number") == 1 |
+        scd$getfeature("cell_number") == 0
+  QC_score <- rep(NA, scd$getncells)
+  QC_good <- rep(NA, scd$getncells)
+  QC_score[b_cells] <- classification_summary$good /
     (classification_summary$good + classification_summary$bad)
-  data$setfeature("QC_score", QC_score)
-  return(data)
+  scd$setfeature("QC_score", QC_score)
+  return(scd)
 }
 
 #' helper function for QC for scRNASeq data
 #'
-#' @param data scdata object
+#' @param scd scdata object
 #' @param is_blank boolean vector indicating lines where there is not cells
 #' @return return scdata object with a "QC_good" feature
 #' @examples
 #' \dontrun{
-#' QC_classification(data)
+#' QC_classification(scd)
 #' }
+#' @importFrom stats predict
 #' @export QC_classification
 QC_classification <- function(
-  data,
-  is_blank = data$getfeature["cell_number"] == 0
+  scd,
+  is_blank = scd$getfeature["cell_number"] == 0
 ) {
-  data$addfeature("QC_good")
-  cell_id <- 1:data$getncells
+  scd$addfeature("QC_good")
+  cell_id <- 1:scd$getncells
   classification <- list(
-    good = rep(0, data$getncells),
-    bad = rep(0, data$getncells)
+    good = rep(0, scd$getncells),
+    bad = rep(0, scd$getncells)
   )
-  b_cells <- data$getfeature("cell_number") == 1 | \
-        data$getfeature("cell_number") == 0
-  sample_size <- length(which(data$getfeature("cell_number") == 0))
-  is_good <- order(data$getfeature("QC_score"), decreasing = T)[1:sample_size]
+  b_cells <- scd$getfeature("cell_number") == 1 |
+        scd$getfeature("cell_number") == 0
+  sample_size <- length(which(scd$getfeature("cell_number") == 0))
+  is_good <- order(scd$getfeature("QC_score"), decreasing = T)[1:sample_size]
   is_bad <- which(is_blank)
   class_labels <- rep(TRUE, sample_size * 2)
   class_labels[1:sample_size] <- FALSE
-  fit <- QC_fit(class_labels, data$getcounts[c(is_bad, is_good), ])
-  prediction <- as.vector(predict(
+  fit <- QC_fit(class_labels, scd$getcounts[c(is_bad, is_good), ])
+  prediction <- as.vector(stats::predict(
     fit,
-    data$getcounts[which(!(1:data$getncells %in% c(is_bad, is_good))), ]))
-  QC_good <- rep(NA, data$getncells)
+    scd$getcounts[which(!(1:scd$getncells %in% c(is_bad, is_good))), ]))
+  QC_good <- rep(NA, scd$getncells)
   QC_good[is_bad] <- F
   QC_good[is_good] <- T
-  QC_good[which(!(1:data$getncells %in% c(is_bad, is_good))), ])] <- prediction
-  data$setfeature("QC_good", QC_good)
-  return(data)
+  QC_good[which(!(1:scd$getncells %in% c(is_bad, is_good)))] <- prediction
+  scd$setfeature("QC_good", QC_good)
+  return(scd)
 }
