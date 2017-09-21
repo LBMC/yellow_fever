@@ -86,7 +86,7 @@ QC_paraload_parameters <- function(
   print(boot_number)
   parameters <- c()
   parameters <- rbind(parameters,
-                     cbind(rep("SVM", boot_number),
+                     cbind(rep("QC", boot_number),
                            rep(job_boot_number, boot_number),
                            1:boot_number)
                      )
