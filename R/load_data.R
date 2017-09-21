@@ -190,7 +190,7 @@ scdata <- R6::R6Class("scdata",
           infos = self$getfeaturesw(
             cells = cells, features = features)[b_cells, ],
           counts = self$getcountsw(
-            cells = cells, genes = genesm)[b_cells, ]
+            cells = cells, genes = genes)[b_cells, ]
         )
       )
     },
