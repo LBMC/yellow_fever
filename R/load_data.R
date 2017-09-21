@@ -137,9 +137,12 @@ scdata <- R6::R6Class("scdata",
       rr_num <- private$get_common_cells(features, counts)
       features <- features[rr_num$features, ]
       counts <- counts[rr_num$counts, ]
-      private$cells <- c(private$cells, cells)
-      private$counts <- rbind(private$counts, counts)
-      private$features <- rbind(private$features, features)
+      genes <- colnames(counts)
+      cells <- rownames(counts)
+      not_here <- !(cells %in% private$cells)
+      private$cells <- c(private$cells, cells[not_here])
+      private$counts <- rbind(private$counts, counts[not_here, ])
+      private$features <- rbind(private$features, features[not_here, ])
       private$order_by_cells()
     },
     summary = function() {
