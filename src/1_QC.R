@@ -24,11 +24,11 @@ system("rm data/matrix_output/female/single_end/2017_09_15_count_genes_D15_P1373
 system("rm data/matrix_output/female/single_end/2017_09_15_count_genes_D15_P1373_YFV2003_new.tsv")
 
 
-devtools::load_all("../scRNAtools/", reset = T)
 scd <- scRNAtools::load_data(
   infos = "data/2017_09_14_Summary_SSEQ_170825.csv",
   counts = "data/matrix_output",
-  regexp = ".*count_genes.*"
+  regexp = ".*count_genes.*",
+  infos_sep = ","
 )
 save(scd, file = "results/raw_counts.Rdata")
 
@@ -37,7 +37,7 @@ system("mkdir -p results/QC/QC_paraload")
 scRNAtools::QC_paraload_parameters(
   paraload_file = "results/QC/paraload.csv",
   bootstraps = 100000,
-  job_boot_number = 50
+  job_boot_number = 5
 )
 
 # launch paraload server
@@ -69,3 +69,14 @@ done
 sleep 3600
 done
 ")
+
+scRNAtools::QC_load_bootstraps(
+  scd = scd,
+  paraload_folder = "results/QC/QC_paraload/"
+)
+hist(scd$getfeature("QC_score"))
+
+devtools::load_all("../scRNAtools/", reset = T)
+scRNAtools::QC_classification(scd)
+
+table(scd$getfeature("QC_good"))
