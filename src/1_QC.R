@@ -60,12 +60,13 @@ system("
 while [ $(ps -u modolo | grep paraload | wc -l) -gt 0 ]
 do
 stat | wc -l
-iter=$(echo 200 - $(qstat -u modolo | wc -l) | bc)
+iter=$(echo 200 - $(qstat -u modolo | grep -e \"[RQ]\" | wc -l) | bc)
 for ((i = 1;i <= $iter;i += 1))
 do
 qsub src/pbs/QC/QC.pbs &
+/bin/sleep 0.5
 done
-sleep 3600
+/bin/sleep 3600
 done
 ")
 
@@ -75,7 +76,12 @@ scRNAtools::QC_load_bootstraps(
 )
 hist(scd$getfeature("QC_score"))
 
-devtools::load_all("../scRNAtools/", reset = T)
 scRNAtools::QC_classification(scd)
 
 table(scd$getfeature("QC_good"))
+
+devtools::load_all("../scRNAtools/", reset = T)
+check_gene(scd, "CCR7", "sex")
+scd_QC <- scd$select(b_cells = scd$getfeature("QC_good") == T)
+
+check_gene(scd_QC, "CCR7", "sex")
