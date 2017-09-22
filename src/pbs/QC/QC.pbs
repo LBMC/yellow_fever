@@ -9,4 +9,5 @@
 echo $HOSTNAME
 
 cd /pandata/modolo/yellow_fever/
+Rscript --version
 bin/paraload --client --port 13469 --host pbil-deb
