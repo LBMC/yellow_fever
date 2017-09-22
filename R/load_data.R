@@ -268,12 +268,15 @@ scdata <- R6::R6Class("scdata",
 #' data <- load_data('data/infos.csv', 'data/counts.csv')
 #' }
 #' @export load_data
-load_data <- function(infos, counts, regexp = ".*", ...) {
+load_data <- function(
+  infos, counts, regexp = ".*", infos_sep = "", counts_sep = "", ...) {
   if (base::file.info(counts)$isdir) {
     return(load_multiple_file(
       infos = infos,
       counts = counts,
       regexp = regexp,
+      infos_sep = infos_sep,
+      counts_sep = counts_sep,
       ...
       )
     )
@@ -281,27 +284,28 @@ load_data <- function(infos, counts, regexp = ".*", ...) {
     print(paste0("loading ", infos))
     print(paste0("loading ", counts))
     return(scdata$new(
-        infos = utils::read.table(infos, fill = T, h = T, ...),
-        counts = utils::read.table(counts, h = T, ...)
+        infos = utils::read.table(infos, fill = T, h = T, sep = infos_sep, ...),
+        counts = utils::read.table(counts, h = T, sep = counts_sep, ...)
       )
     )
   }
 }
 
-load_multiple_file <- function(infos, counts, regexp, ...) {
+load_multiple_file <- function(
+  infos, counts, regexp, infos_sep = "", counts_sep = "", ...) {
   print(paste0("loading ", infos))
-  features <- utils::read.table(infos, fill = T, h = T, ...)
+  features <- utils::read.table(infos, fill = T, h = T, sep = infos_sep, ...)
   files_list <- get_files(path = counts, regexp = regexp)
   print(paste0("loading ", files_list[1]))
   scd <- scdata$new(
       infos = features,
-      counts = utils::read.table(files_list[1], h = T, ...)
+      counts = utils::read.table(files_list[1], h = T, sep = counts_sep, ...)
     )
   for (counts_file in files_list[-1]) {
     print(paste0("loading ", counts_file))
     scd$add(
         infos = features,
-        counts = utils::read.table(counts_file, h = T, ...)
+        counts = utils::read.table(counts_file, h = T, sep = counts_sep, ...)
       )
   }
   return(scd)
