@@ -9,12 +9,17 @@
 #' data = data$select(genes = genes)
 #' }
 #' @export ERCC
-ERCC <- function(data, minus = FALSE) {
-  return(data$getgenes[grep('ERCC\\.', data$getgenes)])
+ERCC <- function(scd, minus = FALSE) {
+  if (minus){
+    return(scd$getgenes[!grepl("ERCC\\.", scd$getgenes)])
+  }
+  return(scd$getgenes[grepl("ERCC\\.", scd$getgenes)])
 }
 
 get_files <- function(path, regexp) {
-  file_list <- base::list.files(path = path, full.names = TRUE, recursive = TRUE)
+  file_list <- base::list.files(
+    path = path, full.names = TRUE, recursive = TRUE
+  )
   file_list <- file_list[grepl(regexp, file_list, perl = T)]
   return(file_list)
 }
