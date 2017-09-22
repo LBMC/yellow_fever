@@ -13,30 +13,26 @@ scdata <- R6::R6Class("scdata",
     features = NULL, # a data.frame of cells features
     # private method to get position of cells and genes in rows and columns
     get_rc_counts = function(cells = NULL, genes = NULL) {
-      c_num <- 1:length(private$genes)
+      c_num <- 1:self$getngenes
       if (!is.null(genes)) {
         c_num <- which(private$genes %in% genes)
       }
-      r_num <- 1:length(private$cells)
+      r_num <- 1:self$getncells
       if (!is.null(cells)) {
         r_num <- which(private$cells %in% cells)
       }
-      cat(paste0("ncol: ", length(c_num), ".\n"))
-      cat(paste0("nrow: ", length(r_num), ".\n"))
       return(list(c_num = c_num, r_num = r_num))
     },
     # private method to get position of cells and features in rows and columns
     get_rc_features = function(cells = NULL, features = NULL) {
-      c_num <- 1:length(private$features)
+      c_num <- 1:self$getnfeatures
       if (!is.null(features)) {
         c_num <- which(colnames(private$features) %in% features)
       }
-      r_num <- 1:length(private$cells)
+      r_num <- 1:self$getncells
       if (!is.null(cells)) {
         r_num <- which(private$cells %in% cells)
       }
-      cat(paste0("ncol: ", length(c_num), ".\n"))
-      cat(paste0("nrow: ", length(r_num), ".\n"))
       return(list(c_num = c_num, r_num = r_num))
     },
     # private method to get position of cells in common between features and
@@ -51,9 +47,27 @@ scdata <- R6::R6Class("scdata",
       return(list(features = r_features, counts = r_counts))
     },
     order_by_cells = function() {
-      private$counts <- private$counts[order(private$cells), ]
-      private$features <- private$features[order(private$cells), ]
-      private$cells <- private$cells[order(private$cells)]
+      if (nrow(private$counts) == length(private$cells)) {
+        private$counts <- private$counts[order(private$cells), ]
+      } else {
+          stop(paste0(
+            "error: number of cells (",
+            length(private$cells),
+            ") don't match number of counts rows (",
+            nrow(private$counts),
+          ")"))
+      }
+      if (nrow(private$features) == length(private$cells)) {
+        private$features <- private$features[order(self$getfeature("id")), ]
+      } else {
+          stop(paste0(
+            "error: number of cells (",
+            length(private$cells),
+            ") don't match number of feature rows (",
+            nrow(private$features),
+          ")"))
+      }
+      private$cells <- rownames(private$counts)
     },
     transpose_count = function(counts) {
       counts <- as.matrix(counts)
@@ -97,6 +111,9 @@ scdata <- R6::R6Class("scdata",
         private$features <- private$features[rr_num$features, ]
         private$counts <- private$counts[rr_num$counts, ]
         private$order_by_cells()
+        if (any(private$getfeature['id'] != private$cells) ){
+          stop("error : features order don't match counts order")
+        }
       } else {
         if (nrow(private$features) != nrow(private$counts)) {
           stop(
@@ -144,6 +161,9 @@ scdata <- R6::R6Class("scdata",
       private$counts <- rbind(private$counts, counts[not_here, ])
       private$features <- rbind(private$features, features[not_here, ])
       private$order_by_cells()
+      if (any(private$getfeature['id'] != private$cells) ){
+        stop("error : features order don't match counts order")
+      }
     },
     summary = function() {
       cat(paste0("ncol: ", ncol(private$counts), ".\n"))
@@ -196,17 +216,13 @@ scdata <- R6::R6Class("scdata",
     },
     select = function(
       cells = NULL, genes = NULL, features = NULL, b_cells = NULL){
-      if (is.null(b_cells)){
-        b_select <- T
-      }
       return(
-        scdata$new(
-          infos = self$getfeaturesw(
-            cells = cells, features = features)[b_cells, ],
-          counts = self$getcountsw(
-            cells = cells, genes = genes)[b_cells, ]
-        )
-      )
+        self$copy(
+          cells = cells,
+          genes =  genes,
+          features = features,
+          b_cells = b_cells
+      ))
     }
   ),
   active = list(
@@ -228,6 +244,9 @@ scdata <- R6::R6Class("scdata",
     },
     getngenes = function() {
       return(length(private$genes))
+    },
+    getnfeatures = function() {
+      return(ncol(private$features))
     }
   )
 )
