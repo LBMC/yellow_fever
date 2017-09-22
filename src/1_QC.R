@@ -37,7 +37,7 @@ system("mkdir -p results/QC/QC_paraload")
 scRNAtools::QC_paraload_parameters(
   paraload_file = "results/QC/paraload.csv",
   bootstraps = 100000,
-  job_boot_number = 5
+  job_boot_number = 50
 )
 
 # launch paraload server
@@ -60,11 +60,10 @@ system("
 while [ $(ps -u modolo | grep paraload | wc -l) -gt 0 ]
 do
 stat | wc -l
-iter=$(echo 1000 - $(stat | wc -l) | bc)
+iter=$(echo 200 - $(qstat -u modolo | wc -l) | bc)
 for ((i = 1;i <= $iter;i += 1))
 do
 qsub src/pbs/QC/QC.pbs &
-sleep 0.5
 done
 sleep 3600
 done
