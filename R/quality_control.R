@@ -76,7 +76,7 @@ QC_fit <- function(class_labels, counts) {
 #' \dontrun{
 #' QC_paraload_parameters('results/QC/paraload_file.txt')
 #' }
-#' @export QC_boot
+#' @export QC_paraload_parameters
 QC_paraload_parameters <- function(
   paraload_file,
   bootstraps = 500000,
@@ -167,10 +167,7 @@ QC_load_bootstraps <- function(scd, paraload_folder, rt_result = F) {
     classification_summary$good[b_cells] =
       classification_summary$good[b_cells] + classification$good
   }
-  b_cells <- scd$getfeature("cell_number") == 1 |
-        scd$getfeature("cell_number") == 0
   QC_score <- rep(NA, scd$getncells)
-  QC_good <- rep(NA, scd$getncells)
   QC_score[b_cells] <- classification_summary$good[b_cells] /
     (classification_summary$good[b_cells] + classification_summary$bad[b_cells])
   QC_score[scd$getfeature("cell_number") == 0] <- 0
@@ -218,6 +215,10 @@ QC_classification <- function(
   QC_good[is_bad] <- F
   QC_good[is_good] <- T
   QC_good[which(!(1:scd$getncells %in% c(is_bad, is_good)))] <- prediction
+  print(length(QC_good))
+  print(length(is_bad))
+  print(length(is_good))
+  print(length(prediction))
   scd$setfeature("QC_good", QC_good)
   if (rt_result){
     return(scd)
