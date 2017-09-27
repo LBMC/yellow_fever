@@ -103,8 +103,8 @@ scdata <- R6::R6Class("scdata",
         print("id column found in infos")
         if (length(intersect(private$cells, as.vector(private$features$id)))
           == 0) {
-            print(private$cells)
-            print(as.vector(private$features$id))
+          print(private$cells)
+          print(as.vector(private$features$id))
           stop("error: id's in infos don't match cells name in counts")
         }
         rr_num <- private$get_common_cells(private$features, private$counts)
@@ -135,11 +135,15 @@ scdata <- R6::R6Class("scdata",
         stop("error: trying to add cells already present")
       }
       if (length(intersect(private$genes, genes)) != length(private$genes)) {
+        print(private$cells)
+        print(as.vector(private$features$id))
         stop("error: genes set don't match existing genes set")
       }
       if ("id" %in% colnames(features)) {
         print("id column found in infos")
         if (length(intersect(cells, as.vector(features$id))) == 0) {
+          print(private$cells)
+          print(as.vector(private$features$id))
           stop("error: id's in infos don't match cells name in counts")
         }
       } else {
@@ -203,7 +207,7 @@ scdata <- R6::R6Class("scdata",
     copy = function(
       cells = NULL, genes = NULL, features = NULL, b_cells = NULL){
       if (is.null(b_cells)){
-        b_select <- T
+        b_cells <- T
       }
       return(
         scdata$new(
