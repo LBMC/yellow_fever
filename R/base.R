@@ -64,3 +64,57 @@ ascb <- function(x, to_zero=TRUE, na.rm=FALSE){
   }
   return(anscombe(x))
 }
+
+#' factorize a vector or data.frame
+#'
+#' @param x vector data.frame to vectorize
+#' @param columns number to vectorize in case of a data.frame
+#' @return return x with as.factor(as.vector(x)) applied
+#' @examples
+#' \dontrun{
+#' x = factorize(x)
+#' }
+#' @export factorize
+factorize <- function(x, columns) {
+  if(is.null(ncol(x))){
+    return(as.factor(as.vector(x)))
+  }else{
+    if(missing(columns)) {
+      for(i in seq_len(ncol(x))) {
+        x[,i] <- as.factor(as.vector(x[,i]))
+      }
+    } else {
+      for(i in columns) {
+        x[,i] <- as.factor(as.vector(x[,i]))
+      }
+    }
+    return(x)
+  }
+}
+
+#' vectorize a vector or data.frame
+#'
+#' @param x vector data.frame to vectorize
+#' @param columns number to vectorize in case of a data.frame
+#' @return return x with as.numeric(as.vector(x)) applied
+#' @examples
+#' \dontrun{
+#' x = vectorize(x)
+#' }
+#' @export vectorize
+vectorize <- function(x, columns) {
+  if(is.null(ncol(x))){
+    return(as.numeric(as.vector(x)))
+  }else{
+    if(missing(columns)) {
+      for(i in seq_len(ncol(x))) {
+        x[,i] <- as.numeric(as.vector(x[,i]))
+      }
+    } else {
+      for(i in columns) {
+        x[,i] <- as.numeric(as.vector(x[,i]))
+      }
+    }
+    return(x)
+  }
+}
