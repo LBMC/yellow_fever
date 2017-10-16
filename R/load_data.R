@@ -219,7 +219,7 @@ scdata <- R6::R6Class("scdata",
       )
     },
     select = function(
-      cells = NULL, genes = NULL, features = NULL, b_cells = NULL){
+      cells = NULL, genes = NULL, features = NULL, b_cells = NULL) {
       return(
         self$copy(
           cells = cells,
@@ -227,6 +227,18 @@ scdata <- R6::R6Class("scdata",
           features = features,
           b_cells = b_cells
       ))
+    },
+    order = function(cells = NULL, genes = NULL) {
+      if (!is.null(cells)) {
+        private$features <- private$features[cells, ]
+        private$counts <- private$counts[cells, ]
+
+      }
+      if (!is.null(genes)) {
+        private$counts <- private$counts[, genes]
+      }
+      private$genes <- colnames(private$counts)
+      private$cells <- rownames(private$counts)
     }
   ),
   active = list(
