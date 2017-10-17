@@ -239,6 +239,9 @@ scdata <- R6::R6Class("scdata",
       }
       private$genes <- colnames(private$counts)
       private$cells <- rownames(private$counts)
+    },
+    transform = function(FUN = function(x){x}) {
+      private$counts <- FUN(private$counts)
     }
   ),
   active = list(
