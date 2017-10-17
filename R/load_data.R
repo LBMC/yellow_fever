@@ -242,6 +242,16 @@ scdata <- R6::R6Class("scdata",
     },
     transform = function(FUN = function(x){x}) {
       private$counts <- FUN(private$counts)
+    },
+    update = function(counts = NULL, features = NULL) {
+      if (!is.null(counts)) {
+        private$counts <- counts
+        private$genes <- colnames(private$counts)
+        private$cells <- rownames(private$counts)
+      }
+      if (!is.null(features)) {
+        private$features <- features
+      }
     }
   ),
   active = list(
