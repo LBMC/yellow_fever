@@ -76,16 +76,16 @@ ascb <- function(x, to_zero=TRUE, na.rm=FALSE){
 #' }
 #' @export factorize
 factorize <- function(x, columns) {
-  if(is.null(ncol(x))){
+  if (is.null(ncol(x))) {
     return(as.factor(as.vector(x)))
-  }else{
-    if(missing(columns)) {
-      for(i in seq_len(ncol(x))) {
-        x[,i] <- as.factor(as.vector(x[,i]))
+  } else {
+    if (missing(columns)) {
+      for (i in seq_len(ncol(x))) {
+        x[, i] <- as.factor(as.vector(x[,i]))
       }
     } else {
-      for(i in columns) {
-        x[,i] <- as.factor(as.vector(x[,i]))
+      for (i in columns) {
+        x[, i] <- as.factor(as.vector(x[,i]))
       }
     }
     return(x)
@@ -103,16 +103,16 @@ factorize <- function(x, columns) {
 #' }
 #' @export vectorize
 vectorize <- function(x, columns) {
-  if(is.null(ncol(x))){
+  if (is.null(ncol(x))){
     return(as.numeric(as.vector(x)))
-  }else{
-    if(missing(columns)) {
-      for(i in seq_len(ncol(x))) {
-        x[,i] <- as.numeric(as.vector(x[,i]))
+  } else {
+    if( missing(columns)) {
+      for (i in seq_len(ncol(x))) {
+        x[, i] <- as.numeric(as.vector(x[,i]))
       }
     } else {
-      for(i in columns) {
-        x[,i] <- as.numeric(as.vector(x[,i]))
+      for (i in columns) {
+        x[, i] <- as.numeric(as.vector(x[,i]))
       }
     }
     return(x)
