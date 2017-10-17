@@ -167,3 +167,37 @@ bca_loading <- function(scd, by, norm_by, ncomp=5, cells_l=FALSE, loading = F){
   }
   return(results)
 }
+
+#' compute wca normalized pca
+#' @param x vector data.frame to vectorize
+#' @param by a factor defining the groups
+#' @param keep_zero (default=FALSE) should the zero values be keept
+#' @return return cells coordinates normalized for 'by' variance
+#' @examples
+#' \dontrun{
+#' x = wca_loading(scd, scd$getfeature("sex"))
+#' }
+#' @import ade4
+#' @export wca_norm
+wca_norm <- function(scd, by, ncomp=2, keep_zero=FALSE){
+  pca_out <- dudi.pca(scd$getcounts,
+                      scan = F,
+                      nf = scd$getngenes - 1)
+  if (is.null(ncol(by))){
+    wca_out <- wca(pca_out,
+                   factorize(by),
+                   scan = F,
+                   nf = ncomp)
+  } else {
+    for (i in seq_len(ncol(by))){
+      wca_out <- wca(pca_out,
+                   factorize(by[, i]),
+                   scan = F,
+                   nf = ncomp)
+    }
+  }
+  if (keep_zero){
+    wca_out$tab[scd$getcounts == 0] <- 0
+  }
+  return(wca_out$tab)
+}
