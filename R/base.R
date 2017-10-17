@@ -118,3 +118,52 @@ vectorize <- function(x, columns) {
     return(x)
   }
 }
+
+#' compute bca loading
+#'
+#' @param x vector data.frame to vectorize
+#' @param by a factor defining the groups
+#' @param norm_by a factor defining the groups with want to normalize
+#' @param ncomp (default=5) number of component to compute
+#' @param cells_l (default=FALSE) shall the cells loading be also returned
+#' @param loading (default=FALSE) return only the genes contribution to the axes
+#' @return return a matrix of cells coordinates or a list including this matrix
+#' @examples
+#' \dontrun{
+#' x = bca_loading(scd, scd$getfeature("sex"))
+#' }
+#' @import ade4
+#' @export bca_loading
+bca_loading <- function(scd, by, norm_by, ncomp=5, cells_l=FALSE, loading = F){
+  by <- scRNAtools::factorize(by)
+  pca_out <- dudi.pca(scd$getcounts,
+                      scan = F,
+                      nf = ncomp)
+  if (!missing(norm_by)){
+    norm_by <- factorize(norm_by)
+    wca_out <- wca(pca_out,
+                   as.factor(as.vector(norm_by)),
+                   scan = F,
+                   nf = ncomp)
+    pca_out <- dudi.pca(wca_out$tab,
+                        scan = F,
+                        nf = ncomp)
+  }
+  bca_out <- bca(pca_out,
+                 by,
+                 scan = F,
+                 nf = ncomp)
+  if (loading){
+    return(bca_out$c1)
+  }
+  gene_order <- order(abs(bca_out$c1[, 1]), decreasing = TRUE)
+  results <- as.data.frame(bca_out$c1[gene_order, ])
+  rownames(results) <- scd$getgenes
+  names(results) <- names(bca_out$c1)[gene_order]
+  if (cells_l){
+    return(list(res = results,
+                cells_l = bca_out$ls,
+                c1 = bca_out$c1))
+  }
+  return(results)
+}
