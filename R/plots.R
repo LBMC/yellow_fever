@@ -572,7 +572,6 @@ plot_2_axes <- function(scd, x, y, color = NULL, shape = NULL, size = NULL,
 #' \dontrun{
 #' check_gene(scd, "genes_a", "sexe")
 #' }
-#' @import ggplot2
 #' @import ade4 ggplot2 gplots RColorBrewer
 #' @export bca_plot
 bca_plot <- function(scd, by, color, ncomp=2, top, n_groups, n_cells, norm_by,

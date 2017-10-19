@@ -360,3 +360,58 @@ random_sample_data <- function(data, number, replace = FALSE) {
     )
   return(rdata)
 }
+
+#' load scRNASeq data
+#'
+#' @param infos a tabular csv file that contains information on the cells
+#' @param counts path to kallisto quant.sf output
+#' @param id_regexp a regular expression caputing the id of the cells in the
+#' salmon folder output paths
+#' @param ERCC_regexp a regular expression caputing genes names of the ERCC
+#' @param ... additional argument to be passed to read.table function
+#' @return scdata object
+#' @examples
+#' \dontrun{
+#' data <- load_data_salmon('data/infos.csv', 'data/salmon_output')
+#' }
+#' @import tximport readr
+#' @export load_data_salmon
+load_data_salmon <- function(
+  infos, counts,
+  id_regexp = ".*_(P[0-9]{4}_[^_]+)_.*",
+  ERCC_regexp = "^ERCC.*") {
+
+  dir_list <- list.dirs(folder)
+  dir_list <- paste0(dir_list, "/quant.sf")
+  names(dir_list) <- gsub(id_regexp, "\\1", dir_list, perl = T)
+  dir_list <- dir_list[grepl(id_regexp, names(dir_list))]
+  scd_paired <- tximport(dir_list, type = "none", txOut = TRUE,
+    txIdCol = "Name", abundanceCol = "TPM", countsCol = "NumReads",
+    lengthCol = "Length")
+
+  scd_paired_name <- unlist(sapply(
+    rownames(scd_paired$counts),
+    FUN = function(x){
+      if (grepl(ERCC_regexp, x, perl = TRUE)){
+        return(x)
+      } else {
+        return(unlist(strsplit(x, "|", fixed = T))[6])
+      }
+    }
+  ))
+
+  count_list <- by(
+    data = scd_paired$counts,
+    INDICES = as.factor(scd_paired_name),
+    FUN = colSums)
+  counts <- data.frame(matrix(
+    unlist(count_list),
+    nrow = length(count_list),
+    byrow = T))
+  rownames(counts) <- rownames(count_list)
+  colnames(counts) <- colnames(scd_paired$counts)
+  return(scdata$new(
+    infos = utils::read.table(infos, fill = T, h = T, sep = infos_sep, ...),
+    counts = counts
+  ))
+}

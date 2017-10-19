@@ -4,7 +4,8 @@
 \alias{load_data}
 \title{load scRNASeq data}
 \usage{
-load_data(infos, counts, regexp = ".*", ...)
+load_data(infos, counts, regexp = ".*", infos_sep = "", counts_sep = "",
+  ...)
 }
 \arguments{
 \item{infos}{a text tabular information file on cells with cells in rows and

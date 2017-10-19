@@ -4,12 +4,12 @@
 \alias{ERCC}
 \title{Select ERCC from gene list}
 \usage{
-ERCC(data, minus = FALSE)
+ERCC(scd, minus = FALSE)
 }
 \arguments{
-\item{data}{scdata object}
-
 \item{minus}{(default: false) if true return non ERCC}
+
+\item{data}{scdata object}
 }
 \value{
 return a vector of ERCC gene names

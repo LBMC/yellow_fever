@@ -4,8 +4,8 @@
 \alias{QC_boot}
 \title{QC for scRNASeq data}
 \usage{
-QC_boot(scd, iter, sample_size = length(which(scd$getfeature["cell_number"] ==
-  0)), is_blank = scd$getfeature["cell_number"] == 0, output_file = "")
+QC_boot(scd, iter, sample_size = length(which(scd$getfeature("cell_number") ==
+  0)), is_blank = scd$getfeature("cell_number") == 0, output_file = "")
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}

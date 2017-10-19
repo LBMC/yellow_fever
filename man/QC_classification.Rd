@@ -4,7 +4,8 @@
 \alias{QC_classification}
 \title{helper function for QC for scRNASeq data}
 \usage{
-QC_classification(scd, is_blank = scd$getfeature["cell_number"] == 0)
+QC_classification(scd, is_blank = scd$getfeature("cell_number") == 0,
+  rt_result = F)
 }
 \arguments{
 \item{scd}{scdata object}

@@ -4,7 +4,7 @@
 \alias{QC_load_bootstraps}
 \title{helper function for QC for scRNASeq data}
 \usage{
-QC_load_bootstraps(scd, paraload_folder)
+QC_load_bootstraps(scd, paraload_folder, rt_result = F)
 }
 \arguments{
 \item{scd}{scdata object}
