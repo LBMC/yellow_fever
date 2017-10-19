@@ -367,6 +367,7 @@ random_sample_data <- function(data, number, replace = FALSE) {
 #' @param counts path to kallisto quant.sf output
 #' @param id_regexp a regular expression caputing the id of the cells in the
 #' salmon folder output paths
+#' @param id_regexp_b a regular expression match the path of the quant.sf files
 #' @param ERCC_regexp a regular expression caputing genes names of the ERCC
 #' @param ... additional argument to be passed to read.table function
 #' @return scdata object
@@ -379,12 +380,13 @@ random_sample_data <- function(data, number, replace = FALSE) {
 load_data_salmon <- function(
   infos, counts,
   id_regexp = ".*_(P[0-9]{4}_[^_]+)_.*",
+  id_regexp_b = "P[0-9]{4}_[^_]",
   ERCC_regexp = "^ERCC.*") {
 
-  dir_list <- list.dirs(folder)
+  dir_list <- list.dirs(counts)
   dir_list <- paste0(dir_list, "/quant.sf")
   names(dir_list) <- gsub(id_regexp, "\\1", dir_list, perl = T)
-  dir_list <- dir_list[grepl(id_regexp, names(dir_list))]
+  dir_list <- dir_list[grepl(id_regexp_b, names(dir_list))]
   scd_paired <- tximport(dir_list, type = "none", txOut = TRUE,
     txIdCol = "Name", abundanceCol = "TPM", countsCol = "NumReads",
     lengthCol = "Length")
