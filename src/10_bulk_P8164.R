@@ -42,6 +42,9 @@ sum(res$padj < 0.05, na.rm=TRUE)
 
 DE_genes <- rownames(res)[res$padj < 0.05 & !is.na(res$padj)]
 
+genes_to_excludes <- read.table("data/P8164_Bulk_genes_to_exlude.csv", h = T)
+DE_genes <- DE_genes[!(DE_genes %in% genes_to_excludes)]
+
 devtools::load_all("../scRNAtools/", reset = T)
 pca_plot(bcd$select(b_cells = b_cells, genes = DE_genes), color="clonality",
   color_name = "clonality")
