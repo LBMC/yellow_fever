@@ -26,8 +26,6 @@ countData <- t(round(
       genes = ERCC(bcd, minus = T))$getcounts))
 colData <- bcd$select(b_cells = b_cells)$getfeatures
 
-table(as.factor(as.vector(bcd$select(b_cells = b_cells)$getfeature("clonality"))))
-
 dds <- DESeqDataSetFromMatrix(
   countData = countData,
   colData = colData,
@@ -35,6 +33,9 @@ dds <- DESeqDataSetFromMatrix(
 dds <- dds[ rowSums(counts(dds)) > 1, ]
 dds <- DESeq(dds, test="LRT", reduced=~1)
 res <- results(dds)
+
+save(res, file = "results/P8164_DEA.Rdata")
+load(file = "results/P8164_DEA.Rdata")
 
 write.table(res, file = paste0(results_folder, "/DE_genes.csv"))
 
@@ -58,3 +59,35 @@ ggsave(
   paste0(results_folder, "bca_DE_genes.pdf"),
   width = 20, height = 15, units = "cm", dpi = 1200
 )
+
+# 1 vs all comparison
+res_1vall <- list()
+colData <- bcd$select(b_cells = b_cells)$getfeatures
+
+for (clone in levels(factorize(bcd$select(b_cells = b_cells)$getfeature("clonality")))) {
+
+  print(clone)
+  colData <- cbind(
+    colData,
+    as.factor(
+      ifelse(colData$clonality %in% clone, clone, "others")
+    )
+  )
+  colnames(colData) <- c(
+    colnames(colData)[1:ncol(colData)-1],
+    gsub(" ", "_", clone)
+  )
+  dds <- DESeqDataSetFromMatrix(
+    countData = countData,
+    colData = colData,
+    design = as.formula(paste("~", gsub(" ", "_", clone))))
+  dds <- dds[ rowSums(counts(dds)) > 1,   ]
+  dds <- DESeq(dds, test="LRT", reduced=~1)
+  res_1vall[[clone]] <- results(dds)
+
+}
+
+length(res_1vall)
+
+save(res_1vall, file = "results/P8164_DEA_1vall.Rdata")
+load(file = "results/P8164_DEA_1vall.Rdata")
