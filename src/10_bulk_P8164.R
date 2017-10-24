@@ -1,6 +1,7 @@
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
+genes_to_excludes <- read.table("data/P8164_Bulk_genes_to_exlude.csv", h = T)
 
 results_folder <- "results/P8164_bulk/"
 system(paste0("mkdir -p ", results_folder))
@@ -13,8 +14,8 @@ bcd <- scRNAtools::load_data(
   regexp = ".*counts_genes.*",
   infos_sep = ","
 )
-save(bcd, file = "results/P8164_Bulk_raw_counts.Rdata")
-load("results/P8164_Bulk_raw_counts.Rdata")
+save(bcd, file = paste0(results_folder, "P8164_Bulk_raw_counts.Rdata"))
+load(paste0(results_folder, "P8164_Bulk_raw_counts.Rdata"))
 
 library(DESeq2)
 
@@ -34,16 +35,14 @@ dds <- dds[ rowSums(counts(dds)) > 1, ]
 dds <- DESeq(dds, test="LRT", reduced=~1)
 res <- results(dds)
 
-save(res, file = "results/P8164_DEA.Rdata")
-load(file = "results/P8164_DEA.Rdata")
+save(res, file = paste0(results_folder, "P8164_DEA.Rdata"))
+load(file = paste0(results_folder, "P8164_DEA.Rdata"))
 
 write.table(res, file = paste0(results_folder, "/DE_genes.csv"))
 
 sum(res$padj < 0.05, na.rm=TRUE)
 
 DE_genes <- rownames(res)[res$padj < 0.05 & !is.na(res$padj)]
-
-genes_to_excludes <- read.table("data/P8164_Bulk_genes_to_exlude.csv", h = T)
 DE_genes <- DE_genes[!(DE_genes %in% genes_to_excludes)]
 
 devtools::load_all("../scRNAtools/", reset = T)
@@ -64,8 +63,8 @@ ggsave(
 res_1vall <- list()
 colData <- bcd$select(b_cells = b_cells)$getfeatures
 
-for (clone in levels(factorize(bcd$select(b_cells = b_cells)$getfeature("clonality")))) {
-
+for (clone in
+  levels(factorize(bcd$select(b_cells = b_cells)$getfeature("clonality")))) {
   print(clone)
   colData <- cbind(
     colData,
@@ -84,10 +83,30 @@ for (clone in levels(factorize(bcd$select(b_cells = b_cells)$getfeature("clonali
   dds <- dds[ rowSums(counts(dds)) > 1,   ]
   dds <- DESeq(dds, test="LRT", reduced=~1)
   res_1vall[[clone]] <- results(dds)
-
 }
 
 length(res_1vall)
 
-save(res_1vall, file = "results/P8164_DEA_1vall.Rdata")
-load(file = "results/P8164_DEA_1vall.Rdata")
+save(res_1vall, file = paste0(results_folder, "P8164_DEA_1vall.Rdata"))
+load(file = paste0(results_folder, "P8164_DEA_1vall.Rdata"))
+
+
+DE_genes <- data.frame()
+for (clone in
+  levels(factorize(bcd$select(b_cells = b_cells)$getfeature("clonality")))) {
+  print(clone)
+  DE_genes_clone <- res_1vall[[clone]][
+      res_1vall[[clone]][["padj"]] < 0.05 &
+      !is.na(res_1vall[[clone]][["padj"]])
+    , ]
+  DE_genes_clone$clone <- clone
+  if (nrow(DE_genes) != 0) {
+    DE_genes <- rbind(
+      DE_genes,
+      DE_genes_clone
+    )
+  } else {
+    DE_genes <- DE_genes_clone
+  }
+}
+write.table(DE_genes, file = paste0(results_folder, "/DE_genes_1vsall.csv"))
