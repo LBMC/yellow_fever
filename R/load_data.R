@@ -103,13 +103,13 @@ scdata <- R6::R6Class("scdata",
         print("id column found in infos")
         if (length(intersect(private$cells, as.vector(private$features$id)))
           == 0) {
-          print(private$cells)
-          print(as.vector(private$features$id))
+          print(setdiff(private$cells, as.vector(private$features$id)))
           stop("error: id's in infos don't match cells name in counts")
         }
         rr_num <- private$get_common_cells(private$features, private$counts)
         private$features <- private$features[rr_num$features, ]
         private$counts <- private$counts[rr_num$counts, ]
+        private$cells <- rownames(private$counts)
         private$order_by_cells()
         if (any(private$getfeature['id'] != private$cells) ){
           stop("error : features order don't match counts order")
@@ -142,8 +142,7 @@ scdata <- R6::R6Class("scdata",
       if ("id" %in% colnames(features)) {
         print("id column found in infos")
         if (length(intersect(cells, as.vector(features$id))) == 0) {
-          print(private$cells)
-          print(as.vector(private$features$id))
+          print(setdiff(private$cells, as.vector(private$features$id)))
           stop("error: id's in infos don't match cells name in counts")
         }
       } else {
@@ -311,6 +310,7 @@ load_data <- function(
     )
   } else {
     print(paste0("loading ", infos))
+
     print(paste0("loading ", counts))
     return(scdata$new(
         infos = utils::read.table(infos, fill = T, h = T, sep = infos_sep, ...),
@@ -369,6 +369,7 @@ random_sample_data <- function(data, number, replace = FALSE) {
 #' salmon folder output paths
 #' @param id_regexp_b a regular expression match the path of the quant.sf files
 #' @param ERCC_regexp a regular expression caputing genes names of the ERCC
+#' @param feature the feature to extract from salmon output
 #' @param ... additional argument to be passed to read.table function
 #' @return scdata object
 #' @examples
@@ -381,7 +382,10 @@ load_data_salmon <- function(
   infos, counts,
   id_regexp = ".*_(P[0-9]{4}_[^_]+)_.*",
   id_regexp_b = "P[0-9]{4}_[^_]",
-  ERCC_regexp = "^ERCC.*") {
+  ERCC_regexp = "^ERCC.*",
+  feature = "counts",
+  infos_sep = "",
+  ...) {
 
   dir_list <- list.dirs(counts)
   dir_list <- paste0(dir_list, "/quant.sf")
@@ -390,9 +394,10 @@ load_data_salmon <- function(
   scd_paired <- tximport(dir_list, type = "none", txOut = TRUE,
     txIdCol = "Name", abundanceCol = "TPM", countsCol = "NumReads",
     lengthCol = "Length")
+  print(names(scd_paired))
 
   scd_paired_name <- unlist(sapply(
-    rownames(scd_paired$counts),
+    rownames(scd_paired[[feature]]),
     FUN = function(x){
       if (grepl(ERCC_regexp, x, perl = TRUE)){
         return(x)
@@ -403,7 +408,7 @@ load_data_salmon <- function(
   ))
 
   count_list <- by(
-    data = scd_paired$counts,
+    data = scd_paired[[feature]],
     INDICES = as.factor(scd_paired_name),
     FUN = colSums)
   counts <- data.frame(matrix(
@@ -411,9 +416,9 @@ load_data_salmon <- function(
     nrow = length(count_list),
     byrow = T))
   rownames(counts) <- rownames(count_list)
-  colnames(counts) <- colnames(scd_paired$counts)
+  colnames(counts) <- colnames(scd_paired[[feature]])
   return(scdata$new(
     infos = utils::read.table(infos, fill = T, h = T, sep = infos_sep, ...),
-    counts = counts
+    counts = t(counts)
   ))
 }
