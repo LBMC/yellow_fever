@@ -2,6 +2,7 @@ setwd("~/projects/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 genes_to_excludes <- read.table("data/P8164_Bulk_genes_to_exlude.csv", h = T)
+genes_to_excludes <- genes_to_excludes$genes_to_exclude
 
 results_folder <- "results/P8164_bulk/"
 system(paste0("mkdir -p ", results_folder))
@@ -38,7 +39,13 @@ res <- results(dds)
 save(res, file = paste0(results_folder, "P8164_DEA.Rdata"))
 load(file = paste0(results_folder, "P8164_DEA.Rdata"))
 
-write.table(res, file = paste0(results_folder, "/DE_genes.csv"))
+DE_genes <- res[
+    res[["padj"]] < 0.05 &
+    !is.na(res[["padj"]]) &
+    !(rownames(res) %in% genes_to_excludes)
+  , ]
+
+write.table(DE_genes, file = paste0(results_folder, "/DE_genes.csv"))
 
 sum(res$padj < 0.05, na.rm=TRUE)
 
@@ -97,7 +104,8 @@ for (clone in
   print(clone)
   DE_genes_clone <- res_1vall[[clone]][
       res_1vall[[clone]][["padj"]] < 0.05 &
-      !is.na(res_1vall[[clone]][["padj"]])
+      !is.na(res_1vall[[clone]][["padj"]]) &
+      !(rownames(res_1vall[[clone]]) %in% genes_to_excludes)
     , ]
   DE_genes_clone$clone <- clone
   if (nrow(DE_genes) != 0) {
