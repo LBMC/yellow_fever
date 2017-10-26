@@ -1,5 +1,31 @@
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
+devtools::load_all("../scRNAtools/", reset = T)
+
+################################################################################
+for (type in c("paired_end", "single_end")) {
+  for (feature in c("counts", "length", "abundance")) {
+    print(paste0(type, "_", feature))
+    scd <- scRNAtools::load_data_salmon(
+      infos = "data/Summary_SSEQ.csv",
+      counts = paste0("data/salmon_output/", type, "/"),
+      feature = feature,
+      id_regexp = ifelse(
+        feature %in% "paired_end",
+        ".*_(P[0-9]{4}_[0-9]{1,4})_.*",
+        ".*Run2.*_(P[0-9]{4}_[0-9]{1,4})_.*"
+      ),
+      tximport_obj = paste0("results/tmp/tmp_tximport_", type, ".Rdata"),
+      infos_sep = ",",
+      grouping_FUN = ifelse(
+        feature %in% "length",
+        colSums,
+        function(x){max[1]}
+      )
+    )
+    save(scd, file = paste0("results/", type, "_", feature, ".Rdata"))
+  }
+}
 
 system("file_handle.py -f data/matrix_output/male/* data/matrix_output/female/paired_end/* data/matrix_output/female/single_end/*")
 # fix cells id
