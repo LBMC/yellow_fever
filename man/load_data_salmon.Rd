@@ -2,10 +2,11 @@
 % Please edit documentation in R/load_data.R
 \name{load_data_salmon}
 \alias{load_data_salmon}
-\title{load scRNASeq data}
+\title{load_data_salmon scRNASeq data}
 \usage{
 load_data_salmon(infos, counts, id_regexp = ".*_(P[0-9]{4}_[^_]+)_.*",
-  ERCC_regexp = "^ERCC.*")
+  id_regexp_b = "P[0-9]{4}_[^_]", ERCC_regexp = "^ERCC.*",
+  feature = "counts", infos_sep = "", ...)
 }
 \arguments{
 \item{infos}{a tabular csv file that contains information on the cells}
@@ -15,7 +16,11 @@ load_data_salmon(infos, counts, id_regexp = ".*_(P[0-9]{4}_[^_]+)_.*",
 \item{id_regexp}{a regular expression caputing the id of the cells in the
 salmon folder output paths}
 
+\item{id_regexp_b}{a regular expression match the path of the quant.sf files}
+
 \item{ERCC_regexp}{a regular expression caputing genes names of the ERCC}
+
+\item{feature}{the feature to extract from salmon output}
 
 \item{...}{additional argument to be passed to read.table function}
 }
@@ -23,7 +28,7 @@ salmon folder output paths}
 scdata object
 }
 \description{
-load scRNASeq data
+load_data_salmon scRNASeq data
 }
 \examples{
 \dontrun{
