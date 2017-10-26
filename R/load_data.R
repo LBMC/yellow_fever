@@ -160,9 +160,9 @@ scdata <- R6::R6Class("scdata",
       genes <- colnames(counts)
       cells <- rownames(counts)
       not_here <- !(cells %in% private$cells)
-      private$cells <- c(private$cells, cells[not_here])
       private$counts <- rbind(private$counts, counts[not_here, ])
       private$features <- rbind(private$features, features[not_here, ])
+      private$cells <- rownames(privates$counts)
       private$order_by_cells()
       if (any(private$getfeature['id'] != private$cells) ){
         stop("error : features order don't match counts order")
@@ -361,7 +361,7 @@ random_sample_data <- function(data, number, replace = FALSE) {
   return(rdata)
 }
 
-#' load scRNASeq data
+#' load_data_salmon scRNASeq data
 #'
 #' @param infos a tabular csv file that contains information on the cells
 #' @param counts path to kallisto quant.sf output
@@ -380,22 +380,32 @@ random_sample_data <- function(data, number, replace = FALSE) {
 #' @export load_data_salmon
 load_data_salmon <- function(
   infos, counts,
-  id_regexp = ".*_(P[0-9]{4}_[^_]+)_.*",
-  id_regexp_b = "P[0-9]{4}_[^_]",
+  id_regexp = ".*_(P[0-9]{4}_[0-9]{1,4})_.*",
+  id_regexp_b = "P[0-9]{4}_[0-9]{1,4}",
   ERCC_regexp = "^ERCC.*",
   feature = "counts",
-  infos_sep = "",
+  infos_sep = ",",
+  tximport_obj = "",
+  grouping_FUN = colSums,
   ...) {
 
-  dir_list <- list.dirs(counts)
-  dir_list <- paste0(dir_list, "/quant.sf")
-  names(dir_list) <- gsub(id_regexp, "\\1", dir_list, perl = T)
-  dir_list <- dir_list[grepl(id_regexp_b, names(dir_list))]
-  scd_paired <- tximport(dir_list, type = "none", txOut = TRUE,
-    txIdCol = "Name", abundanceCol = "TPM", countsCol = "NumReads",
-    lengthCol = "Length")
-  print(names(scd_paired))
-
+  if(missing(tximport_obj) | (!missing(tximport_obj) & !file.exists(tximport_obj))) {
+    print("loading quant.sf files...")
+    dir_list <- list.dirs(counts)
+    dir_list <- paste0(dir_list, "/quant.sf")
+    names(dir_list) <- gsub(id_regexp, "\\1", dir_list, perl = T)
+    dir_list <- dir_list[grepl(id_regexp_b, names(dir_list))]
+    scd_paired <- tximport(dir_list, type = "none", txOut = TRUE,
+      txIdCol = "Name", abundanceCol = "TPM", countsCol = "NumReads",
+      lengthCol = "Length")
+    print(names(scd_paired))
+    if (!missing(tximport_obj)) {
+      save(scd_paired, file = tximport_obj)
+    }
+  } else {
+    load(file = tximport_obj)
+  }
+  print("formating genes names...")
   scd_paired_name <- unlist(sapply(
     rownames(scd_paired[[feature]]),
     FUN = function(x){
@@ -406,7 +416,7 @@ load_data_salmon <- function(
       }
     }
   ))
-
+  print("grouping genes counts...")
   count_list <- by(
     data = scd_paired[[feature]],
     INDICES = as.factor(scd_paired_name),
@@ -417,8 +427,12 @@ load_data_salmon <- function(
     byrow = T))
   rownames(counts) <- rownames(count_list)
   colnames(counts) <- colnames(scd_paired[[feature]])
+  infos_table <- utils::read.table(
+    infos, fill = T, h = T, sep = infos_sep, ...)
+  print(dim(infos_table))
+  print(dim(counts))
   return(scdata$new(
-    infos = utils::read.table(infos, fill = T, h = T, sep = infos_sep, ...),
+    infos = infos_table,
     counts = t(counts)
   ))
 }
