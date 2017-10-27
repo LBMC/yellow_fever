@@ -201,3 +201,84 @@ wca_norm <- function(scd, by, ncomp=2, keep_zero=FALSE){
   }
   return(wca_out$tab)
 }
+
+#' compute TPM
+#' @param counts counts vector
+#' @param len genes length vector
+#' @return return TPM
+#' @examples
+#' \dontrun{
+#' x = TPM_vector(scd$getcounts[1, ], len)
+#' }
+#' @export TPM_vector
+TPM_vector <- function(counts, len) {
+  if (!is.null(ncol(counts))){
+    stop("error: TPM_vector(counts, len), counts is not a vector")
+  }
+  if (!is.null(ncol(len))){
+    stop("error: TPM_vector(counts, len), len is not a vector")
+  }
+  denum <- sum( counts / len )
+  return(
+    apply(
+      data.frame(
+        counts = counts,
+        len = len
+      ),
+      MARGIN = 1,
+      FUN = function(x, denum){
+        if (x[1] == 0 | x[2] == 0) {
+          return(0)
+        } else {
+          return( 10^6 * ( ( x[1] / x[2] ) / denum ) )
+        }
+      },
+      denum = denum
+    )
+  )
+}
+
+#' compute TPM
+#' @param counts matrix
+#' @param len genes length vector
+#' @return return TPM
+#' @examples
+#' \dontrun{
+#' x = TPM_matrix(scd$getcounts, len)
+#' }
+#' @export TPM_matrix
+TPM_matrix <- function(counts, len) {
+  if (is.null(ncol(counts))){
+    stop("error: TPM_matrix(counts, len), counts is not a matrix")
+  }
+  if (!is.null(ncol(len))){
+    len = len[1 ,]
+  }
+  return(
+    apply(
+      counts,
+      MARGIN = 1,
+      FUN = function(x, len){
+        TPM_vector(x, len)
+      },
+      len = len
+    )
+  )
+}
+
+#' compute TPM
+#' @param counts matrix or vector
+#' @param len genes length vector
+#' @return return TPM
+#' @examples
+#' \dontrun{
+#' x = TPM(scd$getcounts, len)
+#' }
+#' @export TPM_matrix
+TPM <- function(counts, len) {
+  if (is.null(ncol(counts))) {
+    return(TPM_vector(counts, len))
+  } else {
+    return(TPM_matrix(counts, len))
+  }
+}
