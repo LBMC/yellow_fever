@@ -397,7 +397,7 @@ load_data_salmon <- function(
     dir_list <- dir_list[grepl(id_regexp_b, names(dir_list))]
     scd_paired <- tximport(dir_list, type = "none", txOut = TRUE,
       txIdCol = "Name", abundanceCol = "TPM", countsCol = "NumReads",
-      lengthCol = "Length")
+      lengthCol = "EffectiveLength")
     print(names(scd_paired))
     if (!missing(tximport_obj)) {
       save(scd_paired, file = tximport_obj)

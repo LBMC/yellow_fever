@@ -4,9 +4,10 @@
 \alias{load_data_salmon}
 \title{load_data_salmon scRNASeq data}
 \usage{
-load_data_salmon(infos, counts, id_regexp = ".*_(P[0-9]{4}_[^_]+)_.*",
-  id_regexp_b = "P[0-9]{4}_[^_]", ERCC_regexp = "^ERCC.*",
-  feature = "counts", infos_sep = "", ...)
+load_data_salmon(infos, counts, id_regexp = ".*_(P[0-9]{4}_[0-9]{1,4})_.*",
+  id_regexp_b = "P[0-9]{4}_[0-9]{1,4}", ERCC_regexp = "^ERCC.*",
+  feature = "counts", infos_sep = ",", tximport_obj = "",
+  grouping_FUN = colSums, ...)
 }
 \arguments{
 \item{infos}{a tabular csv file that contains information on the cells}
