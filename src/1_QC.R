@@ -30,10 +30,16 @@ for (type in c("paired_end", "single_end")) {
 
 load("results/paired_end_abundance.Rdata")
 
-system("mkdir -p results/QC/QC_paraload")
+system("mkdir -p results/QC/QC_paraload/paired_end")
+system("mkdir -p results/QC/QC_paraload/single_end")
 
 scRNAtools::QC_paraload_parameters(
   paraload_file = "results/QC/paired_end_paraload.csv",
+  bootstraps = 100000,
+  job_boot_number = 50
+)
+scRNAtools::QC_paraload_parameters(
+  paraload_file = "results/QC/single_end_paraload.csv",
   bootstraps = 100000,
   job_boot_number = 50
 )
@@ -42,18 +48,27 @@ scRNAtools::QC_paraload_parameters(
 system("
 bin/paraload --server \
 --port 13469 \
---input results/QC/paraload.csv \
---output results/QC/paraload_run.txt \
---log results/QC/paraload.log \
---report results/QC/paraload_report.txt \
---conf src/pbs/QC/QC.conf
+--input results/QC/paired_end_paraload.csv \
+--output results/QC/paired_end_paraload_run.txt \
+--log results/QC/paired_end_paraload.log \
+--report results/QC/paired_end_paraload_report.txt \
+--conf src/pbs/QC/paired_end_QC.conf
+")
+
+system("
+bin/paraload --server \
+--port 13470 \
+--input results/QC/single_end_paraload.csv \
+--output results/QC/single_end_paraload_run.txt \
+--log results/QC/single_end_paraload.log \
+--report results/QC/single_end_paraload_report.txt \
+--conf src/pbs/QC/single_end_QC.conf
 ")
 
 # launch paralod clients
 system("
 bin/paraload --client --port 13469 --host pbil-deb
 ")
-
 system("
 while [ $(ps -u modolo | grep paraload | wc -l) -gt 0 ]
 do
@@ -65,18 +80,47 @@ qsub src/pbs/QC/QC.pbs &
 /bin/sleep 0.5
 done
 /bin/sleep 3600
-done
+done.info
 ")
 
+system("
+bin/paraload --client --port 13470 --host pbil-deb
+")
+system("
+while [ $(ps -u modolo | grep paraload | wc -l) -gt 0 ]
+do
+stat | wc -l
+iter=$(echo 200 - $(qstat -u modolo | grep -e \"[RQ]\" | wc -l) | bc)
+for ((i = 1;i <= $iter;i += 1))
+do
+qsub src/pbs/QC/QC.pbs &
+/bin/sleep 0.5
+done
+/bin/sleep 3600
+done.info
+")
+
+load("results/paired_end_abundance.Rdata")
 scRNAtools::QC_load_bootstraps(
   scd = scd,
-  paraload_folder = "results/QC/QC_paraload/"
+  paraload_folder = "results/QC/QC_paraload/paired_end/"
 )
 hist(scd$getfeature("QC_score"))
-
 scRNAtools::QC_classification(scd)
 
-table(scd$getfeature("QC_good"))
+save(scd, file = "results/QC/paired_end_abundance_QC.Rdata")
+load("results/QC/paired_end_abundance_QC.Rdata")
+
+load("results/single_end_abundance.Rdata")
+scRNAtools::QC_load_bootstraps(
+  scd = scd,
+  paraload_folder = "results/QC/QC_paraload/single_end/"
+)
+hist(scd$getfeature("QC_score"))
+scRNAtools::QC_classification(scd)
+
+save(scd, file = "results/QC/single_end_abundance_QC.Rdata")
+load("results/QC/single_end_abundance_QC.Rdata")
 
 devtools::load_all("../scRNAtools/", reset = T)
 check_gene(scd, "CCR7", "sex")

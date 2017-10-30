@@ -2,6 +2,6 @@
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 scRNAtools::QC_pbs(
-  scd_file = "results/raw_counts.Rdata",
-  QC_folder = "results/QC/QC_paraload/"
+  scd_file = "results/single_end_abundance.Rdata",
+  QC_folder = "results/QC/QC_paraload/single_end/"
 )
