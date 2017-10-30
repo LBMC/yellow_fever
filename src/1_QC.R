@@ -1,17 +1,18 @@
-setwd("~/projects/yellow_fever/")
+s etwd("~/projects/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 
 ################################################################################
 for (type in c("paired_end", "single_end")) {
   for (feature in c("counts", "length", "abundance")) {
+  feature <- "length"
     print(paste0(type, "_", feature))
     scd <- scRNAtools::load_data_salmon(
       infos = "data/Summary_SSEQ.csv",
       counts = paste0("data/salmon_output/", type, "/"),
       feature = feature,
       id_regexp = ifelse(
-        feature %in% "paired_end",
+        type %in% "paired_end",
         ".*_(P[0-9]{4}_[0-9]{1,4})_.*",
         ".*Run2.*_(P[0-9]{4}_[0-9]{1,4})_.*"
       ),
@@ -20,48 +21,19 @@ for (type in c("paired_end", "single_end")) {
       grouping_FUN = ifelse(
         feature %in% "length",
         colSums,
-        function(x){max[1]}
+        max
       )
     )
     save(scd, file = paste0("results/", type, "_", feature, ".Rdata"))
   }
 }
 
-system("file_handle.py -f data/matrix_output/male/* data/matrix_output/female/paired_end/* data/matrix_output/female/single_end/*")
-# fix cells id
-system("perl -pi -e 's/\\S*_(P\\d*_\\d*)_\\S*/\\1/g' data/matrix_output/male/*")
-system("perl -pi -e 's/\\S*_(P\\d*_\\d*)_\\S*/\\1/g' data/matrix_output/female/paired_end/*")
-system("perl -pi -e 's/\\S*_(P\\d*_\\d*)_\\S*/\\1/g' data/matrix_output/female/single_end/*")
-# fix cells id
-system("perl -pi -e 's/P1306/P1316/g' data/2017_09_14_Summary_SSEQ_170825.csv")
-# combine  2017_09_15_count_genes_D15_P1373_YFV2003_Run2_new.tsv and
-# 2017_09_15_count_genes_D15_P1373_YFV2003_new.tsv
-count_a <- read.table(
-  "data/matrix_output/female/single_end/2017_09_15_count_genes_D15_P1373_YFV2003_Run2_new.tsv",
-  h = T)
-count_b <- read.table(
-  "data/matrix_output/female/single_end/2017_09_15_count_genes_D15_P1373_YFV2003_new.tsv",
-  h = T)
-count <- count_a + count_b
-write.table(count,
-  "data/matrix_output/female/single_end/2017_09_15_count_genes_D15_P1373_YFV2003.tsv",
-)
-system("rm data/matrix_output/female/single_end/2017_09_15_count_genes_D15_P1373_YFV2003_Run2_new.tsv")
-system("rm data/matrix_output/female/single_end/2017_09_15_count_genes_D15_P1373_YFV2003_new.tsv")
-
-
-scd <- scRNAtools::load_data(
-  infos = "data/2017_09_14_Summary_SSEQ_170825.csv",
-  counts = "data/matrix_output",
-  regexp = ".*count_genes.*",
-  infos_sep = ","
-)
-save(scd, file = "results/raw_counts.Rdata")
+load("results/paired_end_abundance.Rdata")
 
 system("mkdir -p results/QC/QC_paraload")
 
 scRNAtools::QC_paraload_parameters(
-  paraload_file = "results/QC/paraload.csv",
+  paraload_file = "results/QC/paired_end_paraload.csv",
   bootstraps = 100000,
   job_boot_number = 50
 )
