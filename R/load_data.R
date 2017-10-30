@@ -208,14 +208,25 @@ scdata <- R6::R6Class("scdata",
       if (is.null(b_cells)){
         b_cells <- T
       }
-      return(
-        scdata$new(
-          infos = self$getfeaturesw(
-            cells = cells, features = features)[b_cells, ],
-          counts = self$getcountsw(
-            cells = cells, genes = genes)[b_cells, ]
+      if(length(cells) > 1){
+        return(
+          scdata$new(
+            infos = self$getfeaturesw(
+              cells = cells, features = features)[b_cells, ],
+            counts = self$getcountsw(
+              cells = cells, genes = genes)[b_cells, ]
+          )
         )
-      )
+      } else {
+        return(
+          scdata$new(
+            infos = self$getfeaturesw(
+              cells = cells, features = features),
+            counts = self$getcountsw(
+              cells = cells, genes = genes)
+          )
+        )
+      }
     },
     select = function(
       cells = NULL, genes = NULL, features = NULL, b_cells = NULL) {
