@@ -5,7 +5,6 @@ devtools::load_all("../scRNAtools/", reset = T)
 ################################################################################
 for (type in c("paired_end", "single_end")) {
   for (feature in c("counts", "length", "abundance")) {
-  feature <- "length"
     print(paste0(type, "_", feature))
     scd <- scRNAtools::load_data_salmon(
       infos = "data/Summary_SSEQ.csv",
@@ -29,17 +28,15 @@ for (type in c("paired_end", "single_end")) {
 }
 
 load("results/paired_end_abundance.Rdata")
+scd$setfeature(
+  "to_QC",
+  scd$getfeature("sex") %in% "M" & scd$getfeature("day") %in% c("D15", "D136", "D593")
+)
 
 system("mkdir -p results/QC/QC_paraload/paired_end")
-system("mkdir -p results/QC/QC_paraload/single_end")
 
 scRNAtools::QC_paraload_parameters(
   paraload_file = "results/QC/paired_end_paraload.csv",
-  bootstraps = 100000,
-  job_boot_number = 50
-)
-scRNAtools::QC_paraload_parameters(
-  paraload_file = "results/QC/single_end_paraload.csv",
   bootstraps = 100000,
   job_boot_number = 50
 )
@@ -81,19 +78,11 @@ scRNAtools::QC_load_bootstraps(
 hist(scd$getfeature("QC_score"))
 scRNAtools::QC_classification(scd)
 
+hist(scd$getfeature("QC_score"), breaks = scd$getncells)
+
+
 save(scd, file = "results/QC/paired_end_abundance_QC.Rdata")
 load("results/QC/paired_end_abundance_QC.Rdata")
-
-load("results/single_end_abundance.Rdata")
-scRNAtools::QC_load_bootstraps(
-  scd = scd,
-  paraload_folder = "results/QC/QC_paraload/single_end/"
-)
-hist(scd$getfeature("QC_score"))
-scRNAtools::QC_classification(scd)
-
-save(scd, file = "results/QC/single_end_abundance_QC.Rdata")
-load("results/QC/single_end_abundance_QC.Rdata")
 
 check_gene(scd, "CCR7", "sex")
 scd_QC <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)
