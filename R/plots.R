@@ -52,13 +52,13 @@ antigen_palette <- function(antigen){
 sex_palette <- function(sex){
   sex_color <- list(M = "#5ab4ac",
                         F = "#ee7593")
-  sexs_color <- lapply(as.list(sex), FUN = function(x, sex_color){
+  sex_color <- lapply(as.list(sex), FUN = function(x, sex_color){
       sex_color[[x]]
     }
     , sex_color)
-  sexs_color <- unlist(sexs_color)
-  names(sexs_color) <- sex
-  return(sexs_color)
+  sex_color <- unlist(sex_color)
+  names(sex_color) <- sex
+  return(sex_color)
 }
 
 LLC_palette <- function(LLC){
@@ -281,12 +281,10 @@ pca_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
   wrap=NULL, file, main = "", axes, res=FALSE, rainbow=FALSE, heatcolor=FALSE,
   is_contour, label=NULL, genes_list, arrow=FALSE, color_name="day",
   return_data = FALSE, color_scale = NULL, tmp_file) {
-  if (!missing(tmp_file)) {
-    if (file.exists(tmp_file)){
-      print("tmp file found skipping pca...")
-      load(tmp_file)
-    }
-  }else{
+  if (!missing(tmp_file) & file.exists(tmp_file)) {
+    print("tmp file found skipping pca...")
+    load(tmp_file)
+  } else {
     pca_out <- dudi.pca(scd$getcounts,
                         scan = F,
                         nf = scd$getncells - 1,
