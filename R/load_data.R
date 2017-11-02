@@ -400,7 +400,10 @@ load_data_salmon <- function(
   grouping_FUN = colSums,
   ...) {
 
-  if(missing(tximport_obj) | (!missing(tximport_obj) & !file.exists(tximport_obj))) {
+  if(missing(tximport_obj) |
+    (!missing(tximport_obj) &
+    !file.exists(paste0(tximport_obj, ".Rdata")))) {
+
     print("loading quant.sf files...")
     dir_list <- list.dirs(counts)
     dir_list <- paste0(dir_list, "/quant.sf")
@@ -411,13 +414,16 @@ load_data_salmon <- function(
       lengthCol = "EffectiveLength")
     print(names(scd_paired))
     if (!missing(tximport_obj)) {
-      save(scd_paired, file = tximport_obj)
+      save(scd_paired,
+        file = paste0(tximport_obj, ".Rdata"))
     }
   } else {
-    load(file = tximport_obj)
+    load(file = paste0(tximport_obj, ".Rdata"))
   }
   print("formating genes names...")
-  if (!exists("scd_paired_name")) {
+  if(missing(tximport_obj) |
+    (!missing(tximport_obj) &
+    !file.exists(paste0(tximport_obj, "_", feature, "_formating.Rdata")))) {
     scd_paired_name <- unlist(sapply(
       rownames(scd_paired[[feature]]),
       FUN = function(x){
@@ -429,19 +435,29 @@ load_data_salmon <- function(
       }
     ))
     if (!missing(tximport_obj)) {
-      save(scd_paired, scd_paired_name, file = tximport_obj)
+      save(scd_paired, scd_paired_name,
+        file = paste0(tximport_obj, "_", feature, "_formating.Rdata"))
     }
+  } else {
+    print("formating file found, loading...")
+    load(file = paste0(tximport_obj, "_", feature, "_formating.Rdata"))
   }
   print("grouping genes counts...")
-  if (!exists("count_list")) {
+  if(missing(tximport_obj) |
+    (!missing(tximport_obj) &
+    !file.exists(paste0(tximport_obj, "_", feature, "_grouping.Rdata")))) {
     count_list <- by(
       data = scd_paired[[feature]],
       INDICES = as.factor(scd_paired_name),
       FUN = colSums)
     if (!missing(tximport_obj)) {
-      save(scd_paired, scd_paired_name, count_list, file = tximport_obj)
+      save(scd_paired, scd_paired_name, count_list,
+        file = paste0(tximport_obj, "_", feature, "_grouping.Rdata"))
     }
-  }
+  } else {
+    print("grouping file found, loading...")
+    load(file = paste0(tximport_obj, "_", feature, "_grouping.Rdata"))
+ }
   counts <- data.frame(matrix(
     unlist(count_list),
     nrow = length(count_list),
