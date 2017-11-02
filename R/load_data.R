@@ -417,21 +417,31 @@ load_data_salmon <- function(
     load(file = tximport_obj)
   }
   print("formating genes names...")
-  scd_paired_name <- unlist(sapply(
-    rownames(scd_paired[[feature]]),
-    FUN = function(x){
-      if (grepl(ERCC_regexp, x, perl = TRUE)){
-        return(x)
-      } else {
-        return(unlist(strsplit(x, "|", fixed = T))[6])
+  if (!exists("scd_paired_name")) {
+    scd_paired_name <- unlist(sapply(
+      rownames(scd_paired[[feature]]),
+      FUN = function(x){
+        if (grepl(ERCC_regexp, x, perl = TRUE)){
+          return(x)
+        } else {
+          return(unlist(strsplit(x, "|", fixed = T))[6])
+        }
       }
+    ))
+    if (!missing(tximport_obj)) {
+      save(scd_paired, scd_paired_name, file = tximport_obj)
     }
-  ))
+  }
   print("grouping genes counts...")
-  count_list <- by(
-    data = scd_paired[[feature]],
-    INDICES = as.factor(scd_paired_name),
-    FUN = colSums)
+  if (!exists("count_list")) {
+    count_list <- by(
+      data = scd_paired[[feature]],
+      INDICES = as.factor(scd_paired_name),
+      FUN = colSums)
+    if (!missing(tximport_obj)) {
+      save(scd_paired, scd_paired_name, count_list, file = tximport_obj)
+    }
+  }
   counts <- data.frame(matrix(
     unlist(count_list),
     nrow = length(count_list),
