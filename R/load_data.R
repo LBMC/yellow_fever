@@ -162,7 +162,7 @@ scdata <- R6::R6Class("scdata",
       not_here <- !(cells %in% private$cells)
       private$counts <- rbind(private$counts, counts[not_here, ])
       private$features <- rbind(private$features, features[not_here, ])
-      private$cells <- rownames(privates$counts)
+      private$cells <- rownames(private$counts)
       private$order_by_cells()
       if (any(private$getfeature['id'] != private$cells) ){
         stop("error : features order don't match counts order")
