@@ -208,7 +208,7 @@ scdata <- R6::R6Class("scdata",
       if (is.null(b_cells)){
         b_cells <- T
       }
-      if(length(cells) > 1){
+      if(is.null(cells) | length(cells) > 1){
         return(
           scdata$new(
             infos = self$getfeaturesw(
