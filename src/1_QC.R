@@ -1,4 +1,4 @@
-s etwd("~/projects/yellow_fever/")
+setwd("~/projects/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 
@@ -55,16 +55,6 @@ bin/paraload --server \
 --conf src/pbs/QC/paired_end_QC.conf
 ")
 
-system("
-bin/paraload --server \
---port 13470 \
---input results/QC/single_end_paraload.csv \
---output results/QC/single_end_paraload_run.txt \
---log results/QC/single_end_paraload.log \
---report results/QC/single_end_paraload_report.txt \
---conf src/pbs/QC/single_end_QC.conf
-")
-
 # launch paralod clients
 system("
 bin/paraload --client --port 13469 --host pbil-deb
@@ -76,28 +66,11 @@ stat | wc -l
 iter=$(echo 200 - $(qstat -u modolo | grep -e \"[RQ]\" | wc -l) | bc)
 for ((i = 1;i <= $iter;i += 1))
 do
-qsub src/pbs/QC/QC.pbs &
+qsub src/pbs/QC/paired_end_QC.pbs &
 /bin/sleep 0.5
 done
 /bin/sleep 3600
-done.info
-")
-
-system("
-bin/paraload --client --port 13470 --host pbil-deb
-")
-system("
-while [ $(ps -u modolo | grep paraload | wc -l) -gt 0 ]
-do
-stat | wc -l
-iter=$(echo 200 - $(qstat -u modolo | grep -e \"[RQ]\" | wc -l) | bc)
-for ((i = 1;i <= $iter;i += 1))
-do
-qsub src/pbs/QC/QC.pbs &
-/bin/sleep 0.5
 done
-/bin/sleep 3600
-done.info
 ")
 
 load("results/paired_end_abundance.Rdata")
@@ -122,8 +95,26 @@ scRNAtools::QC_classification(scd)
 save(scd, file = "results/QC/single_end_abundance_QC.Rdata")
 load("results/QC/single_end_abundance_QC.Rdata")
 
-devtools::load_all("../scRNAtools/", reset = T)
 check_gene(scd, "CCR7", "sex")
-scd_QC <- scd$select(b_cells = scd$getfeature("QC_good") == T)
+scd_QC <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)
 
 check_gene(scd_QC, "CCR7", "sex")
+
+devtools::load_all("../scRNAtools/", reset = T)
+b_cells = scd$getfeature('cell_number') %in% c(1)
+system("rm results/tmp/pca_tmp.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "QC_good", color_name = "sex",
+  tmp_file = "results/tmp/pca_tmp.Rdata")
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "sex", color_name = "sex",
+  tmp_file = "results/tmp/pca_tmp.Rdata")
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "day", color_name = "day",
+  tmp_file = "results/tmp/pca_tmp.Rdata")
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells)$select(), color = "cell_number", color_name = "clonality",
+  tmp_file = "results/tmp/pca_tmp.Rdata")
