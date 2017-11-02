@@ -127,8 +127,13 @@ QC_pbs <- function(scd_file, QC_folder, Args = commandArgs()) {
         " genes and ",
         length(which(b_cells)),
         " cells"))
+      if (!("to_QC") %in% colnames(scd$getfeatures)){
+        scd$addfeature("to_QC") <- rep(T, scd$getncells)
+      }
       classification <- QC_boot(
-        scd = scd$select(genes = genes, b_cells = b_cells),
+        scd = scd$select(
+          genes = genes,
+          b_cells = b_cells & scd$getfeature("to_QC")),
         iter = boot_number,
         output_file = paste0(QC_folder, "QC_", file, ".Rdata"))
   }
@@ -154,6 +159,7 @@ QC_load_bootstraps <- function(scd, paraload_folder, rt_result = F) {
   scd$addfeature("QC_score")
   files_list <- get_files(path = paraload_folder, regexp = ".*Rdata")
   print(paste0("loading QC results..."))
+  print(head(files_list))
   b_cells <- scd$getfeature("cell_number") == 1 |
     scd$getfeature("cell_number") == 0
   classification_summary <- list(
