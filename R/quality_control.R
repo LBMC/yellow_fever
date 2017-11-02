@@ -128,7 +128,7 @@ QC_pbs <- function(scd_file, QC_folder, Args = commandArgs()) {
         length(which(b_cells)),
         " cells"))
       if (!("to_QC") %in% colnames(scd$getfeatures)){
-        scd$addfeature("to_QC") <- rep(T, scd$getncells)
+        scd$setfeature("to_QC", rep(T, scd$getncells))
       }
       classification <- QC_boot(
         scd = scd$select(
