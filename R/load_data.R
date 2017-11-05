@@ -407,6 +407,7 @@ load_data_salmon <- function(
     print("loading quant.sf files...")
     dir_list <- list.dirs(counts)
     dir_list <- paste0(dir_list, "/quant.sf")
+    dir_list <- dir_list[file.exists(dir_list)]
     names(dir_list) <- gsub(id_regexp, "\\1", dir_list, perl = T)
     dir_list <- dir_list[grepl(id_regexp_b, names(dir_list))]
     scd_paired <- tximport(dir_list, type = "none", txOut = TRUE,
