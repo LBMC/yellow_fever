@@ -162,6 +162,10 @@ QC_load_bootstraps <- function(scd, paraload_folder, rt_result = F) {
   print(head(files_list))
   b_cells <- scd$getfeature("cell_number") == 1 |
     scd$getfeature("cell_number") == 0
+  if (!("to_QC") %in% colnames(scd$getfeatures)){
+    scd$setfeature("to_QC", rep(T, scd$getncells))
+  }
+  b_cells <- b_cells & scd$getfeature("to_QC")
   classification_summary <- list(
     bad = rep(0, scd$getncells),
     good = rep(0, scd$getncells)
