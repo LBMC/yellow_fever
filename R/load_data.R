@@ -471,6 +471,6 @@ load_data_salmon <- function(
   print(dim(counts))
   return(scdata$new(
     infos = infos_table,
-    counts = t(counts)
+    counts = counts
   ))
 }
