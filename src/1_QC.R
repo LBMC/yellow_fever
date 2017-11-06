@@ -2,37 +2,14 @@ setwd("~/projects/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 
+system("perl -pi -e 's/[pP](\\d*_\\d*)/P\\1/g' data/Summary_SSEQ.csv")
 ################################################################################
-infos <- "data/Summary_SSEQ.csv"
-counts = paste0("data/salmon_output/paired_end/")
-id_regexp = ".*_(P[0-9]{4}_[0-9]{1,4})_.*"
-id_regexp_b = "P[0-9]{4}_[0-9]{1,4}"
-ERCC_regexp = "^ERCC.*"
-feature = "counts"
-infos_sep = ","
-grouping_FUN = colSums
-
-print("loading quant.sf files...")
-dir_list <- list.dirs(counts)
-dir_list <- paste0(dir_list, "/quant.sf")
-dir_list <- dir_list[file.exists(dir_list)]
-names(dir_list) <- gsub(id_regexp, "\\1", dir_list, perl = T)
-dir_list <- dir_list[grepl(id_regexp_b, names(dir_list))]
-scd_paired <- tximport(dir_list, type = "none", txOut = TRUE,
-  txIdCol = "Name", abundanceCol = "TPM", countsCol = "NumReads",
-  lengthCol = "EffectiveLength")
-print(names(scd_paired))
 Warning: 1237 parsing failures.
 row # A tibble: 5 x 5 col     row      col               expected   actual expected   <int>    <chr>                  <chr>    <chr> actual 1  1261 NumReads no trailing characters  .500152 file 2  1262 NumReads no trailing characters  .499848 row 3  1329 NumReads no trailing characters    .7657 col 4  1330 NumReads no trailing characters  .141882 expected 5  1331 NumReads no trailing characters .0924225 actual # ... with 1 more variables: file <chr>
 Warning: 335 parsing failures.
 row # A tibble: 5 x 5 col     row      col               expected     actual expected   <int>    <chr>                  <chr>      <chr> actual 1  1521 NumReads no trailing characters    .118747 file 2  1522 NumReads no trailing characters    .881253 row 3  1570 NumReads no trailing characters    .999967 col 4  1571 NumReads no trailing characters .34432e-05 expected 5  2169 NumReads no trailing characters    .367279 actual # ... with 1 more variables: file <chr>
 Warning: 735 parsing failures.
 row # A tibble: 5 x 5 col     row      col               expected  actual expected   <int>    <chr>                  <chr>   <chr> actual 1  1261 NumReads no trailing characters .500519 file 2  1262 NumReads no trailing characters .499481 row 3  1609 NumReads no trailing characters .457291 col 4  1610 NumReads no trailing characters .542709 expected 5  3028 NumReads no trailing characters  .23259 actual # ... with 1 more variables: file <chr>
-dir_list[1237]
-dir_list[335]
-dir_list[735]
-
-
 
 for (type in c("paired_end", "single_end")) {
   for (feature in c("counts", "length", "abundance")) {
