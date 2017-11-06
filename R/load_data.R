@@ -42,6 +42,10 @@ scdata <- R6::R6Class("scdata",
       print(
         paste0(length(common_cells),
           " cells in common between infos and counts"))
+      print("cells present in infos, but not counts")
+      print(setdiff(as.vector(features$id), rownames(counts)))
+      print("cells present in counts, but not infos")
+      print(setdiff(rownames(counts), as.vector(features$id)))
       r_features <- which(as.vector(features$id) %in% common_cells)
       r_counts <- which(rownames(counts) %in% common_cells)
       return(list(features = r_features, counts = r_counts))
@@ -110,6 +114,7 @@ scdata <- R6::R6Class("scdata",
         private$features <- private$features[rr_num$features, ]
         private$counts <- private$counts[rr_num$counts, ]
         private$cells <- rownames(private$counts)
+        private$display_dim(private$features, private$counts)
         private$order_by_cells()
         if (any(private$getfeature['id'] != private$cells) ){
           stop("error : features order don't match counts order")
