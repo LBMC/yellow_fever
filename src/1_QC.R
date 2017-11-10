@@ -81,9 +81,9 @@ system("
 bin/paraload --server \
 --port 13469 \
 --input results/QC/paraload.csv \
---output results/QC/paraload_abundance_run.txt \
---log results/QC/paraload_abundance.log \
---report results/QC/paraload_abundance_report.txt \
+--output results/QC/paraload_counts_run.txt \
+--log results/QC/paraload_counts.log \
+--report results/QC/paraload_counts_report.txt \
 --conf src/pbs/QC/QC.conf
 ")
 
