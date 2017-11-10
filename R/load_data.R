@@ -38,16 +38,18 @@ scdata <- R6::R6Class("scdata",
     # private method to get position of cells in common between features and
     # counts
     get_common_cells = function(features, counts) {
-      common_cells <- intersect(as.vector(features$id), rownames(counts))
+      id_features <- as.vector(features$id)
+      id_counts <- rownames(counts)
+      common_cells <- intersect(id_features, id_counts)
       print(
         paste0(length(common_cells),
           " cells in common between infos and counts"))
       print("cells present in infos, but not counts")
-      print(setdiff(as.vector(features$id), rownames(counts)))
+      print(setdiff(id_features, id_counts))
       print("cells present in counts, but not infos")
-      print(setdiff(rownames(counts), as.vector(features$id)))
-      r_features <- which(as.vector(features$id) %in% common_cells)
-      r_counts <- which(rownames(counts) %in% common_cells)
+      print(setdiff(id_features, id_counts))
+      r_features <- which(id_features %in% common_cells)
+      r_counts <- which(id_counts %in% common_cells)
       return(list(features = r_features, counts = r_counts))
     },
     order_by_cells = function() {
@@ -468,8 +470,28 @@ load_data_salmon <- function(
     unlist(count_list),
     nrow = length(count_list),
     byrow = T))
-  rownames(counts) <- rownames(count_list)
-  colnames(counts) <- colnames(scd_paired[[feature]])
+  rownames(counts) <- names(count_list)
+  colnames(counts) <- names(count_list[[1]])
+  counts <- t(counts)
+  if (any(duplicated(rownames(counts)))) {
+    print("Warning: duplicated cell id's, merging them...")
+    count_list_b <- by(
+      data = counts,
+      INDICES = as.factor(rownames(counts)),
+      FUN = colMeans
+    )
+    counts <- data.frame(matrix(
+      unlist(count_list_b),
+      nrow = length(count_list_b),
+      byrow = T)
+    )
+    rownames(counts) <- names(count_list_b)
+    colnames(counts) <- names(count_list_b[[1]])
+    counts <- t(counts)
+  }
+  if (any(duplicated(colnames(counts)))) {
+    exit("error: duplicated genes id's")
+  }
   infos_table <- utils::read.table(
     infos, fill = T, h = T, sep = infos_sep, ...)
   print(dim(infos_table))
