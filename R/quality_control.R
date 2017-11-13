@@ -204,29 +204,35 @@ QC_classification <- function(
   is_blank = scd$getfeature("cell_number") == 0,
   rt_result = F
 ) {
-  scd$addfeature("QC_good")
   cell_id <- 1:scd$getncells
   classification <- list(
     good = rep(0, scd$getncells),
     bad = rep(0, scd$getncells)
   )
-  b_cells <- scd$getfeature("cell_number") == 1 |
-        scd$getfeature("cell_number") == 0
-  sample_size <- length(which(scd$getfeature("cell_number") == 0))
+  b_cells <- (scd$getfeature("cell_number") == 1 |
+        scd$getfeature("cell_number") == 0) &
+        !is.na(scd$getfeature("QC_score"))
+  if (!("to_QC") %in% colnames(scd$getfeatures)) {
+    scd$setfeature("to_QC", rep(T, scd$getncells))
+  }
+  b_cells <- b_cells & scd$getfeature("to_QC")
+  sample_size <- length(which(is_blank & b_cells))
   order_by_score <- order(scd$getfeature("QC_score"), decreasing = T)
   is_good <- order_by_score[b_cells[order_by_score]][1:sample_size]
-  is_bad <- which(is_blank)
+  is_bad <- which(is_blank & b_cells)
   class_labels <- rep(TRUE, sample_size * 2)
   class_labels[1:sample_size] <- FALSE
   fit <- QC_fit(class_labels, scd$getcounts[c(is_bad, is_good), ])
-  to_predict <- !(1:scd$getncells %in% c(is_bad, is_good)) & b_cells
-  prediction <- as.vector(stats::predict(
+  to_predict <- which(!(1:scd$getncells %in% c(is_bad, is_good)) & b_cells)
+  prediction <- stats::predict(
     fit,
-    scd$getcounts[to_predict, ]))
+    scd$getcounts[to_predict, ],
+    na.action = na.fail
+  )
   QC_good <- rep(NA, scd$getncells)
   QC_good[is_bad] <- F
   QC_good[is_good] <- T
-  QC_good[to_predict] <- prediction
+  QC_good[to_predict] <- as.vector(prediction)
   scd$setfeature("QC_good", as.factor(QC_good))
   if (rt_result){
     return(scd)
