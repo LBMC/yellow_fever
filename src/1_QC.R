@@ -137,26 +137,20 @@ check_gene(scd_QC, "CCR7", "sex")
 table(scd$getfeature("day"), scd$getfeature("cell_number"))
 
 devtools::load_all("../scRNAtools/", reset = T)
-b_cells = scd$getfeature('cell_number') %in% 1 & scd$getfeature("day") %in% c("D15", "D136", "D593")
+b_cells = scd$getfeature('to_QC')
 system("rm results/tmp/pca_tmp.Rdata")
 
-table(scd$getfeature("QC_good"), scd$getfeature("cell_number"))
+table(scd$getfeature("QC_good"), scd$getfeature("day"))
 
-scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells), color = "QC_good", color_name = "sex",
-  tmp_file = "results/tmp/pca_tmp.Rdata")
-
-
-  scRNAtools::pca_plot(
-    scd$select(b_cells = b_cells), color = "day", color_name = "day",
-    tmp_file = "results/tmp/pca_tmp.Rdata")
-
-scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells), color = "sex", color_name = "sex",
-  tmp_file = "results/tmp/pca_tmp.Rdata")
+devtools::load_all("../scRNAtools/", reset = T)
 
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "day", color_name = "day",
+  tmp_file = "results/tmp/pca_tmp.Rdata")
+
+summary(scd$select(b_cells = b_cells)$getfeature("QC_good"))
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "QC_good", alpha = "cell_number", color_name = "antigen",
   tmp_file = "results/tmp/pca_tmp.Rdata")
 
 scRNAtools::pca_plot(
