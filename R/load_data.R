@@ -83,6 +83,13 @@ scdata <- R6::R6Class("scdata",
       }
       return(counts)
     },
+    set_na_to_zero = function() {
+      print("cells with NA's counts:")
+      print(self$getcells[rowSums(is.na(self$getcounts)) != 0])
+      print("genes with NA's counts:")
+      print(self$getgenes[colSums(is.na(self$getcounts)) != 0])
+      private$counts[is.na(private$counts)] <- 0
+    },
     display_dim = function(infos, counts) {
       print(
         paste0("dim of infos :",
@@ -130,6 +137,7 @@ scdata <- R6::R6Class("scdata",
               nrow(private$counts)))
         }
       }
+      private$set_na_to_zero()
       self$summary()
     },
     add = function(infos = NA, counts = NA) {
@@ -171,6 +179,7 @@ scdata <- R6::R6Class("scdata",
       private$features <- rbind(private$features, features[not_here, ])
       private$cells <- rownames(private$counts)
       private$order_by_cells()
+      private$set_na_to_zero()
       if (any(private$getfeature['id'] != private$cells) ){
         stop("error : features order don't match counts order")
       }
@@ -494,8 +503,6 @@ load_data_salmon <- function(
   }
   infos_table <- utils::read.table(
     infos, fill = T, h = T, sep = infos_sep, ...)
-  print(dim(infos_table))
-  print(dim(counts))
   return(scdata$new(
     infos = infos_table,
     counts = counts
