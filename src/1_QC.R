@@ -34,27 +34,8 @@ for (feature in c("counts", "length", "abundance")) {
     scd$getfeature("sequencing") %in% "paired"
   )
   save(scd, file = paste0("results/", feature, ".Rdata"))
+  print(scd$getcells[rowSums(is.na(scd$getcounts)) != 0])
 }
-
-for (feature in c("counts", "length", "abundance")) {
-  load(file = paste0("results/", feature, ".Rdata"))
-  scd$setfeature(
-    "sequencing",
-    ifelse(
-      grepl("P1373", scd$getfeature("id")),
-      "single",
-      "paired"
-    )
-  )
-  scd$setfeature(
-    "to_QC",
-    scd$getfeature("sex") %in% "M" &
-    scd$getfeature("day") %in% c("D15", "D136", "D593") &
-    scd$getfeature("sequencing") %in% "paired"
-  )
-  save(scd, file = paste0("results/", feature, ".Rdata"))
-}
-
 
 load("results/abundance.Rdata")
 system("mkdir -p results/QC/QC_paraload/abundance/")
