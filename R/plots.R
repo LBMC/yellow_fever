@@ -3,7 +3,7 @@ day_palette <- function(day){
   day_color <- list(D15 = "#ffcc03",
                     D90 = "#1565bd",
                     D136 = "#1565bd",
-                    D908 = "#1a2634",
+                    D593 = "#1a2634",
                     "In Vitro Restim" = "#1a2634",
                     "D100+" = "#1565bd")
   days_color <- lapply(as.list(day), FUN = function(x, day_color){
@@ -50,8 +50,8 @@ antigen_palette <- function(antigen){
 }
 
 sex_palette <- function(sex){
-  sex_color <- list(M = "#5ab4ac",
-                        F = "#ee7593")
+  sex_color <- list(male = "#5ab4ac",
+                    female = "#ee7593")
   sex_color <- lapply(as.list(sex), FUN = function(x, sex_color){
       sex_color[[x]]
     }
