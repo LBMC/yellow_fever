@@ -17,10 +17,32 @@ classification <- function(
   scd,
   feature,
   training,
-  algo = 'spls',
+  ncores = 4,
+  algo = "mspls_mpls",
   output_file = "") {
 
+  algo_training <- paste0(algo, "_training")
+  to_train_on <- !is.na(scd$getfeature(feature))
+  training <- algo_training(
+    by = scd$select(b_cells = to_train_on)$getfeature(feature),
+    data = scd$select(b_cells = to_train_on)$getcounts,
+    ncores = ncores,
+    file = paste0(output_file, "_training")
+  )
 
+  algo_classification <- paste0(algo, "_classification")
+  classification <- algo_classification(
+    fit = training,
+    data = scd$select(b_cells = !to_train_on)$getcounts,
+    data_train = scd$select(b_cells = to_train_on)$getcounts,
+    file = paste0(output_file, "_classification")
+  )
+  return(list(
+    training = training,
+    classification = classification,
+    scd = scd,
+    feature = feature
+  ))
 }
 
 ################################################################################
