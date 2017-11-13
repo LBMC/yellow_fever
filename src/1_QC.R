@@ -39,7 +39,7 @@ for (feature in c("counts", "length", "abundance")) {
 
 load("results/abundance.Rdata")
 system("mkdir -p results/QC/QC_paraload/abundance/")
-system("mkdir -p results/QC/QC_paraload/counts/")
+system("mkdir -p results/QC/QC_paraload/countximportts/")
 
 scRNAtools::QC_paraload_parameters(
   paraload_file = "results/QC/paraload.csv",
@@ -55,7 +55,7 @@ bin/paraload --server \
 --output results/QC/paraload_abundance_run.txt \
 --log results/QC/paraload_abundance.log \
 --report results/QC/paraload_abundance_report.txt \
---conf src/pbs/QC/QC.conf
+--conf src/pbs/QC/QC_abundance.conf
 ")
 
 system("
@@ -65,7 +65,7 @@ bin/paraload --server \
 --output results/QC/paraload_counts_run.txt \
 --log results/QC/paraload_counts.log \
 --report results/QC/paraload_counts_report.txt \
---conf src/pbs/QC/QC.conf
+--conf src/pbs/QC/QC_counts.conf
 ")
 
 # launch paralod clients
@@ -106,13 +106,28 @@ done
 load("results/abundance.Rdata")
 scRNAtools::QC_load_bootstraps(
   scd = scd,
-  paraload_folder = "results/QC/QC_paraload/abundance"
+  paraload_folder = "results/QC/QC_paraload/counts"
 )
 hist(scd$getfeature("QC_score"), breaks = sqrt(scd$getncells))
 scRNAtools::QC_classification(scd)
+table(scd$getfeature("QC_good"))
+save(scd, file = "results/QC/abundance_QC.Rdata")
 
-save(scd, file = "results/QC/paired_end_abundance_QC.Rdata")
-load("results/QC/paired_end_abundance_QC.Rdata")
+load("results/counts.Rdata")
+scRNAtools::QC_load_bootstraps(
+  scd = scd,
+  paraload_folder = "results/QC/QC_paraload/counts"
+)
+hist(scd$getfeature("QC_score"), breaks = sqrt(scd$getncells))
+scRNAtools::QC_classification(scd)
+table(scd$getfeature("QC_good"))
+save(scd, file = "results/QC/counts_QC.Rdata")
+
+
+
+
+load("results/QC/abundance_QC.Rdata")
+load("results/QC/counts_QC.Rdata")
 
 check_gene(scd, "CCR7", "sex")
 scd_QC <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)
