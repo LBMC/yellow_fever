@@ -297,8 +297,8 @@ pca_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
                            var_y = round(prop_of_var[2], digit = 2),
                            axes = "axes 1 and 2")
     if (!is.null(color)){
-      if (is.numeric(color)){
-        if (mean(color[pca_data$x <= mean(pca_data$x)]) > mean(color)){
+      if (is.numeric(scd$getfeature(color))){
+        if (mean(scd$getfeature(color)[pca_data$x <= mean(pca_data$x)]) > mean(scd$getfeature(color))){
           pca_data$x <- - pca_data$x
           pca_data$y <- - pca_data$y
         }
