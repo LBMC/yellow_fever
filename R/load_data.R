@@ -37,7 +37,7 @@ scdata <- R6::R6Class("scdata",
     },
     # private method to get position of cells in common between features and
     # counts
-    get_common_cells = function(features, counts) {
+    get_common_cells = function(features, counts, v = F) {
       id_features <- as.vector(features$id)
       id_counts <- rownames(counts)
       common_cells <- intersect(id_features, id_counts)
@@ -47,9 +47,9 @@ scdata <- R6::R6Class("scdata",
       print("cells present in infos, but not counts")
       print(setdiff(id_features, id_counts))
       print("cells present in counts, but not infos")
-      print(setdiff(id_features, id_counts))
-      r_features <- which(id_features %in% common_cells)
-      r_counts <- which(id_counts %in% common_cells)
+      print(setdiff(id_counts, id_features))
+      r_features <- which(id_features %in% common_cells & !duplicated(id_features))
+      r_counts <- which(id_counts %in% common_cells & !duplicated(id_counts))
       return(list(features = r_features, counts = r_counts))
     },
     order_by_cells = function() {
@@ -96,13 +96,15 @@ scdata <- R6::R6Class("scdata",
           nrow(infos),
           " x ",
           ncol(infos)
-        ))
+        )
+      )
       print(
         paste0("dim of counts :",
           nrow(counts),
           " x ",
           ncol(counts)
-        ))
+        )
+      )
     }
     ),
   public = list(
