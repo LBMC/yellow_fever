@@ -12,7 +12,7 @@ scdata <- R6::R6Class("scdata",
     counts = NULL, # a matrix of counts
     features = NULL, # a data.frame of cells features
     # private method to get position of cells and genes in rows and columns
-    get_rc_counts = function(cells = NULL, genes = NULL) {
+    get_rc_counts = function(cells = NULL, genes = NULL, v = F) {
       c_num <- 1:self$getngenes
       if (!is.null(genes)) {
         c_num <- which(private$genes %in% genes)
@@ -24,7 +24,7 @@ scdata <- R6::R6Class("scdata",
       return(list(c_num = c_num, r_num = r_num))
     },
     # private method to get position of cells and features in rows and columns
-    get_rc_features = function(cells = NULL, features = NULL) {
+    get_rc_features = function(cells = NULL, features = NULL, v = F) {
       c_num <- 1:self$getnfeatures
       if (!is.null(features)) {
         c_num <- which(colnames(private$features) %in% features)
@@ -41,18 +41,20 @@ scdata <- R6::R6Class("scdata",
       id_features <- as.vector(features$id)
       id_counts <- rownames(counts)
       common_cells <- intersect(id_features, id_counts)
-      print(
-        paste0(length(common_cells),
-          " cells in common between infos and counts"))
-      print("cells present in infos, but not counts")
-      print(setdiff(id_features, id_counts))
-      print("cells present in counts, but not infos")
-      print(setdiff(id_counts, id_features))
+      if (v) {
+        print(
+          paste0(length(common_cells),
+            " cells in common between infos and counts"))
+        print("cells present in infos, but not counts")
+        print(setdiff(id_features, id_counts))
+        print("cells present in counts, but not infos")
+        print(setdiff(id_counts, id_features))
+      }
       r_features <- which(id_features %in% common_cells & !duplicated(id_features))
       r_counts <- which(id_counts %in% common_cells & !duplicated(id_counts))
       return(list(features = r_features, counts = r_counts))
     },
-    order_by_cells = function() {
+    order_by_cells = function(v = F) {
       if (nrow(private$counts) == length(private$cells)) {
         private$counts <- private$counts[order(private$cells), ]
       } else {
@@ -75,58 +77,70 @@ scdata <- R6::R6Class("scdata",
       }
       private$cells <- rownames(private$counts)
     },
-    transpose_count = function(counts) {
+    transpose_count = function(counts, v = F) {
       counts <- as.matrix(counts)
       if (nrow(private$features) < nrow(counts)) {
-        print("transposing counts...")
+        if (v) {
+          print("transposing counts...")
+        }
         return(t(counts))
       }
       return(counts)
     },
-    set_na_to_zero = function() {
-      print("cells with NA's counts:")
-      print(self$getcells[rowSums(is.na(self$getcounts)) != 0])
-      print("genes with NA's counts:")
-      print(self$getgenes[colSums(is.na(self$getcounts)) != 0])
+    set_na_to_zero = function(v = F) {
+      if (v) {
+        print("cells with NA's counts:")
+        print(self$getcells[rowSums(is.na(self$getcounts)) != 0])
+        print("genes with NA's counts:")
+        print(self$getgenes[colSums(is.na(self$getcounts)) != 0])
+      }
       private$counts[is.na(private$counts)] <- 0
     },
-    display_dim = function(infos, counts) {
-      print(
-        paste0("dim of infos :",
-          nrow(infos),
-          " x ",
-          ncol(infos)
+    display_dim = function(infos, counts, v = F) {
+      if (v) {
+        print(
+          paste0("dim of infos :",
+            nrow(infos),
+            " x ",
+            ncol(infos)
+          )
         )
-      )
-      print(
-        paste0("dim of counts :",
-          nrow(counts),
-          " x ",
-          ncol(counts)
+        print(
+          paste0("dim of counts :",
+            nrow(counts),
+            " x ",
+            ncol(counts)
+          )
         )
-      )
+      }
     }
     ),
   public = list(
-    initialize = function(infos = NA, counts = NA) {
+    initialize = function(infos = NA, counts = NA, v = F) {
       private$features <- as.data.frame(infos)
-      private$counts <- private$transpose_count(counts)
+      private$counts <- private$transpose_count(counts, v = v)
       private$genes <- colnames(private$counts)
       private$cells <- rownames(private$counts)
-      private$display_dim(private$features, private$counts)
+      private$display_dim(private$features, private$counts, v = v)
       if ("id" %in% colnames(private$features)) {
-        print("id column found in infos")
+        if (v) {
+          print("id column found in infos")
+        }
         if (length(intersect(private$cells, as.vector(private$features$id)))
           == 0) {
           print(setdiff(private$cells, as.vector(private$features$id)))
           stop("error: id's in infos don't match cells name in counts")
         }
-        rr_num <- private$get_common_cells(private$features, private$counts)
+        rr_num <- private$get_common_cells(
+          private$features,
+          private$counts,
+          v = v
+        )
         private$features <- private$features[rr_num$features, ]
         private$counts <- private$counts[rr_num$counts, ]
         private$cells <- rownames(private$counts)
-        private$display_dim(private$features, private$counts)
-        private$order_by_cells()
+        private$display_dim(private$features, private$counts, v = v)
+        private$order_by_cells(v = v)
         if (any(private$getfeature['id'] != private$cells) ){
           stop("error : features order don't match counts order")
         }
@@ -139,15 +153,15 @@ scdata <- R6::R6Class("scdata",
               nrow(private$counts)))
         }
       }
-      private$set_na_to_zero()
-      self$summary()
+      private$set_na_to_zero(v = v)
+      self$summary(v = v)
     },
-    add = function(infos = NA, counts = NA) {
+    add = function(infos = NA, counts = NA, v = F) {
       features <- as.data.frame(infos)
-      counts <- private$transpose_count(counts)
+      counts <- private$transpose_count(counts, v = v)
       genes <- colnames(counts)
       cells <- rownames(counts)
-      private$display_dim(features, counts)
+      private$display_dim(features, counts, v = v)
       if (length(intersect(private$cells, cells)) != 0) {
         stop("error: trying to add cells already present")
       }
@@ -157,7 +171,9 @@ scdata <- R6::R6Class("scdata",
         stop("error: genes set don't match existing genes set")
       }
       if ("id" %in% colnames(features)) {
-        print("id column found in infos")
+        if (v) {
+          print("id column found in infos")
+        }
         if (length(intersect(cells, as.vector(features$id))) == 0) {
           print(setdiff(private$cells, as.vector(private$features$id)))
           stop("error: id's in infos don't match cells name in counts")
@@ -171,7 +187,7 @@ scdata <- R6::R6Class("scdata",
               nrow(private$counts)))
         }
       }
-      rr_num <- private$get_common_cells(features, counts)
+      rr_num <- private$get_common_cells(features, counts, v = v)
       features <- features[rr_num$features, ]
       counts <- counts[rr_num$counts, ]
       genes <- colnames(counts)
@@ -180,16 +196,18 @@ scdata <- R6::R6Class("scdata",
       private$counts <- rbind(private$counts, counts[not_here, ])
       private$features <- rbind(private$features, features[not_here, ])
       private$cells <- rownames(private$counts)
-      private$order_by_cells()
-      private$set_na_to_zero()
+      private$order_by_cells(v = v)
+      private$set_na_to_zero(v = v)
       if (any(private$getfeature['id'] != private$cells) ){
         stop("error : features order don't match counts order")
       }
     },
-    summary = function() {
-      cat(paste0("ncol: ", ncol(private$counts), ".\n"))
-      cat(paste0("nrow: ", nrow(private$counts), ".\n"))
-      cat(paste0("features: ", ncol(private$features), ".\n"))
+    summary = function(v = F) {
+      if (v) {
+        cat(paste0("ncol: ", ncol(private$counts), ".\n"))
+        cat(paste0("nrow: ", nrow(private$counts), ".\n"))
+        cat(paste0("features: ", ncol(private$features), ".\n"))
+      }
     },
     # accessors methods
     getfeature = function(feature) {
