@@ -415,7 +415,6 @@ load_data_salmon <- function(
   feature = "counts",
   infos_sep = ",",
   tximport_obj = "",
-  grouping_FUN = colSums,
   ...) {
 
   if(missing(tximport_obj) |
@@ -428,62 +427,38 @@ load_data_salmon <- function(
     dir_list <- dir_list[file.exists(dir_list)]
     names(dir_list) <- gsub(id_regexp, "\\1", dir_list, perl = T)
     dir_list <- dir_list[grepl(id_regexp_b, names(dir_list))]
-    scd_paired <- tximport(dir_list, type = "none", txOut = TRUE,
-      txIdCol = "Name", abundanceCol = "TPM", countsCol = "NumReads",
-      lengthCol = "EffectiveLength")
-    print(names(scd_paired))
+    transcript_to_genes <- read.table(dir_list[1], h = T)[1]
+    scd_paired_name <- data.frame(
+      transcript = as.vector(transcript_to_genes$Name),
+      genes = unlist(
+        sapply(
+          as.vector(transcript_to_genes$Name),
+          FUN = function(x){
+            if (grepl(ERCC_regexp, x, perl = TRUE)){
+              return(x)
+            } else {
+              return(unlist(strsplit(x, "|", fixed = T))[6])
+            }
+          }
+        )
+      )
+    )
+    scd <- tximport(
+      dir_list,
+      type = "salmon",
+      tx2gene = scd_paired_name,
+      countsFromAbundance = "lengthScaledTPM"
+    )
+    print(names(scd))
     if (!missing(tximport_obj)) {
-      save(scd_paired,
+      save(scd,
         file = paste0(tximport_obj, ".Rdata"))
     }
   } else {
     load(file = paste0(tximport_obj, ".Rdata"))
   }
-  print("formating genes names...")
-  if(missing(tximport_obj) |
-    (!missing(tximport_obj) &
-    !file.exists(paste0(tximport_obj, "_", feature, "_formating.Rdata")))) {
-    scd_paired_name <- unlist(sapply(
-      rownames(scd_paired[[feature]]),
-      FUN = function(x){
-        if (grepl(ERCC_regexp, x, perl = TRUE)){
-          return(x)
-        } else {
-          return(unlist(strsplit(x, "|", fixed = T))[6])
-        }
-      }
-    ))
-    if (!missing(tximport_obj)) {
-      save(scd_paired, scd_paired_name,
-        file = paste0(tximport_obj, "_", feature, "_formating.Rdata"))
-    }
-  } else {
-    print("formating file found, loading...")
-    load(file = paste0(tximport_obj, "_", feature, "_formating.Rdata"))
-  }
-  print("grouping genes counts...")
-  if(missing(tximport_obj) |
-    (!missing(tximport_obj) &
-    !file.exists(paste0(tximport_obj, "_", feature, "_grouping.Rdata")))) {
-    count_list <- by(
-      data = scd_paired[[feature]],
-      INDICES = as.factor(scd_paired_name),
-      FUN = colSums)
-    if (!missing(tximport_obj)) {
-      save(scd_paired, scd_paired_name, count_list,
-        file = paste0(tximport_obj, "_", feature, "_grouping.Rdata"))
-    }
-  } else {
-    print("grouping file found, loading...")
-    load(file = paste0(tximport_obj, "_", feature, "_grouping.Rdata"))
- }
-  counts <- data.frame(matrix(
-    unlist(count_list),
-    nrow = length(count_list),
-    byrow = T))
-  rownames(counts) <- names(count_list)
-  colnames(counts) <- names(count_list[[1]])
-  counts <- t(counts)
+  counts <- scd[[feature]]
+  print(dim(counts))
   if (any(duplicated(rownames(counts)))) {
     print("Warning: duplicated cell id's, merging them...")
     count_list_b <- by(
@@ -498,10 +473,10 @@ load_data_salmon <- function(
     )
     rownames(counts) <- names(count_list_b)
     colnames(counts) <- names(count_list_b[[1]])
-    counts <- t(counts)
   }
-  if (any(duplicated(colnames(counts)))) {
-    exit("error: duplicated genes id's")
+  print(dim(counts))
+  if (any(duplicated(rownames(counts)))) {
+    stop("error: duplicated genes id's")
   }
   infos_table <- utils::read.table(
     infos, fill = T, h = T, sep = infos_sep, ...)
