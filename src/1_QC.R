@@ -27,6 +27,7 @@ for (feature in c("counts", "length", "abundance")) {
     scd$getfeature("sex") %in% "M" &
     scd$getfeature("day") %in% c("D15", "D136", "D593") &
     scd$getfeature("sequencing") %in% "paired" &
+    !(scd$getfeature("batch") %in% c(6:8)) &
     !(scd$getcells %in% c("P1299_1797", "P1299_1896"))
   )
   save(scd, file = paste0("results/", feature, ".Rdata"))
@@ -39,6 +40,8 @@ b_cells <- scd$getfeature("to_QC")
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   tmp_file = "results/tmp/pca_abundance_outliers_tmp.Rdata")
+load("results/tmp/pca_abundance_outliers_tmp.Rdata")
+scd$select(b_cells = b_cells)$getfeatures[order(pca_data$x)[1:2],]
 
 load("results/counts.Rdata")
 b_cells <- scd$getfeature("to_QC")
@@ -46,10 +49,12 @@ b_cells <- scd$getfeature("to_QC")
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   tmp_file = "results/tmp/pca_counts_outliers_tmp.Rdata")
+load("results/tmp/pca_counts_tmp.Rdata", v = T)
+scd$select(b_cells = b_cells)$getfeatures[order(pca_data$y, decreasing = T)[1:2],]
 
 ################################################################################
 
-load("results/abundance.Rdata")
+load("results/counts.Rdata")
 system("mkdir -p results/QC/QC_paraload/abundance/")
 system("mkdir -p results/QC/QC_paraload/counts/")
 
