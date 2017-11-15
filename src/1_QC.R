@@ -141,16 +141,22 @@ scRNAtools::pca_plot(
 
 
 devtools::load_all("../scRNAtools/", reset = T)
+load("results/QC/counts_QC.Rdata")
 
+scd <- normalize(
+  scd = scd,
+  method = "SCnorm",
+  cpus = 4,
+  tmp_file = "results/tmp/normalization_tmp.Rdata",
+)
+
+save(scd, file = "results/QC/norm_counts_QC.Rdata")
+system("rm results/tmp/pca_norm_counts_QC_tmp.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "day", color_name = "day",
-  tmp_file = "results/tmp/pca_tmp.Rdata")
-
-summary(scd$select(b_cells = b_cells)$getfeature("QC_good"))
+  tmp_file = "results/tmp/pca_norm_counts_QC_tmp.Rdata")
 scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells), color = "QC_good", alpha = "cell_number", color_name = "antigen",
-  tmp_file = "results/tmp/pca_tmp.Rdata")
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  tmp_file = "results/tmp/pca_norm_counts_QC_tmp.Rdata")
 
-scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells)$select(), color = "cell_number", color_name = "clonality",
-  tmp_file = "results/tmp/pca_tmp.Rdata")
