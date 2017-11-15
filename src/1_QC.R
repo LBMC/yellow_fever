@@ -3,35 +3,6 @@ library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 
 system("perl -pi -e 's/[pP](\\d*_\\d*)/P\\1/g' data/Summary_SSEQ.csv")
-<<<<<<< HEAD
-################################################################################
-Warning: 1237 parsing failures.
-row # A tibble: 5 x 5 col     row      col               expected   actual expected   <int>    <chr>                  <chr>    <chr> actual 1  1261 NumReads no trailing characters  .500152 file 2  1262 NumReads no trailing characters  .499848 row 3  1329 NumReads no trailing characters    .7657 col 4  1330 NumReads no trailing characters  .141882 expected 5  1331 NumReads no trailing characters .0924225 actual # ... with 1 more variables: file <chr>
-Warning: 335 parsing failures.
-row # A tibble: 5 x 5 col     row      col               expected     actual expected   <int>    <chr>                  <chr>      <chr> actual 1  1521 NumReads no trailing characters    .118747 file 2  1522 NumReads no trailing characters    .881253 row 3  1570 NumReads no trailing characters    .999967 col 4  1571 NumReads no trailing characters .34432e-05 expected 5  2169 NumReads no trailing characters    .367279 actual # ... with 1 more variables: file <chr>
-Warning: 735 parsing failures.
-row # A tibble: 5 x 5 col     row      col               expected  actual expected   <int>    <chr>                  <chr>   <chr> actual 1  1261 NumReads no trailing characters .500519 file 2  1262 NumReads no trailing characters .499481 row 3  1609 NumReads no trailing characters .457291 col 4  1610 NumReads no trailing characters .542709 expected 5  3028 NumReads no trailing characters  .23259 actual # ... with 1 more variables: file <chr>
-
-for (type in c("paired_end", "single_end")) {
-  for (feature in c("counts", "length", "abundance")) {
-    print(paste0(type, "_", feature))
-    scd <- scRNAtools::load_data_salmon(
-      infos = "data/Summary_SSEQ.csv",
-      counts = paste0("data/salmon_output/", type, "/"),
-      feature = feature,
-      id_regexp = ifelse(
-        type %in% "paired_end",
-        ".*_(P[0-9]{4}_[0-9]{1,4})_.*",
-        ".*Run2.*_(P[0-9]{4}_[0-9]{1,4})_.*"
-      ),
-      tximport_obj = paste0("results/tmp/tmp_tximport_", type),
-      infos_sep = ",",
-      grouping_FUN = ifelse(
-        feature %in% "length",
-        colSums,
-        max
-      )
-=======
 system("perl -pi -e 's/P1306/P1316/g' data/Summary_SSEQ.csv")
 ################################################################################
 for (feature in c("counts", "length", "abundance")) {
@@ -49,7 +20,6 @@ for (feature in c("counts", "length", "abundance")) {
       grepl("P1373", scd$getfeature("id")),
       "single",
       "paired"
->>>>>>> refs/remotes/origin/master
     )
   )
   scd$setfeature(
@@ -189,4 +159,3 @@ scRNAtools::pca_plot(
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   tmp_file = "results/tmp/pca_norm_counts_QC_tmp.Rdata")
-
