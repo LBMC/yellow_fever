@@ -51,7 +51,7 @@ scRNAtools::pca_plot(
 
 load("results/abundance.Rdata")
 system("mkdir -p results/QC/QC_paraload/abundance/")
-system("mkdir -p results/QC/QC_paraload/countximportts/")
+system("mkdir -p results/QC/QC_paraload/counts/")
 
 scRNAtools::QC_paraload_parameters(
   paraload_file = "results/QC/paraload.csv",
@@ -118,7 +118,7 @@ done
 load("results/abundance.Rdata")
 scRNAtools::QC_load_bootstraps(
   scd = scd,
-  paraload_folder = "results/QC/QC_paraload/counts"
+  paraload_folder = "results/QC/QC_paraload/abundance"
 )
 hist(scd$getfeature("QC_score"), breaks = sqrt(scd$getncells))
 scRNAtools::QC_classification(scd)
