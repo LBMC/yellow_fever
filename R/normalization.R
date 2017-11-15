@@ -13,6 +13,7 @@
 #' @export SCnorm
 normalize <- function(
     scd,
+    b_cells = scd$getfeature("QC_good") %in% T,
     method = "SCnorm",
     cpus = 4,
     tmp_file,
@@ -43,9 +44,10 @@ normalize <- function(
         save(countDeptEst, DataNorm, file = file)
       }
     }
-    b_cells = scd$getfeature('to_QC') & scd$getfeature("QC_good") %in% T
     counts <- scd$getcounts
     counts[b_cells] <- t(results(DataNorm))
+    rownames(counts) <- rownames(scd$getcounts)
+    colnames(counts) <- colnames(scd$getcounts) 
     return(scdata$new(
       infos = scd$getfeatures,
       counts = counts,
