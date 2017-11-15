@@ -4,7 +4,8 @@
 \alias{classification}
 \title{classification for scRNASeq data}
 \usage{
-classification(scd, feature, training, algo = "spls", output_file = "")
+classification(scd, feature, training, ncores = 4, algo = "mspls_mpls",
+  output_file = "")
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}
