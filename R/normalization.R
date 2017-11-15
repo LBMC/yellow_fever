@@ -20,7 +20,7 @@ normalize <- function(
   ) {
   if (method == "SCnorm"){
     if (!missing(tmp_file) & file.exists(tmp_file)) {
-      print("tmp file found skipping pca...")
+      print("tmp file found skipping SCnorm...")
       load(tmp_file)
     } else {
       countDeptEst <- plotCountDepth(
