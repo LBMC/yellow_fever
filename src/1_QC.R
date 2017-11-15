@@ -69,16 +69,6 @@ system("
 bin/paraload --server \
 --port 13469 \
 --input results/QC/paraload.csv \
---output results/QC/paraload_abundance_run.txt \
---log results/QC/paraload_abundance.log \
---report results/QC/paraload_abundance_report.txt \
---conf src/pbs/QC/QC_abundance.conf
-")
-
-system("
-bin/paraload --server \
---port 13469 \
---input results/QC/paraload.csv \
 --output results/QC/paraload_counts_run.txt \
 --log results/QC/paraload_counts.log \
 --report results/QC/paraload_counts_report.txt \
@@ -96,39 +86,12 @@ stat | wc -l
 iter=$(echo 200 - $(qstat -u modolo | grep -e \"[RQ]\" | wc -l) | bc)
 for ((i = 1;i <= $iter;i += 1))
 do
-qsub src/pbs/QC/QC_abundance.pbs &
-/bin/sleep 0.5
-done
-/bin/sleep 3600
-done
-")
-
-system("
-bin/paraload --client --port 13469 --host pbil-deb
-")
-system("
-while [ $(ps -u modolo | grep paraload | wc -l) -gt 0 ]
-do
-stat | wc -l
-iter=$(echo 200 - $(qstat -u modolo | grep -e \"[RQ]\" | wc -l) | bc)
-for ((i = 1;i <= $iter;i += 1))
-do
 qsub src/pbs/QC/QC_counts.pbs &
 /bin/sleep 0.5
 done
 /bin/sleep 3600
 done
 ")
-
-load("results/abundance.Rdata")
-scRNAtools::QC_load_bootstraps(
-  scd = scd,
-  paraload_folder = "results/QC/QC_paraload/abundance"
-)
-hist(scd$getfeature("QC_score"), breaks = sqrt(scd$getncells))
-scRNAtools::QC_classification(scd)
-table(scd$getfeature("QC_good"))
-save(scd, file = "results/QC/abundance_QC.Rdata")
 
 load("results/counts.Rdata")
 scRNAtools::QC_load_bootstraps(
