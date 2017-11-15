@@ -1,0 +1,13 @@
+#PBS -q q1hour
+#PBS -j oe
+#PBS -o /pandata/modolo/yellow_fever/results/QC/client_counts.log
+#PBS -N task
+#PBS -l pmem=4gb,nodes=1:ppn=1
+#PBS -S /bin/bash
+#PBS -m n
+
+echo $HOSTNAME
+
+cd /pandata/modolo/yellow_fever/
+Rscript --version
+bin/paraload --client --port 13469 --host pbil-deb

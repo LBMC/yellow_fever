@@ -1,6 +1,6 @@
 #PBS -q q1hour
 #PBS -j oe
-#PBS -o /pandata/modolo/yellow_fever/results/QC/client.log
+#PBS -o /pandata/modolo/yellow_fever/results/QC/client_abundance.log
 #PBS -N task
 #PBS -l pmem=4gb,nodes=1:ppn=1
 #PBS -S /bin/bash

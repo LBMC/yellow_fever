@@ -3,6 +3,7 @@ library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 
 system("perl -pi -e 's/[pP](\\d*_\\d*)/P\\1/g' data/Summary_SSEQ.csv")
+<<<<<<< HEAD
 ################################################################################
 Warning: 1237 parsing failures.
 row # A tibble: 5 x 5 col     row      col               expected   actual expected   <int>    <chr>                  <chr>    <chr> actual 1  1261 NumReads no trailing characters  .500152 file 2  1262 NumReads no trailing characters  .499848 row 3  1329 NumReads no trailing characters    .7657 col 4  1330 NumReads no trailing characters  .141882 expected 5  1331 NumReads no trailing characters .0924225 actual # ... with 1 more variables: file <chr>
@@ -30,34 +31,62 @@ for (type in c("paired_end", "single_end")) {
         colSums,
         max
       )
+=======
+system("perl -pi -e 's/P1306/P1316/g' data/Summary_SSEQ.csv")
+################################################################################
+for (feature in c("counts", "length", "abundance")) {
+  print(feature)
+  scd <- scRNAtools::load_data_salmon(
+    infos = "data/Summary_SSEQ.csv",
+    counts = "data/salmon_output/",
+    feature = feature,
+    tximport_obj = "results/tmp/tmp_tximport",
+    infos_sep = ","
+  )
+  scd$setfeature(
+    "sequencing",
+    ifelse(
+      grepl("P1373", scd$getfeature("id")),
+      "single",
+      "paired"
+>>>>>>> refs/remotes/origin/master
     )
-    scd$setfeature(
-      "to_QC",
-      scd$getfeature("sex") %in% "M" & scd$getfeature("day") %in% c("D15", "D136", "D593")
-    )
-    save(scd, file = paste0("results/", type, "_", feature, ".Rdata"))
-  }
+  )
+  scd$setfeature(
+    "to_QC",
+    scd$getfeature("sex") %in% "M" &
+    scd$getfeature("day") %in% c("D15", "D136", "D593") &
+    scd$getfeature("sequencing") %in% "paired" &
+    !(scd$getfeature("batch") %in% c(6:8)) &
+    !(scd$getcells %in% c("P1299_1797", "P1299_1896"))
+  )
+  save(scd, file = paste0("results/", feature, ".Rdata"))
+  print(scd$getcells[rowSums(is.na(scd$getcounts)) != 0])
 }
 
-load("results/single_end_abundance.Rdata")
-scd_single <- scd
-scd_single$setfeature("sequencing", "single")
+load("results/abundance.Rdata")
+b_cells <- scd$getfeature("to_QC")
+  | scd$getcells %in% c("P1299_1797", "P1299_1896")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  tmp_file = "results/tmp/pca_abundance_outliers_tmp.Rdata")
+load("results/tmp/pca_abundance_outliers_tmp.Rdata")
+scd$select(b_cells = b_cells)$getfeatures[order(pca_data$x)[1:2],]
 
-load("results/paired_end_abundance.Rdata")
-scd$setfeature("sequencing", "paired")
-scd$add(
-  infos = scd_single$getfeatures,
-  counts = scd_single$getcounts
-)
-scd$setfeature(
-  "to_QC",
-  scd$getfeature("sex") %in% "M" & scd$getfeature("day") %in% c("D15", "D136", "D593") & scd$getfeature("sequencing") %in% "paired"
-)
-save(scd, file = "results/abundance.Rdata")
+load("results/counts.Rdata")
+b_cells <- scd$getfeature("to_QC")
+  | scd$getcells %in% c("P1299_1797", "P1299_1896")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  tmp_file = "results/tmp/pca_counts_outliers_tmp.Rdata")
+load("results/tmp/pca_counts_tmp.Rdata", v = T)
+scd$select(b_cells = b_cells)$getfeatures[order(pca_data$y, decreasing = T)[1:2],]
 
+################################################################################
 
-
-system("mkdir -p results/QC/QC_paraload")
+load("results/counts.Rdata")
+system("mkdir -p results/QC/QC_paraload/abundance/")
+system("mkdir -p results/QC/QC_paraload/counts/")
 
 scRNAtools::QC_paraload_parameters(
   paraload_file = "results/QC/paraload.csv",
@@ -70,10 +99,10 @@ system("
 bin/paraload --server \
 --port 13469 \
 --input results/QC/paraload.csv \
---output results/QC/paraload_run.txt \
---log results/QC/paraload.log \
---report results/QC/paraload_report.txt \
---conf src/pbs/QC/QC.conf
+--output results/QC/paraload_counts_run.txt \
+--log results/QC/paraload_counts.log \
+--report results/QC/paraload_counts_report.txt \
+--conf src/pbs/QC/QC_counts.conf
 ")
 
 # launch paralod clients
@@ -87,54 +116,77 @@ stat | wc -l
 iter=$(echo 200 - $(qstat -u modolo | grep -e \"[RQ]\" | wc -l) | bc)
 for ((i = 1;i <= $iter;i += 1))
 do
-qsub src/pbs/QC/paired_end_QC.pbs &
+qsub src/pbs/QC/QC_counts.pbs &
 /bin/sleep 0.5
 done
 /bin/sleep 3600
 done
 ")
 
-load("results/abundance.Rdata")
+load("results/counts.Rdata")
 scRNAtools::QC_load_bootstraps(
   scd = scd,
-  paraload_folder = "results/QC/QC_paraload/"
+  paraload_folder = "results/QC/QC_paraload/counts"
 )
 hist(scd$getfeature("QC_score"), breaks = sqrt(scd$getncells))
 scRNAtools::QC_classification(scd)
+table(scd$getfeature("QC_good"))
+save(scd, file = "results/QC/counts_QC.Rdata")
 
-save(scd, file = "results/QC/paired_end_abundance_QC.Rdata")
-load("results/QC/paired_end_abundance_QC.Rdata")
+counts_features <- scd$getfeatures
 
-check_gene(scd, "CCR7", "sex")
-scd_QC <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)
+load("results/abundance.Rdata")
+scd <- scdata$new(
+  infos = counts_features,
+  counts = scd$getcounts,
+  v = T
+)
+save(scd, file = "results/QC/abundance_QC.Rdata")
 
-check_gene(scd_QC, "CCR7", "sex")
+
+load("results/QC/counts_QC.Rdata")
 
 table(scd$getfeature("day"), scd$getfeature("cell_number"))
+table(scd$getfeature("day"), scd$getfeature("QC_good"))
+b_cells = scd$getfeature('to_QC')
+
+system("rm results/tmp/pca_*_QC_tmp.Rdata")
+
+load("results/QC/counts_QC.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "day", color_name = "day", alpha = "QC_good",
+  tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality", alpha = "QC_good",
+  tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata")
+
+
+load("results/QC/abundance_QC.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "day", color_name = "day", alpha = "QC_good",
+  tmp_file = "results/tmp/pca_abundance_QC_tmp.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality", alpha = "QC_good",
+  tmp_file = "results/tmp/pca_abundance_QC_tmp.Rdata")
+
 
 devtools::load_all("../scRNAtools/", reset = T)
-b_cells = scd$getfeature('cell_number') %in% 1 & scd$getfeature("day") %in% c("D15", "D136", "D593")
-system("rm results/tmp/pca_tmp.Rdata")
+load("results/QC/counts_QC.Rdata")
 
-table(scd$getfeature("QC_good"), scd$getfeature("cell_number"))
+scd <- normalize(
+  scd = scd,
+  method = "SCnorm",
+  cpus = 4,
+  tmp_file = "results/tmp/normalization_tmp.Rdata",
+)
 
-scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells), color = "QC_good", color_name = "sex",
-  tmp_file = "results/tmp/pca_tmp.Rdata")
-
-
-  scRNAtools::pca_plot(
-    scd$select(b_cells = b_cells), color = "day", color_name = "day",
-    tmp_file = "results/tmp/pca_tmp.Rdata")
-
-scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells), color = "sex", color_name = "sex",
-  tmp_file = "results/tmp/pca_tmp.Rdata")
-
+save(scd, file = "results/QC/norm_counts_QC.Rdata")
+system("rm results/tmp/pca_norm_counts_QC_tmp.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "day", color_name = "day",
-  tmp_file = "results/tmp/pca_tmp.Rdata")
-
+  tmp_file = "results/tmp/pca_norm_counts_QC_tmp.Rdata")
 scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells)$select(), color = "cell_number", color_name = "clonality",
-  tmp_file = "results/tmp/pca_tmp.Rdata")
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  tmp_file = "results/tmp/pca_norm_counts_QC_tmp.Rdata")
+
