@@ -12,12 +12,7 @@ for (feature in c("counts", "length", "abundance")) {
     counts = "data/salmon_output/",
     feature = feature,
     tximport_obj = "results/tmp/tmp_tximport",
-    infos_sep = ",",
-    grouping_FUN = ifelse(
-      feature %in% "length",
-      colSums,
-      max
-    )
+    infos_sep = ","
   )
   scd$setfeature(
     "sequencing",
@@ -31,11 +26,28 @@ for (feature in c("counts", "length", "abundance")) {
     "to_QC",
     scd$getfeature("sex") %in% "M" &
     scd$getfeature("day") %in% c("D15", "D136", "D593") &
-    scd$getfeature("sequencing") %in% "paired"
+    scd$getfeature("sequencing") %in% "paired" &
+    !(scd$getcells %in% c("P1299_1797", "P1299_1896"))
   )
   save(scd, file = paste0("results/", feature, ".Rdata"))
   print(scd$getcells[rowSums(is.na(scd$getcounts)) != 0])
 }
+
+load("results/abundance.Rdata")
+b_cells <- scd$getfeature("to_QC")
+  | scd$getcells %in% c("P1299_1797", "P1299_1896")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  tmp_file = "results/tmp/pca_abundance_outliers_tmp.Rdata")
+
+load("results/counts.Rdata")
+b_cells <- scd$getfeature("to_QC")
+  | scd$getcells %in% c("P1299_1797", "P1299_1896")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  tmp_file = "results/tmp/pca_counts_outliers_tmp.Rdata")
+
+################################################################################
 
 load("results/abundance.Rdata")
 system("mkdir -p results/QC/QC_paraload/abundance/")
