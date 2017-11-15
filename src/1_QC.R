@@ -103,24 +103,42 @@ scRNAtools::QC_classification(scd)
 table(scd$getfeature("QC_good"))
 save(scd, file = "results/QC/counts_QC.Rdata")
 
+counts_features <- scd$getfeatures
 
+load("results/abundance.Rdata")
+scd <- scdata$new(
+  infos = counts_features,
+  counts = scd$getcounts,
+  v = T
+)
+save(scd, file = "results/QC/abundance_QC.Rdata")
+
+
+load("results/QC/counts_QC.Rdata")
+
+table(scd$getfeature("day"), scd$getfeature("cell_number"))
+table(scd$getfeature("day"), scd$getfeature("QC_good"))
+b_cells = scd$getfeature('to_QC')
+
+system("rm results/tmp/pca_*_QC_tmp.Rdata")
+
+load("results/QC/counts_QC.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "day", color_name = "day", alpha = "QC_good",
+  tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality", alpha = "QC_good",
+  tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata")
 
 
 load("results/QC/abundance_QC.Rdata")
-load("results/QC/counts_QC.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "day", color_name = "day", alpha = "QC_good",
+  tmp_file = "results/tmp/pca_abundance_QC_tmp.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality", alpha = "QC_good",
+  tmp_file = "results/tmp/pca_abundance_QC_tmp.Rdata")
 
-check_gene(scd, "CCR7", "sex")
-scd_QC <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)
-
-check_gene(scd_QC, "CCR7", "sex")
-
-table(scd$getfeature("day"), scd$getfeature("cell_number"))
-
-devtools::load_all("../scRNAtools/", reset = T)
-b_cells = scd$getfeature('to_QC')
-system("rm results/tmp/pca_tmp.Rdata")
-
-table(scd$getfeature("QC_good"), scd$getfeature("day"))
 
 devtools::load_all("../scRNAtools/", reset = T)
 
