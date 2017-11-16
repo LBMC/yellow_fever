@@ -736,8 +736,10 @@ bca_plot <- function(scd, by, color, ncomp=2, top, n_groups, n_cells, norm_by,
 #' }
 #' @import pCMF ggplot2
 #' @export bca_plot
-pCMF_plot <- function(scd, by, color, ncomp=2, top, n_groups, n_cells, norm_by,
-  file, main="", genes_list, xlimit, ylimit, ncores = 4){
+pCMF_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
+  wrap=NULL, file, main = "", axes, res=FALSE, rainbow=FALSE, heatcolor=FALSE,
+  is_contour, label=NULL, genes_list, arrow=FALSE, color_name="day",
+  return_data = FALSE, color_scale = NULL, tmp_file, ncores = 4){
   if (!missing(tmp_file) & file.exists(tmp_file)) {
     print("tmp file found skipping pCMF...")
     load(tmp_file)
