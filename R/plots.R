@@ -746,7 +746,6 @@ pCMF_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
   } else {
     pCMF_out <- pCMF(
       X = scd$getcounts,
-      ncomp = ncomp,
       iterMax = 500,
       iterMin = 100,
       epsilon = 1e-3,
