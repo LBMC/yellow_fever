@@ -719,3 +719,73 @@ bca_plot <- function(scd, by, color, ncomp=2, top, n_groups, n_cells, norm_by,
     )
   }
 }
+
+
+#' plot the 2 first axis of a pCMF analysis
+#'
+#' @param scd is a scRNASeq data object
+#' @param gene gene name to display
+#' @param condition condition to compare (must be features of scd)
+#' @param file output file where to save the graph (optional)
+#' @param transform (bool) use anscomb transform or raw counts
+#' @return a list() with the number of time each cells is classied as 'good' (
+#' non is_blank looking) or 'bad' (blank looking)
+#' @examples
+#' \dontrun{
+#' check_gene(scd, "genes_a", "sexe")
+#' }
+#' @import pCMF ggplot2
+#' @export bca_plot
+pCMF_plot <- function(scd, by, color, ncomp=2, top, n_groups, n_cells, norm_by,
+  file, main="", genes_list, xlimit, ylimit, ncores = 4){
+  if (!missing(tmp_file) & file.exists(tmp_file)) {
+    print("tmp file found skipping pCMF...")
+    load(tmp_file)
+  } else {
+    pCMF_out <- pCMF(
+      X = scd$getcounts,
+      ncomp = ncomp,
+      iterMax = 500,
+      iterMin = 100,
+      epsilon = 1e-3,
+      verbose = TRUE,
+      sparse = TRUE,
+      ZI = TRUE,
+      ncores = ncores
+    )
+    U <- getU(pCMF_out)
+    prop_of_var <- expDeviance(pCMF, scd$getcounts)
+    pCMF_data <- data.frame(x = U[1, ],
+                           y = U[2, ],
+                           var_x = round(prop_of_var[1], digit = 2),
+                           var_y = round(prop_of_var[2], digit = 2),
+                           axes = "axes 1 and 2")
+    if (!missing(tmp_file)){
+      save(pCMF_out, pCMF_data, file = tmp_file)
+    }
+  }
+  g <- plot_2_axes(
+    scd,
+    x = pCMF_data$x,
+    y = pCMF_data$y,
+    color = color,
+    shape = shape,
+    size = size,
+    alpha = alpha,
+    wrap = wrap,
+    main = main,
+    x_lab = paste0(
+      "first axe: ", pCMF_data$var_x[1], "% of deviance"),
+    y_lab = paste0(
+      "first axe: ", pCMF_data$var_y[2], "% of deviance"),
+    file = file,
+    is_contour = is_contour,
+    label = label,
+    display = FALSE,
+    color_name = color_name,
+    color_scale = color_scale)
+  print(g)
+  if (return_data){
+    return(pCMF_out)
+  }
+}
