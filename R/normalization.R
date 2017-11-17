@@ -18,7 +18,7 @@ normalize <- function(
     tmp_file,
     v = F
   ) {
-  algo_norm <- paste0(method, "_normalize")
+  algo_norm <- get(paste0(method, "_normalize"))
   return(algo_norm(
     scd = scd,
     b_cells = b_cells,

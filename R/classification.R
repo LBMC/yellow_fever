@@ -21,7 +21,7 @@ classification <- function(
   algo = "mspls_mpls",
   output_file = "") {
 
-  algo_training <- paste0(algo, "_training")
+  algo_training <- get(paste0(algo, "_training"))
   to_train_on <- !is.na(scd$getfeature(feature))
   training <- algo_training(
     by = scd$select(b_cells = to_train_on)$getfeature(feature),
