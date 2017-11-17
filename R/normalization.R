@@ -87,7 +87,7 @@ combat_normalize <- function(
   } else {
     DataNorm <- ComBat(
       dat = t(ascb(scd$select(b_cells = b_cells)$getcounts)),
-      batch =  scd$getfeature("batch"),
+      batch =  scd$select(b_cells = b_cells)$getfeature("batch"),
       BPPARAM = bpparam(paste0("MulticoreParam(", cpus, ")"))
     )
     if (!missing(tmp_file)) {
