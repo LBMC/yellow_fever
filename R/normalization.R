@@ -9,7 +9,6 @@
 #' \dontrun{
 #' scd_norm <- normalize(scd)
 #' }
-#' @import SCnorm
 #' @export normalize
 normalize <- function(
     scd,
@@ -29,6 +28,7 @@ normalize <- function(
   ))
 }
 
+#' @import SCnorm
 SCnorm_normalize <- function(
     scd,
     b_cells = scd$getfeature("QC_good") %in% T,
@@ -62,6 +62,40 @@ SCnorm_normalize <- function(
   }
   counts <- scd$getcounts
   counts[b_cells] <- t(results(DataNorm))
+  rownames(counts) <- rownames(scd$getcounts)
+  colnames(counts) <- colnames(scd$getcounts)
+  return(
+    scdata$new(
+      infos = scd$getfeatures,
+      counts = counts,
+      v = v
+    )
+  )
+}
+
+#' @importFrom sva ComBat
+combat_normalize <- function(
+    scd,
+    b_cells = scd$getfeature("QC_good") %in% T,
+    cpus = 4,
+    tmp_file,
+    v = F
+  )
+  if (!missing(tmp_file) & file.exists(tmp_file)) {
+    print("tmp file found skipping SCnorm...")
+    load(tmp_file)
+  } else {
+    DataNorm <- ComBat(
+      dat = t(ascb(scd$select(b_cells = b_cells)$getcounts)),
+      batch =  scd$getfeature("batch"),
+      BPPARAM = bpparam(paste0("MulticoreParam(", cpus, ")"))
+    )
+    if (!missing(tmp_file)) {
+      save(DataNorm, file = file)
+    }
+  }
+  counts <- scd$getcounts
+  counts[b_cells] <- t(DataNorm)
   rownames(counts) <- rownames(scd$getcounts)
   colnames(counts) <- colnames(scd$getcounts)
   return(
