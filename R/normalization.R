@@ -19,40 +19,56 @@ normalize <- function(
     tmp_file,
     v = F
   ) {
-  if (method == "SCnorm"){
-    if (!missing(tmp_file) & file.exists(tmp_file)) {
-      print("tmp file found skipping SCnorm...")
-      load(tmp_file)
-    } else {
-      countDeptEst <- plotCountDepth(
-        Data = t(scd$select(b_cells = b_cells)$getcounts),
-        Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
-        FilterCellProportion = .1,
-        NCores=cpus)
-      DataNorm <- SCnorm(
-        Data = t(scd$select(b_cells = b_cells)$getcounts),
-        Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
-        PrintProgressPlots = TRUE,
-        FilterCellNum = 10,
-        NCore=cpus)
-      if (v) {
-        GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
-        print("genes not normalized:")
-        print(str(GenesNotNormalized))
-      }
-      if (!missing(tmp_file)) {
-        save(countDeptEst, DataNorm, file = file)
-      }
+  algo_norm <- paste0(algo, "_normalize")
+  return(algo_norm(
+    scd = scd,
+    b_cells = b_cells,
+    cpus = cpus,
+    tmp_file = tmp_file,
+    v = v
+  ))
+}
+
+SCnorm_normalize <- function(
+    scd,
+    b_cells = scd$getfeature("QC_good") %in% T,
+    cpus = 4,
+    tmp_file,
+    v = F
+  )
+  if (!missing(tmp_file) & file.exists(tmp_file)) {
+    print("tmp file found skipping SCnorm...")
+    load(tmp_file)
+  } else {
+    countDeptEst <- plotCountDepth(
+      Data = t(scd$select(b_cells = b_cells)$getcounts),
+      Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
+      FilterCellProportion = .1,
+      NCores=cpus)
+    DataNorm <- SCnorm(
+      Data = t(scd$select(b_cells = b_cells)$getcounts),
+      Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
+      PrintProgressPlots = TRUE,
+      FilterCellNum = 10,
+      NCore=cpus)
+    if (v) {
+      GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
+      print("genes not normalized:")
+      print(str(GenesNotNormalized))
     }
-    counts <- scd$getcounts
-    counts[b_cells] <- t(results(DataNorm))
-    rownames(counts) <- rownames(scd$getcounts)
-    colnames(counts) <- colnames(scd$getcounts)
-    return(scdata$new(
+    if (!missing(tmp_file)) {
+      save(countDeptEst, DataNorm, file = file)
+    }
+  }
+  counts <- scd$getcounts
+  counts[b_cells] <- t(results(DataNorm))
+  rownames(counts) <- rownames(scd$getcounts)
+  colnames(counts) <- colnames(scd$getcounts)
+  return(
+    scdata$new(
       infos = scd$getfeatures,
       counts = counts,
       v = v
     )
-    )
-  }
+  )
 }
