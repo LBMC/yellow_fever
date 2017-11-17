@@ -776,10 +776,10 @@ pCMF_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
     alpha = alpha,
     wrap = wrap,
     main = main,
-    x_lab = paste0(
-      "first axe: ", pCMF_data$var_x[1], "% of deviance"),
-    y_lab = paste0(
-      "first axe: ", pCMF_data$var_y[2], "% of deviance"),
+    x_lab = #paste0(
+      "first axe", #pCMF_data$var_x[1], "% of deviance"),
+    y_lab = #paste0(
+      "second axe", #pCMF_data$var_y[2], "% of deviance"),
     file = file,
     is_contour = is_contour,
     label = label,
