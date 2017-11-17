@@ -755,17 +755,17 @@ pCMF_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
       ZI = TRUE,
       ncores = ncores
     )
-    U <- getU(pCMF_out)
-    prop_of_var <- expDeviance(pCMF, scd$getcounts)
-    pCMF_data <- data.frame(x = U[1, ],
-                           y = U[2, ],
-                           var_x = round(prop_of_var[1], digit = 2),
-                           var_y = round(prop_of_var[2], digit = 2),
-                           axes = "axes 1 and 2")
     if (!missing(tmp_file)){
-      save(pCMF_out, pCMF_data, file = tmp_file)
+      save(pCMF_out, file = tmp_file)
     }
   }
+  U <- getU(pCMF_out)
+  prop_of_var <- expDeviance(pCMF, scd$getcounts)
+  pCMF_data <- data.frame(x = U[1, ],
+                         y = U[2, ],
+                         var_x = round(prop_of_var[1], digit = 2),
+                         var_y = round(prop_of_var[2], digit = 2),
+                         axes = "axes 1 and 2")
   g <- plot_2_axes(
     scd,
     x = pCMF_data$x,
