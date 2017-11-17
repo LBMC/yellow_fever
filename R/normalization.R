@@ -85,17 +85,21 @@ combat_normalize <- function(
     print("tmp file found skipping SCnorm...")
     load(tmp_file)
   } else {
+    expressed <- scd$getgenes[
+      colSums(scd$select(b_cells = b_cells)$getcounts) > 0
+    ]
     DataNorm <- ComBat(
-      dat = t(ascb(scd$select(b_cells = b_cells)$getcounts)),
+      dat = t(ascb(scd$select(b_cells = b_cells, genes = expressed)$getcounts)),
       batch =  scd$select(b_cells = b_cells)$getfeature("batch"),
       BPPARAM = bpparam("SerialParam")
     )
     if (!missing(tmp_file)) {
-      save(DataNorm, file = file)
+      save(DataNorm, expressed, file = file)
     }
   }
   counts <- scd$getcounts
-  counts[b_cells] <- round(ascb_inv(t(DataNorm)))
+  counts[b_cells, rownames(counts) %in% expressed] <-
+    round(ascb_inv(t(DataNorm)))
   rownames(counts) <- rownames(scd$getcounts)
   colnames(counts) <- colnames(scd$getcounts)
   return(
