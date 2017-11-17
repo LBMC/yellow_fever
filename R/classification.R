@@ -210,7 +210,6 @@ mspls_training <- function(
 
 #' @import plsgenomics
 stab_mspls_training <- function(by, data, ncores = 1, file, force, skip, randomize) {
-  Rrequire("plsgenomics")
   data <- as.matrix(data)
   is_group <- factorize(by)
   groups_names <- levels(as.factor(by))
@@ -244,7 +243,6 @@ stab_mspls_training <- function(by, data, ncores = 1, file, force, skip, randomi
 
 #' @import plsgenomics
 mspls_classification <- function(fit, data, data_train, file) {
-  Rrequire("plsgenomics")
   data <- as.matrix(data)
   data_train <- as.matrix(data_train)
   print("sparse multinomial pls classification")
