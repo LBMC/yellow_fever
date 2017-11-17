@@ -35,7 +35,7 @@ SCnorm_normalize <- function(
     cpus = 4,
     tmp_file,
     v = F
-  )
+  ) {
   if (!missing(tmp_file) & file.exists(tmp_file)) {
     print("tmp file found skipping SCnorm...")
     load(tmp_file)
@@ -80,7 +80,7 @@ combat_normalize <- function(
     cpus = 4,
     tmp_file,
     v = F
-  )
+  ) {
   if (!missing(tmp_file) & file.exists(tmp_file)) {
     print("tmp file found skipping SCnorm...")
     load(tmp_file)
