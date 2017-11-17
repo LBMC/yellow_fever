@@ -95,7 +95,7 @@ combat_normalize <- function(
     }
   }
   counts <- scd$getcounts
-  counts[b_cells] <- t(DataNorm)
+  counts[b_cells] <- round(ascb_inv(t(DataNorm)))
   rownames(counts) <- rownames(scd$getcounts)
   colnames(counts) <- colnames(scd$getcounts)
   return(
