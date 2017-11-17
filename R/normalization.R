@@ -74,7 +74,7 @@ SCnorm_normalize <- function(
 }
 
 #' @importFrom sva ComBat
-combat_normalize <- function(
+ComBat_normalize <- function(
     scd,
     b_cells = scd$getfeature("QC_good") %in% T,
     cpus = 4,
@@ -82,7 +82,7 @@ combat_normalize <- function(
     v = F
   ) {
   if (!missing(tmp_file) & file.exists(tmp_file)) {
-    print("tmp file found skipping SCnorm...")
+    print("tmp file found skipping ComBat...")
     load(tmp_file)
   } else {
     expressed <- scd$getgenes[
@@ -91,6 +91,7 @@ combat_normalize <- function(
     DataNorm <- ComBat(
       dat = t(ascb(scd$select(b_cells = b_cells, genes = expressed)$getcounts)),
       batch =  scd$select(b_cells = b_cells)$getfeature("batch"),
+      par.prior = F,
       BPPARAM = bpparam("SerialParam")
     )
     if (!missing(tmp_file)) {
@@ -98,7 +99,8 @@ combat_normalize <- function(
     }
   }
   counts <- scd$getcounts
-  counts[b_cells, rownames(counts) %in% expressed] <-
+  print(dim(counts[b_cells, rownames(scd$getcounts) %in% expressed]))
+  counts[b_cells, rownames(scd$getcounts) %in% expressed] <-
     round(ascb_inv(t(DataNorm)))
   rownames(counts) <- rownames(scd$getcounts)
   colnames(counts) <- colnames(scd$getcounts)
