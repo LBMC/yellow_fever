@@ -37,6 +37,19 @@ anscombe <- function(x){
   return(2 * sqrt(x + 3 / 8))
 }
 
+#' inverse anscombe transform of counts
+#'
+#' @param x vector of anscomb(counrs)
+#' @return return anscomb transform of x
+#' @examples
+#' \dontrun{
+#' x = anscombe_inv(anscombe(scd$getgene("gene_a")))
+#' }
+#' @export anscombe_inv
+anscombe_inv <- function(x){
+  return((x / 2)^2 - 3 / 8)
+}
+
 #' anscombe transform of counts
 #'
 #' @param x vector of counrs
@@ -64,6 +77,27 @@ ascb <- function(x, to_zero=TRUE, na.rm=FALSE){
   }
   return(anscombe(x))
 }
+
+#' inverse anscombe transform of counts
+#'
+#' @param x vector of ascb(counrs)
+#' @param to_zero (bool default: TRUE) set ascb(x) to 0 when x = 0
+#' @param na.rm remove NA values
+#' @return return anscomb transform of x
+#' @examples
+#' \dontrun{
+#' x = ascb_inv(scd$getgene("gene_a"))
+#' }
+#' @export ascb_inv
+ascb_inv <- function(x, to_zero=TRUE, na.rm=FALSE){
+  if (to_zero){
+    return(anscombe_inv(x + anscombe(0)))
+  }
+  return(anscombe_inv(x))
+}
+anscombe_inv(anscombe(3))
+ascb_inv(ascb(3))
+ascb_inv(ascb(3, to_zero = F), to_zero = F)
 
 #' factorize a vector or data.frame
 #'
