@@ -760,11 +760,11 @@ pCMF_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
     }
   }
   U <- getU(pCMF_out)
-  prop_of_var <- expDeviance(pCMF, scd$getcounts)
+  # prop_of_var <- expDeviance(pCMF, as.matrix(scd$getcounts))
   pCMF_data <- data.frame(x = U[1, ],
                          y = U[2, ],
-                         var_x = round(prop_of_var[1], digit = 2),
-                         var_y = round(prop_of_var[2], digit = 2),
+                         var_x = "axe 1", #round(prop_of_var[1], digit = 2),
+                         var_y = "axe 2", #round(prop_of_var[2], digit = 2),
                          axes = "axes 1 and 2")
   g <- plot_2_axes(
     scd,
