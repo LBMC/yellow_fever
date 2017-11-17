@@ -57,7 +57,7 @@ SCnorm_normalize <- function(
       print(str(GenesNotNormalized))
     }
     if (!missing(tmp_file)) {
-      save(countDeptEst, DataNorm, file = file)
+      save(countDeptEst, DataNorm, tmp_file = file)
     }
   }
   counts <- scd$getcounts
@@ -94,7 +94,7 @@ combat_normalize <- function(
       BPPARAM = bpparam("SerialParam")
     )
     if (!missing(tmp_file)) {
-      save(DataNorm, expressed, file = file)
+      save(DataNorm, expressed, file = tmp_file)
     }
   }
   counts <- scd$getcounts
