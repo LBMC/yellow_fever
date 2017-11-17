@@ -4,7 +4,8 @@
 \alias{normalize}
 \title{normalize counts in a scdata object}
 \usage{
-normalize(scd, method = "SCnorm", cpus = 4, tmp_file, v = F)
+normalize(scd, b_cells = scd$getfeature("QC_good") \%in\% T,
+  method = "SCnorm", cpus = 4, tmp_file, v = F)
 }
 \arguments{
 \item{scd}{scdata object}
