@@ -91,17 +91,17 @@ ComBat_normalize <- function(
     DataNorm <- ComBat(
       dat = t(ascb(scd$select(b_cells = b_cells, genes = expressed)$getcounts)),
       batch =  scd$select(b_cells = b_cells)$getfeature("batch"),
-      par.prior = F,
+      par.prior = T,
       BPPARAM = bpparam("SerialParam")
     )
     if (!missing(tmp_file)) {
       save(DataNorm, expressed, file = tmp_file)
     }
   }
+  b_genes <- colnames(scd$getcounts) %in% expressed
   counts <- scd$getcounts
-  print(dim(counts[b_cells, rownames(scd$getcounts) %in% expressed]))
-  counts[b_cells, rownames(scd$getcounts) %in% expressed] <-
-    round(ascb_inv(t(DataNorm)))
+  norm_counts <- round(ascb_inv(t(DataNorm)))
+  counts[b_cells, b_genes] <- norm_counts
   rownames(counts) <- rownames(scd$getcounts)
   colnames(counts) <- colnames(scd$getcounts)
   return(
