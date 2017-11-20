@@ -34,23 +34,26 @@ for (feature in c("counts", "length", "abundance")) {
   print(scd$getcells[rowSums(is.na(scd$getcounts)) != 0])
 }
 
+system("mkdir -p results/QC/pca")
 load("results/abundance.Rdata")
-b_cells <- scd$getfeature("to_QC")
-  | scd$getcells %in% c("P1299_1797", "P1299_1896")
+b_cells <- scd$getfeature("to_QC") |
+  scd$getcells %in% c("P1299_1797", "P1299_1896")
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   tmp_file = "results/tmp/pca_abundance_outliers_tmp.Rdata")
 load("results/tmp/pca_abundance_outliers_tmp.Rdata")
 scd$select(b_cells = b_cells)$getfeatures[order(pca_data$x)[1:2],]
+ggsave(file = "results/QC/pca/pca_abundance_outliers.pdf")
 
 load("results/counts.Rdata")
-b_cells <- scd$getfeature("to_QC")
-  | scd$getcells %in% c("P1299_1797", "P1299_1896")
+b_cells <- scd$getfeature("to_QC") |
+  scd$getcells %in% c("P1299_1797", "P1299_1896")
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   tmp_file = "results/tmp/pca_counts_outliers_tmp.Rdata")
 load("results/tmp/pca_counts_tmp.Rdata", v = T)
 scd$select(b_cells = b_cells)$getfeatures[order(pca_data$y, decreasing = T)[1:2],]
+ggsave(file = "results/QC/pca/pca_counts_outliers.pdf")
 
 ################################################################################
 
@@ -104,7 +107,6 @@ table(scd$getfeature("QC_good"))
 save(scd, file = "results/QC/counts_QC.Rdata")
 
 counts_features <- scd$getfeatures
-
 load("results/abundance.Rdata")
 scd <- scdata$new(
   infos = counts_features,
@@ -112,6 +114,7 @@ scd <- scdata$new(
   v = T
 )
 save(scd, file = "results/QC/abundance_QC.Rdata")
+################################################################################
 
 
 load("results/QC/counts_QC.Rdata")
@@ -130,6 +133,7 @@ scRNAtools::pca_plot(
   tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata",
   main = "all day"
 )
+ggsave(file = "results/QC/pca/pca_counts_QC.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pca_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
@@ -138,26 +142,28 @@ for (day in c("D15", "D136", "D593")) {
     tmp_file = paste0("results/tmp/pca_counts_", day, "QC_tmp.Rdata"),
     main = day
   )
+  ggsave(file = paste0("results/QC/pca/pca_counts_QC_", day, ".pdf"))
 }
 
 load("results/QC/counts_QC.Rdata")
 b_cells = scd$getfeature('QC_good') %in% T
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
-  alpha = "QC_good",
   tmp_file = "results/tmp/pca_counts_QC_good_tmp.Rdata",
   main = "all day"
 )
+ggsave(file = "results/QC/pca/pca_counts_QC_good.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pca_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
     color = "batch", color_name = "clonality",
-    alpha = "QC_good",
     tmp_file = paste0("results/tmp/pca_counts_", day, "QC_good_tmp.Rdata"),
     main = day
   )
+  ggsave(file = paste0("results/QC/pca/pca_counts_QC_good_", day, ".pdf"))
 }
 
+system("mkdir -p results/QC/pcmf")
 # pCMF on cell quality
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/counts_QC.Rdata")
@@ -169,6 +175,7 @@ scRNAtools::pCMF_plot(
   main = "all day",
   ncores = 11
 )
+ggsave(file = "results/QC/pcmf/pcmf_counts_QC.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pCMF_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
@@ -178,37 +185,36 @@ for (day in c("D15", "D136", "D593")) {
     main = day,
     ncores = 11
   )
+  ggsave(file = paste0("results/QC/pcmf/pcmf_counts_QC_", day, ".pdf"))
 }
 
 load("results/QC/counts_QC.Rdata")
 b_cells = scd$getfeature('QC_good') %in% T
 scRNAtools::pCMF_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
-  alpha = "QC_good",
   tmp_file = "results/tmp/pCMF_counts_QC_good_tmp.Rdata",
   main = "all day",,
   ncores = 11
 )
+ggsave(file = "results/QC/pcmf/pcmf_counts_QC_good.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pCMF_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
     color = "batch", color_name = "clonality",
-    alpha = "QC_good",
     tmp_file = paste0("results/tmp/pCMF_counts_", day, "QC_good_tmp.Rdata"),
     main = day,
     ncores = 11
   )
+  ggsave(file = paste0("results/QC/pcmf/pcmf_counts_QC_good_", day, ".pdf"))
 }
-
-
 
 
 # batch normalization
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/counts_QC.Rdata")
-system("rm results/tmp/normalization_combat_*.Rdata")
+# system("rm results/tmp/normalization_combat_*.Rdata")
 for (day in c("D15", "D136", "D593")) {
-  scd <- normalize(
+    scd <- normalize(
     scd = scd,
     b_cells = scd$getfeature("QC_good") %in% T & scd$getfeature("day") %in% day,
     method = "ComBat",
@@ -218,45 +224,44 @@ for (day in c("D15", "D136", "D593")) {
 }
 save(scd, file = "results/QC/batch_counts_QC.Rdata")
 
-load("results/QC/batch_counts_QC.Rdata")
-raw_scd <- scd
+system("rm results/tmp/pca_batch_counts_QC_good*_tmp.Rdata")
 load("results/QC/batch_counts_QC.Rdata")
 b_cells = scd$getfeature('QC_good') %in% T
-any(raw_scd$select(b_cells = b_cells)$getcounts != scd$select(b_cells = b_cells)$getcounts)
-
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   alpha = "QC_good",
   tmp_file = "results/tmp/pca_batch_counts_QC_good_tmp.Rdata",
   main = "all day"
 )
+ggsave(file = "results/QC/pca/pca_batch_counts_QC_good.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pca_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
     color = "batch", color_name = "clonality",
-    alpha = "QC_good",
     tmp_file = paste0("results/tmp/pca_batch_counts_", day, "QC_good_tmp.Rdata"),
     main = day
   )
+  ggsave(file = paste0("results/QC/pca/pca_batch_counts_QC_good_", day, ".pdf"))
 }
 
+system("rm results/tmp/pCMF_batch_counts_QC_good*_tmp.Rdata")
 b_cells = scd$getfeature('QC_good') %in% T
 scRNAtools::pCMF_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
-  alpha = "QC_good",
   tmp_file = "results/tmp/pCMF_batch_counts_QC_good_tmp.Rdata",
   main = "all day",,
   ncores = 11
 )
+ggsave(file = "results/QC/pcmf/pcmf_batch_counts_QC_good.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pCMF_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
     color = "batch", color_name = "clonality",
-    alpha = "QC_good",
     tmp_file = paste0("results/tmp/pCMF_batch_counts_", day, "QC_good_tmp.Rdata"),
     main = day,
     ncores = 11
   )
+  ggsave(file = paste0("results/QC/pcmf/pcmf_batch_counts_QC_good_", day, ".pdf"))
 }
 
 # cells effect normalization
