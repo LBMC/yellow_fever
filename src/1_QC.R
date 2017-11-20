@@ -116,41 +116,198 @@ save(scd, file = "results/QC/abundance_QC.Rdata")
 
 load("results/QC/counts_QC.Rdata")
 
-table(scd$getfeature("day"), scd$getfeature("cell_number"))
+table(scd$getfeature("batch"), scd$getfeature("QC_good"))
 table(scd$getfeature("day"), scd$getfeature("QC_good"))
-b_cells = scd$getfeature('to_QC')
 
 system("rm results/tmp/pca_*_QC_tmp.Rdata")
 
+# PCA on cell quality
 load("results/QC/counts_QC.Rdata")
+b_cells = scd$getfeature('to_QC')
 scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells), color = "day", color_name = "day", alpha = "QC_good",
-  tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata")
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  alpha = "QC_good",
+  tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata",
+  main = "all day"
+)
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pca_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "batch", color_name = "clonality",
+    alpha = "QC_good",
+    tmp_file = paste0("results/tmp/pca_counts_", day, "QC_tmp.Rdata"),
+    main = day
+  )
+}
+
+load("results/QC/counts_QC.Rdata")
+b_cells = scd$getfeature('QC_good') %in% T
 scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality", alpha = "QC_good",
-  tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata")
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  alpha = "QC_good",
+  tmp_file = "results/tmp/pca_counts_QC_good_tmp.Rdata",
+  main = "all day"
+)
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pca_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "batch", color_name = "clonality",
+    alpha = "QC_good",
+    tmp_file = paste0("results/tmp/pca_counts_", day, "QC_good_tmp.Rdata"),
+    main = day
+  )
+}
 
-
-load("results/QC/abundance_QC.Rdata")
-scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells), color = "day", color_name = "day", alpha = "QC_good",
-  tmp_file = "results/tmp/pca_abundance_QC_tmp.Rdata")
-scRNAtools::pca_plot(
-  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality", alpha = "QC_good",
-  tmp_file = "results/tmp/pca_abundance_QC_tmp.Rdata")
-
-
+# pCMF on cell quality
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/counts_QC.Rdata")
+b_cells = scd$getfeature('to_QC')
+scRNAtools::pCMF_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  alpha = "QC_good",
+  tmp_file = "results/tmp/pCMF_counts_QC_tmp.Rdata",
+  main = "all day",
+  ncores = 11
+)
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pCMF_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "batch", color_name = "clonality",
+    alpha = "QC_good",
+    tmp_file = paste0("results/tmp/pCMF_counts_", day, "QC_tmp.Rdata"),
+    main = day,
+    ncores = 11
+  )
+}
 
+load("results/QC/counts_QC.Rdata")
+b_cells = scd$getfeature('QC_good') %in% T
+scRNAtools::pCMF_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  alpha = "QC_good",
+  tmp_file = "results/tmp/pCMF_counts_QC_good_tmp.Rdata",
+  main = "all day",,
+  ncores = 11
+)
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pCMF_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "batch", color_name = "clonality",
+    alpha = "QC_good",
+    tmp_file = paste0("results/tmp/pCMF_counts_", day, "QC_good_tmp.Rdata"),
+    main = day,
+    ncores = 11
+  )
+}
+
+
+
+
+# batch normalization
+devtools::load_all("../scRNAtools/", reset = T)
+load("results/QC/counts_QC.Rdata")
+system("rm results/tmp/normalization_combat_*.Rdata")
+for (day in c("D15", "D136", "D593")) {
+  scd <- normalize(
+    scd = scd,
+    b_cells = scd$getfeature("QC_good") %in% T & scd$getfeature("day") %in% day,
+    method = "ComBat",
+    cpus = 5,
+    tmp_file = paste0("results/tmp/normalization_combat_,", day, "_tmp.Rdata")
+  )
+}
+save(scd, file = "results/QC/batch_counts_QC.Rdata")
+
+load("results/QC/batch_counts_QC.Rdata")
+raw_scd <- scd
+load("results/QC/batch_counts_QC.Rdata")
+b_cells = scd$getfeature('QC_good') %in% T
+any(raw_scd$select(b_cells = b_cells)$getcounts != scd$select(b_cells = b_cells)$getcounts)
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  alpha = "QC_good",
+  tmp_file = "results/tmp/pca_batch_counts_QC_good_tmp.Rdata",
+  main = "all day"
+)
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pca_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "batch", color_name = "clonality",
+    alpha = "QC_good",
+    tmp_file = paste0("results/tmp/pca_batch_counts_", day, "QC_good_tmp.Rdata"),
+    main = day
+  )
+}
+
+b_cells = scd$getfeature('QC_good') %in% T
+scRNAtools::pCMF_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  alpha = "QC_good",
+  tmp_file = "results/tmp/pCMF_batch_counts_QC_good_tmp.Rdata",
+  main = "all day",,
+  ncores = 11
+)
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pCMF_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "batch", color_name = "clonality",
+    alpha = "QC_good",
+    tmp_file = paste0("results/tmp/pCMF_batch_counts_", day, "QC_good_tmp.Rdata"),
+    main = day,
+    ncores = 11
+  )
+}
+
+# cells effect normalization
+devtools::load_all("../scRNAtools/", reset = T)
+load("results/QC/counts_QC.Rdata")
 scd <- normalize(
   scd = scd,
+  b_cells = scd$getfeature("QC_good") %in% T
   method = "SCnorm",
-  cpus = 4,
+  cpus = 5,
   tmp_file = "results/tmp/normalization_tmp.Rdata",
 )
+save(scd, file = "results/QC/cells_counts_QC.Rdata")
 
-save(scd, file = "results/QC/norm_counts_QC.Rdata")
+
+b_cells = scd$getfeature('QC_good') %in% T
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  alpha = "QC_good",
+  tmp_file = "results/tmp/pca_cells_counts_QC_good_tmp.Rdata",
+  main = "all day"
+)
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pca_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "batch", color_name = "clonality",
+    alpha = "QC_good",
+    tmp_file = paste0("results/tmp/pca_cells_counts_", day, "QC_good_tmp.Rdata"),
+    main = day
+  )
+}
+
+b_cells = scd$getfeature('QC_good') %in% T
+scRNAtools::pCMF_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  alpha = "QC_good",
+  tmp_file = "results/tmp/pCMF_cells_counts_QC_good_tmp.Rdata",
+  main = "all day",,
+  ncores = 11
+)
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pCMF_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "batch", color_name = "clonality",
+    alpha = "QC_good",
+    tmp_file = paste0("results/tmp/pCMF_cells_counts_", day, "QC_good_tmp.Rdata"),
+    main = day,
+    ncores = 11
+  )
+}
+
 system("rm results/tmp/pca_norm_counts_QC_tmp.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T
 scRNAtools::pca_plot(
@@ -159,3 +316,46 @@ scRNAtools::pca_plot(
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   tmp_file = "results/tmp/pca_norm_counts_QC_tmp.Rdata")
+
+devtools::load_all("../scRNAtools/", reset = T)
+scRNAtools::pCMF_plot(
+  scd$select(b_cells = b_cells), color = "day", color_name = "day",
+  tmp_file = "results/tmp/pCMF_norm_counts_QC_tmp.Rdata")
+scRNAtools::pCMF_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  tmp_file = "results/tmp/pCMF_norm_counts_QC_tmp.Rdata")
+
+devtools::install_github('theislab/kBET')
+library(kBET)
+load(file = "results/QC/counts_QC.Rdata")
+b_cells <- scd$getfeature("to_QC") %in% T
+batch_estimate <- list()
+for (day in c("D15", "D136", "D593")) {
+  print(day)
+  batch_estimate[[day]] <- kBET(
+    scd$select(b_cells = b_cells)$getcounts,
+    scd$select(b_cells = b_cells)$getfeature("batch")
+  )
+  print(batch_estimate[[day]]$summary)
+}
+b_cells <- scd$getfeature("QC_good") %in% T
+batch_estimate_qc <- list()
+for (day in c("D15", "D136", "D593")) {
+  print(day)
+  batch_estimate_qc[[day]] <- kBET(
+    scd$select(b_cells = b_cells)$getcounts,
+    scd$select(b_cells = b_cells)$getfeature("batch")
+  )
+  print(batch_estimate_qc[[day]]$summary)
+}
+load(file = "results/QC/norm_counts_QC.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T
+batch_estimate_qc_norm <- list()
+for (day in c("D15", "D136", "D593")) {
+  print(day)
+  batch_estimate_qc_norm[[day]] <- kBET(
+    scd$select(b_cells = b_cells)$getcounts,
+    scd$select(b_cells = b_cells)$getfeature("batch")
+  )
+  print(batch_estimate_qc_norm[[day]]$summary)
+}
