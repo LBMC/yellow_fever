@@ -202,7 +202,8 @@ QC_load_bootstraps <- function(scd, paraload_folder, rt_result = F) {
 QC_classification <- function(
   scd,
   is_blank = scd$getfeature("cell_number") == 0,
-  rt_result = F
+  rt_result = F,
+  quant = ""
 ) {
   cell_id <- 1:scd$getncells
   classification <- list(
@@ -216,12 +217,16 @@ QC_classification <- function(
     scd$setfeature("to_QC", rep(T, scd$getncells))
   }
   b_cells <- b_cells & scd$getfeature("to_QC")
-  sample_size <- length(which(is_blank & b_cells))
-  order_by_score <- order(scd$getfeature("QC_score"), decreasing = T)
-  is_good <- order_by_score[b_cells[order_by_score]][1:sample_size]
+  true_sample_size <- length(which(is_blank & b_cells))
+  false_sample_size <- true_sample_size
+  if (!missing(quant)) {
+    true_sample_size <- round(length(which(!is_blank & b_cells)) * quant)
+  }
+  order_by_score <- order(scd$select(b_cells = b_cells)$getfeature("QC_score"), decreasing = T)
+  is_good <- order_by_score[b_cells[order_by_score]][1:true_sample_size]
   is_bad <- which(is_blank & b_cells)
-  class_labels <- rep(TRUE, sample_size * 2)
-  class_labels[1:sample_size] <- FALSE
+  class_labels <- rep(TRUE, true_sample_size + false_sample_size)
+  class_labels[1:false_sample_size] <- FALSE
   fit <- QC_fit(class_labels, scd$getcounts[c(is_bad, is_good), ])
   to_predict <- which(!(1:scd$getncells %in% c(is_bad, is_good)) & b_cells)
   prediction <- stats::predict(
