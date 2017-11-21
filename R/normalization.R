@@ -40,13 +40,16 @@ SCnorm_normalize <- function(
     print("tmp file found skipping SCnorm...")
     load(tmp_file)
   } else {
+    expressed <- scd$getgenes[
+      colSums(scd$select(b_cells = b_cells)$getcounts) > 0
+    ]
     countDeptEst <- plotCountDepth(
-      Data = t(scd$select(b_cells = b_cells)$getcounts),
+      Data = t(scd$select(b_cells = b_cells, genes = expressed)$getcounts),
       Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
       FilterCellProportion = .1,
       NCores=cpus)
     DataNorm <- SCnorm(
-      Data = t(scd$select(b_cells = b_cells)$getcounts),
+      Data = t(scd$select(b_cells = b_cells, genes = expressed)$getcounts),
       Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
       PrintProgressPlots = TRUE,
       FilterCellNum = 10,
@@ -57,7 +60,7 @@ SCnorm_normalize <- function(
       print(str(GenesNotNormalized))
     }
     if (!missing(tmp_file)) {
-      save(countDeptEst, DataNorm, tmp_file = file)
+      save(countDeptEst, DataNorm, expressed, file = tmp_file)
     }
   }
   counts <- scd$getcounts
