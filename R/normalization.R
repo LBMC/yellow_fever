@@ -53,7 +53,7 @@ SCnorm_normalize <- function(
       print(str(GenesNotNormalized))
     }
     if (!missing(tmp_file)) {
-      save(countDeptEst, DataNorm, expressed, file = tmp_file)
+      save(DataNorm, file = tmp_file)
     }
   }
   counts <- scd$getcounts
