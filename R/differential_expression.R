@@ -13,31 +13,29 @@
 #' @export DEA
 DEA <- function(scd, formula_null, formula_full, b_cells, cpus = 4, v = F,
   tmp_folder) {
-  counts_list <- split(
-    x = scd$select(b_cells = b_cells)$getcounts,
-    f = scd$select(b_cells = b_cells)$getgenes
-  )
+  genes_list <- as.list(scd$select(b_cells = b_cells)$getgenes)
+  names(genes_list) <- scd$select(b_cells = b_cells)$getgenes
   features <- formula_to_features(
     scd = scd$select(b_cells = b_cells),
     formula_full = formula_full
   )
-  print(head(features))
   # parallel::mclapply(
   lapply(
-    X = counts_list,
-    FUN  = function(x, features, formula_null, formula_full, v, tmp_folder){
-      data <- features
-      data$y <- x
+    X = genes_list,
+    FUN  = function(x, counts, features, formula_null, formula_full, v, tmp_folder){
+      data <- data.frame(y = counts[ ,colnames(counts) %in% x])
+      data <- cbind(features, data)
       DEA_gene(
         data = data,
         formula_null,
         formula_full,
-        gene_name = names(x),
+        gene_name = x,
         v = v,
         tmp_folder = tmp_folder
       )
     },
     # mc.cores = cpus,
+    counts = scd$select(b_cells = b_cells)$getcounts,
     features = features,
     formula_null = formula_null,
     formula_full = formula_full,
