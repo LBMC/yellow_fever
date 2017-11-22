@@ -275,7 +275,7 @@ check_gene <- function(scd, gene, condition, file, transform=TRUE){
 #' check_gene(scd, "genes_a", "sexe")
 #' }
 #' @import ggplot2
-#' @import ade4
+#' @importFrom ade4 dudi.pca
 #' @export pca_plot
 pca_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
   wrap=NULL, file, main = "", axes, res=FALSE, rainbow=FALSE, heatcolor=FALSE,
@@ -285,7 +285,7 @@ pca_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
     print("tmp file found skipping pca...")
     load(tmp_file)
   } else {
-    pca_out <- dudi.pca(scd$getcounts,
+    pca_out <- ade4::dudi.pca(scd$getcounts,
                         scan = F,
                         nf = scd$getncells - 1,
                         scale = TRUE,
@@ -570,7 +570,8 @@ plot_2_axes <- function(scd, x, y, color = NULL, shape = NULL, size = NULL,
 #' \dontrun{
 #' check_gene(scd, "genes_a", "sexe")
 #' }
-#' @import ade4 ggplot2
+#' @import ggplot2
+#' @importFrom ade4 dudi.pca
 #' @export bca_plot
 bca_plot <- function(scd, by, color, ncomp=2, top, n_groups, n_cells, norm_by,
   file, main="", genes_list, xlimit, ylimit){
@@ -617,7 +618,7 @@ bca_plot <- function(scd, by, color, ncomp=2, top, n_groups, n_cells, norm_by,
   if (!missing(norm_by)){
     data <- scRNAtools::wca_norm(data$getcounts, norm_by, ncomp)
   }
-  pca_out <- dudi.pca(data$getcounts,
+  pca_out <- ade4::dudi.pca(data$getcounts,
                       scan = F,
                       nf = data$getncells - 1)
   bca_out <- bca(pca_out,

@@ -28,7 +28,7 @@ normalize <- function(
   ))
 }
 
-#' @import SCnorm
+#' @importFrom SCnorm SCnorm
 SCnorm_normalize <- function(
     scd,
     b_cells = scd$getfeature("QC_good") %in% T,

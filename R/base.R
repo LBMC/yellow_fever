@@ -166,24 +166,24 @@ vectorize <- function(x, columns) {
 #' \dontrun{
 #' x = bca_loading(scd, scd$getfeature("sex"))
 #' }
-#' @import ade4
+#' @importFrom ade4 dudi.pca wca bca
 #' @export bca_loading
 bca_loading <- function(scd, by, norm_by, ncomp=5, cells_l=FALSE, loading = F){
   by <- scRNAtools::factorize(by)
-  pca_out <- dudi.pca(scd$getcounts,
+  pca_out <- ade4::dudi.pca(scd$getcounts,
                       scan = F,
                       nf = ncomp)
   if (!missing(norm_by)){
     norm_by <- factorize(norm_by)
-    wca_out <- wca(pca_out,
+    wca_out <- ade4::wca(pca_out,
                    as.factor(as.vector(norm_by)),
                    scan = F,
                    nf = ncomp)
-    pca_out <- dudi.pca(wca_out$tab,
+    pca_out <- ade4::dudi.pca(wca_out$tab,
                         scan = F,
                         nf = ncomp)
   }
-  bca_out <- bca(pca_out,
+  bca_out <- ade4::bca(pca_out,
                  by,
                  scan = F,
                  nf = ncomp)
@@ -211,20 +211,20 @@ bca_loading <- function(scd, by, norm_by, ncomp=5, cells_l=FALSE, loading = F){
 #' \dontrun{
 #' x = wca_loading(scd, scd$getfeature("sex"))
 #' }
-#' @import ade4
+#' @importFrom ade4 dudi.pca wca
 #' @export wca_norm
 wca_norm <- function(scd, by, ncomp=2, keep_zero=FALSE){
-  pca_out <- dudi.pca(scd$getcounts,
+  pca_out <- ade4::dudi.pca(scd$getcounts,
                       scan = F,
                       nf = scd$getngenes - 1)
   if (is.null(ncol(by))){
-    wca_out <- wca(pca_out,
+    wca_out <- ade4::wca(pca_out,
                    factorize(by),
                    scan = F,
                    nf = ncomp)
   } else {
     for (i in seq_len(ncol(by))){
-      wca_out <- wca(pca_out,
+      wca_out <- ade4::wca(pca_out,
                    factorize(by[, i]),
                    scan = F,
                    nf = ncomp)
