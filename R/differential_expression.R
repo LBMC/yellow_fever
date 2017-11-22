@@ -11,7 +11,6 @@
 #' }
 #' @importFrom parallel mclapply
 #' @export DEA
-
 DEA <- function(scd, formula_null, formula_full, b_cells, cpus = 4, v = F,
   tmp_folder) {
   counts_list <- split(
@@ -22,9 +21,11 @@ DEA <- function(scd, formula_null, formula_full, b_cells, cpus = 4, v = F,
     scd = scd$select(b_cells = b_cells),
     formula_full = formula_full
   )
-  mclapply(
+  print(head(features))
+  # parallel::mclapply(
+  lapply(
     X = counts_list,
-    FUN  = function(x, features, formula_null, formula_full, v){
+    FUN  = function(x, features, formula_null, formula_full, v, tmp_folder){
       data <- features
       data$y <- x
       DEA_gene(
@@ -36,7 +37,7 @@ DEA <- function(scd, formula_null, formula_full, b_cells, cpus = 4, v = F,
         tmp_folder = tmp_folder
       )
     },
-    mc.cores = cpus,
+    # mc.cores = cpus,
     features = features,
     formula_null = formula_null,
     formula_full = formula_full,
@@ -73,14 +74,18 @@ DEA_gene <- function(data, formula_null, formula_full, gene_name,
 DEA_fit <- function(data, formula_null, formula_full, gene_name,
     family = "nbinom1", link = "log",
     v, tmp_folder) {
-  if (!missing(tmp_folder) &
-    file.exists(paste0(tmp_folder, "/DEA_fit_", gene_name, ".Rdata"))) {
-    load(paste0(tmp_folder, "/DEA_fit_", gene_name, ".Rdata"))
+  tmp_file <- ""
+  if (!missing(tmp_folder)) {
+    tmp_file <- paste0(tmp_folder, "/DEA_fit_", gene_name, ".Rdata")
+  }
+  if (file.exists(tmp_file)) {
+    load(tmp_file)
   } else {
     formulas <- list(
       null = formula_null,
       full = formula_full
     )
+    models_result <- list()
     if (zi_test(data, gene_name = gene_name)) {
       for (formula in names(formulas)) {
         models_result[[formula]] <- ziNB_fit(
@@ -107,7 +112,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
     if (!missing(tmp_folder)) {
       save(
         models_result, gene_name, formulas,
-        file = paste0(tmp_folder, "/DEA_fit_", gene_name, ".Rdata")
+        file = tmp_file
       )
     }
   }
@@ -116,9 +121,12 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
 
 #' importFrom lmtest lrtest
 DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
-  if (!missing(tmp_folder) &
-    file.exists(paste0(tmp_folder, "/DEA_LRT_", gene_name, ".Rdata"))) {
-    load(paste0(tmp_folder, "/DEA_LRT_", gene_name, ".Rdata"))
+  tmp_file <- ""
+  if (!missing(tmp_folder)) {
+    tmp_file <- paste0(tmp_folder, "/DEA_LRT_", gene_name, ".Rdata")
+  }
+  if (file.exists(tmp_file)) {
+    load(tmp_file)
   } else {
     LRT_results <- tryCatch({
       lmtest::lrtest(
@@ -135,7 +143,7 @@ DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
     if (!missing(tmp_folder)) {
       save(
         LRT_results, gene_name,
-        file = paste0(tmp_folder, "/DEA_LRT_", gene_name, ".Rdata")
+        file = tmp_file
       )
     }
   }
@@ -216,7 +224,7 @@ NB_fit <- function(data, formula, gene_name,
   return(model)
 }
 
-formula_to_factor <- function(scd, formula_full){
+formula_to_features <- function(scd, formula_full){
   features <- c()
   for(feature in colnames(scd$getfeatures)) {
     features <- c(
@@ -227,7 +235,13 @@ formula_to_factor <- function(scd, formula_full){
       )
     )
   }
-  return(scd$getfeatures[, features])
+  features[1] <- TRUE
+  features <- apply(
+    X = scd$getfeatures[, features],
+    MARGIN = 2,
+    FUN = as.factor
+  )
+  return(features)
 }
 
 #' @importFrom MASS glm.nb
