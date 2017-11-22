@@ -1,12 +1,12 @@
 Package: scRNAtools
 Title: Set of functions for the analysis of scRNASeq data
-Version: 0.1
+Version: 0.2
 Authors@R: person("Laurent", "Modolo", email = "laurent.modolo@ens-lyon.fr",
                   role = c("aut", "cre"))
 Description: The package scRNASeq provides a set of function to perform quality
   control, classification, differential analysis and visualisation of scRNASeq
   data.
-Depends: R (>= 3.2.2), R6 (>= 2.2.1), e1071 (>= 1.6.8), base, ggplot2 (>= 2.2.1), ade4, grDevices, circlize, tximport, readr, SCnorm, plsgenomics, pCMF, sva
+Depends: R (>= 3.2.2), R6 (>= 2.2.1), e1071 (>= 1.6.8), base, ggplot2 (>= 2.2.1), grDevices, circlize, tximport, readr, plsgenomics, pCMF, ade4, SCnorm, sva
 License: file LICENSE
 LazyData: true
 Suggests: testthat
