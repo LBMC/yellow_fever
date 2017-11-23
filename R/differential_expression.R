@@ -11,8 +11,8 @@
 #' }
 #' @importFrom parallel mclapply
 #' @export DEA
-DEA <- function(scd, formula_null, formula_full, b_cells, cpus = 4, v = F,
-  tmp_folder) {
+DEA <- function(scd, formula_null, formula_full, b_cells,
+  cpus = 4, v = F, tmp_folder) {
   genes_list <- as.list(scd$select(b_cells = b_cells)$getgenes)
   names(genes_list) <- scd$select(b_cells = b_cells)$getgenes
   features <- formula_to_features(
@@ -47,6 +47,7 @@ DEA <- function(scd, formula_null, formula_full, b_cells, cpus = 4, v = F,
 DEA_gene <- function(data, formula_null, formula_full, gene_name,
     family = "nbinom1", link = "log",
     v, tmp_folder) {
+  hist(data$y, breaks = length(data$y), main = gene_name)
   models_result <- DEA_fit(
     data = data,
     formula_null = formula_null,
@@ -80,11 +81,11 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
     load(tmp_file)
   } else {
     formulas <- list(
-      null = formula_null,
-      full = formula_full
+      formula_null = formula_null,
+      formula_full = formula_full
     )
     models_result <- list()
-    if (zi_test(data, gene_name = gene_name)) {
+    if (zi_test(data, gene_name = gene_name, v = v)) {
       for (formula in names(formulas)) {
         models_result[[formula]] <- ziNB_fit(
           data = data,
@@ -118,6 +119,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
 #' importFrom lmtest lrtest
 DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
   tmp_file <- ""
+  LRT_result <- NULL
   if (!missing(tmp_folder)) {
     tmp_file <- paste0(tmp_folder, "/DEA_LRT_", gene_name, ".Rdata")
   }
@@ -125,10 +127,17 @@ DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
     load(tmp_file)
   } else {
     LRT_results <- tryCatch({
-      lmtest::lrtest(
-        models_result[["formula_full"]],
-        models_result[["formula_null"]]
-      )
+      if (class(models_result[["formula_null"]]) == "glmerMod") {
+        stats::anova(
+          models_result[["formula_null"]],
+          models_result[["formula_full"]]
+        )
+      } else {
+        lmtest::lrtest(
+          models_result[["formula_full"]],
+          models_result[["formula_null"]]
+        )
+      }
     }, error = function(e){
       if (v) {
         print(paste0("error: DEA_LRT for gene ", gene_name))
@@ -190,6 +199,7 @@ ziNB_fit <- function(data, formula, gene_name,
 #' importFrom lme4 glmer.nb
 NB_fit <- function(data, formula, gene_name,
     v) {
+  print(formula)
   model <- tryCatch({
     glmer.nb(
       as.formula(formula),
@@ -248,7 +258,7 @@ zi_test <- function(data, threshold=0.05, v = F, gene_name){
   }
   if(sum(data$y == 0) < 3){
     if (v) {
-      print("no zeroinfl detected")
+      print("no zeroinfl detected (#y == 0 < 3)")
     }
     return(FALSE)
   }
@@ -275,17 +285,17 @@ zi_test <- function(data, threshold=0.05, v = F, gene_name){
     test <- vuong_test(m1 = m1, m2 = m2, v = v)
     if(test < threshold){
       if (v) {
-        print("zeroinfl detected")
+        print("zeroinfl detected (vuong test)")
       }
       return(TRUE)
     }
     if (v) {
-      print("no zeroinfl detected")
+      print("no zeroinfl detected (vuong test)")
     }
     return(FALSE)
   }, error = function(e){
     if (v) {
-      print("zeroinfl detected with error")
+      print("zeroinfl detected with error (vuong test)")
     }
     return(TRUE)
   })
