@@ -132,7 +132,10 @@ This procedure identify 54 cells as looking more like blank than other cells.
 The following two PCA's show those cells and the data without them.
 
 \begin{center}
-  \includegraphics[width=0.5\textwidth]{../results/QC/pca/pca_counts_QC.pdf}\includegraphics[width=0.5\textwidth]{../results/QC/pca/pca_counts_QC_good.pdf}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/QC/pca/pca_counts_QC.pdf}\includegraphics[width=0.5\textwidth]{../results/QC/pca/pca_counts_QC_good.pdf}
+    \caption{PCA plot for cells classified as looking like blank (in color or transparency)}
+  \end{figure}
 \end{center}
 
 # normalize for batch effect
@@ -141,7 +144,17 @@ When we look a the different time-points, we can see some batch effect,
 especially for the day 136.
 
 \begin{center}
-  \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_counts_QC_good_D593.pdf}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_counts_QC_good_D593.pdf}
+    \caption{PCA plot for cells not looking like blanks}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_counts_QC_good_D593.pdf}
+    \caption{pCMF plot for cells not looking like blanks}
+  \end{figure}
 \end{center}
 
 We use the following command to normalize batch effect within each day's data:
@@ -161,7 +174,17 @@ save(scd, file = "results/QC/batch_counts_QC.Rdata")
 ```
 
 \begin{center}
-  \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_batch_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_batch_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_batch_counts_QC_good_D593.pdf}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_batch_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_batch_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_batch_counts_QC_good_D593.pdf}
+    \caption{pca plot for batch effect normalization}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_batch_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_batch_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_batch_counts_QC_good_D593.pdf}
+    \caption{pCMF plot for batch effect normalization}
+  \end{figure}
 \end{center}
 
 # normalize of cells effect
@@ -182,5 +205,48 @@ save(scd, file = "results/QC/cells_counts_QC.Rdata")
 ```
 
 \begin{center}
-  \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_cells_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_cells_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_cells_counts_QC_good_D593.pdf}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_cells_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_cells_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_cells_counts_QC_good_D593.pdf}
+    \caption{pca plot for cells effect normalization}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_cells_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_cells_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_cells_counts_QC_good_D593.pdf}
+    \caption{pCMF plot for cells effect normalization}
+  \end{figure}
+\end{center}
+
+# normalize of cells and batch effect
+
+We also generate a `scdata` object normalized for cells effect, with the
+following command:
+
+```R
+load("results/QC/cells_counts_QC.Rdata")
+for (day in c("D15", "D136", "D593")) {
+    scd <- normalize(
+    scd = scd,
+    b_cells = scd$getfeature("QC_good") %in% T & scd$getfeature("day") %in% day,
+    method = "ComBat",
+    cpus = 5,
+    tmp_file = paste0("results/tmp/normalization_cells_combat_,", day, "_tmp.Rdata")
+  )
+}
+save(scd, file = "results/QC/CB_counts_QC.Rdata")
+```
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_CB_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_CB_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pca/pca_CB_counts_QC_good_D593.pdf}
+    \caption{PCA plot for cells and batch effect normalization}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_CB_counts_QC_good_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_CB_counts_QC_good_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/QC/pcmf/pcmf_CB_counts_QC_good_D593.pdf}
+    \caption{pCMF plot for cells and batch effect normalization}
+  \end{figure}
 \end{center}
