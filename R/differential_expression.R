@@ -21,8 +21,7 @@ DEA <- function(scd, formula_null, formula_full, b_cells,
     scd = scd_DEA$select(b_cells = b_cells),
     formula_full = formula_full
   )
-  # parallel::mclapply(
-  lapply(
+  parallel::mclapply(
     X = genes_list,
     FUN  = function(x, counts, features, formula_null, formula_full, v, tmp_folder){
       data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
@@ -36,7 +35,7 @@ DEA <- function(scd, formula_null, formula_full, b_cells,
         tmp_folder = tmp_folder
       )
     },
-    # mc.cores = cpus,
+    mc.cores = cpus,
     counts = scd$select(b_cells = b_cells)$getcounts,
     features = features,
     formula_null = formula_null,
