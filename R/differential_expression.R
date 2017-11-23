@@ -13,10 +13,12 @@
 #' @export DEA
 DEA <- function(scd, formula_null, formula_full, b_cells,
   cpus = 4, v = F, tmp_folder) {
-  genes_list <- as.list(scd$select(b_cells = b_cells)$getgenes)
-  names(genes_list) <- scd$select(b_cells = b_cells)$getgenes
+  expressed <- scd$getgenes[colSums(scd$getcounts) > 0]
+  scd_DEA <- scd$select(genes = expressed)
+  genes_list <- as.list(scd_DEA$select(b_cells = b_cells)$getgenes)
+  names(genes_list) <- scd_DEA$select(b_cells = b_cells)$getgenes
   features <- formula_to_features(
-    scd = scd$select(b_cells = b_cells),
+    scd = scd_DEA$select(b_cells = b_cells),
     formula_full = formula_full
   )
   # parallel::mclapply(
@@ -47,7 +49,6 @@ DEA <- function(scd, formula_null, formula_full, b_cells,
 DEA_gene <- function(data, formula_null, formula_full, gene_name,
     family = "nbinom1", link = "log",
     v, tmp_folder) {
-  hist(data$y, breaks = length(data$y), main = gene_name)
   models_result <- DEA_fit(
     data = data,
     formula_null = formula_null,
@@ -67,7 +68,7 @@ DEA_gene <- function(data, formula_null, formula_full, gene_name,
   DEA_results <- DEA_format(
     LRT_result = LRT_result,
     models_result = models_result)
-  return(DEA_results)
+  return(list(models = models_result, LRT = LRT_result))
 }
 
 DEA_fit <- function(data, formula_null, formula_full, gene_name,
@@ -85,7 +86,8 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       formula_full = formula_full
     )
     models_result <- list()
-    if (zi_test(data, gene_name = gene_name, v = v)) {
+    models_result[["is_zi"]] <- zi_test(data, gene_name = gene_name, v = v)
+    if (models_result[["is_zi"]]) {
       for (formula in names(formulas)) {
         models_result[[formula]] <- ziNB_fit(
           data = data,
@@ -126,18 +128,11 @@ DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
   if (file.exists(tmp_file)) {
     load(tmp_file)
   } else {
-    LRT_results <- tryCatch({
-      if (class(models_result[["formula_null"]]) == "glmerMod") {
-        stats::anova(
-          models_result[["formula_null"]],
-          models_result[["formula_full"]]
-        )
-      } else {
-        lmtest::lrtest(
-          models_result[["formula_full"]],
-          models_result[["formula_null"]]
-        )
-      }
+    LRT_result <- tryCatch({
+      lmtest::lrtest(
+        models_result[["formula_full"]],
+        models_result[["formula_null"]]
+      )
     }, error = function(e){
       if (v) {
         print(paste0("error: DEA_LRT for gene ", gene_name))
@@ -163,6 +158,7 @@ DEA_format <- function(LRT_result, models_result) {
 ziNB_fit <- function(data, formula, gene_name,
     family = "nbinom1", link = "log",
     v) {
+  print(formula)
   model <- tryCatch({
     glmmADMB::glmmadmb(
       as.formula(formula),
@@ -179,7 +175,7 @@ ziNB_fit <- function(data, formula, gene_name,
     }
     tryCatch({
       glmmADMB::glmmadmb(
-        as.formula(fornula),
+        as.formula(formula),
         data = data,
         zeroInflation = TRUE,
         family = family,
@@ -197,28 +193,45 @@ ziNB_fit <- function(data, formula, gene_name,
 }
 
 #' importFrom lme4 glmer.nb
+#' importFrom MASS glm.nb
 NB_fit <- function(data, formula, gene_name,
     v) {
   print(formula)
+  mixed <- grepl(".*\\(.*\\).*", formula)
   model <- tryCatch({
-    glmer.nb(
-      as.formula(formula),
-      data = data,
-      control = glmerControl(optCtrl = list(maxfun = 10000)))
+    if (mixed) {
+      glmer.nb(
+        as.formula(formula),
+        data = data,
+        control = glmerControl(optCtrl = list(maxfun = 10000))
+      )
+    } else {
+      glm.nb(
+        as.formula(formula),
+        data = data
+      )
+    }
   }, error = function(e){
     if (v) {
       print(paste0("error: NB_fit for gene ", gene_name))
       print(e)
     }
       tryCatch({
-        glmer.nb(
-          as.formula(formula),
-          data = data,
-          control = glmerControl(
-            optimizer="bobyqa",
-            optCtrl = list(maxfun = 10000)
+        if (mixed) {
+          glmer.nb(
+            as.formula(formula),
+            data = data,
+            control = glmerControl(
+              optimizer="bobyqa",
+              optCtrl = list(maxfun = 10000)
+            )
           )
-        )
+        } else {
+          glm.nb(
+            as.formula(formula),
+            data = data
+          )
+        }
       }, error = function(e){
         if (v) {
           print(paste0("error: NB_fit with bobyqa for gene ", gene_name))
