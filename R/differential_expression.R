@@ -23,7 +23,7 @@ DEA <- function(scd, formula_null, formula_full, b_cells, cpus = 4, v = F,
   lapply(
     X = genes_list,
     FUN  = function(x, counts, features, formula_null, formula_full, v, tmp_folder){
-      data <- data.frame(y = counts[ ,colnames(counts) %in% x])
+      data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
       data <- cbind(features, data)
       DEA_gene(
         data = data,
@@ -101,8 +101,6 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
           data = data,
           formula = formulas[[formula]],
           gene_name = gene_name,
-          family = family,
-          link = link,
           v = v
         )
       }
