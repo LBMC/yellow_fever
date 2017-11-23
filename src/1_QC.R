@@ -338,18 +338,23 @@ for (day in c("D15", "D136", "D593")) {
 # batch & cells effect normalization
 devtools::load_all("../scRNAtools/", reset = T)
 system("rm results/tmp/CB_normalization_tmp.Rdata")
-load("results/QC/batch_counts_QC.Rdata")
-scd <- normalize(
-  scd = scd,
-  b_cells = scd$getfeature("QC_good") %in% T,
-  method = "SCnorm",
-  cpus = 5,
-  tmp_file = "results/tmp/CB_normalization_tmp.Rdata"
-)
+load("results/QC/cells_counts_QC.Rdata")
+for (day in c("D15", "D136", "D593")) {
+    scd <- normalize(
+    scd = scd,
+    b_cells = scd$getfeature("QC_good") %in% T & scd$getfeature("day") %in% day,
+    method = "ComBat",
+    cpus = 5,
+    tmp_file = paste0("results/tmp/normalization_cells_combat_,", day, "_tmp.Rdata")
+  )
+}
 save(scd, file = "results/QC/CB_counts_QC.Rdata")
 
 
-system("rm results/tmp/pca_CB_counts_QC_good*_tmp.Rdata")
+system("rm results/tmp/pca_CB_counts_QC_good_tmp.Rdata")
+for (day in c("D15", "D136", "D593"))
+  system(paste0("rm results/tmp/pca_CB_counts_", day, "QC_good_tmp.Rdata"))
+
 load("results/QC/CB_counts_QC.Rdata")
 b_cells = scd$getfeature('QC_good') %in% T
 scRNAtools::pca_plot(
@@ -368,12 +373,14 @@ for (day in c("D15", "D136", "D593")) {
   ggsave(file = paste0("results/QC/pca/pca_CB_counts_QC_good_", day, ".pdf"))
 }
 
-system("rm results/tmp/pCMF_CB_counts_QC_good*_tmp.Rdata")
+system("rm results/tmp/pCMF_CB_counts_QC_good_tmp.Rdata")
+for (day in c("D15", "D136", "D593"))
+  system(paste0("rm results/tmp/pCMF_CB_counts_", day, "QC_good_tmp.Rdata"))
+
 load("results/QC/CB_counts_QC.Rdata")
 b_cells = scd$getfeature('QC_good') %in% T
 scRNAtools::pCMF_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
-  alpha = "QC_good",
   tmp_file = "results/tmp/pCMF_CB_counts_QC_good_tmp.Rdata",
   main = "all day",,
   ncores = 11
@@ -383,7 +390,6 @@ for (day in c("D15", "D136", "D593")) {
   scRNAtools::pCMF_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
     color = "batch", color_name = "clonality",
-    alpha = "QC_good",
     tmp_file = paste0("results/tmp/pCMF_CB_counts_", day, "QC_good_tmp.Rdata"),
     main = day,
     ncores = 11
