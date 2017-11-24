@@ -341,6 +341,7 @@ formula_to_features <- function(scd, formula_full){
 
 #' @importFrom MASS glm.nb
 #' @importFrom pscl zeroinfl
+#' @importFrom boot wuong
 zi_test <- function(data, threshold=0.05, v = F, gene_name){
   if(max(data$y) == 0){
     exit(paste0("error : ", gene_name, " contains only zeros"))
