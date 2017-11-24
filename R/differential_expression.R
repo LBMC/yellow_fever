@@ -230,7 +230,9 @@ DEA_format <- function(LRT_result, models_result) {
 ziNB_fit <- function(data, formula, gene_name,
     family = "nbinom1", link = "log",
     v) {
-  print(formula)
+  if (v) {
+    print(paste0(gene_name, " : ziNB ~ ", formula))
+  }
   model <- tryCatch({
     glmmADMB::glmmadmb(
       as.formula(formula),
@@ -268,7 +270,9 @@ ziNB_fit <- function(data, formula, gene_name,
 #' importFrom MASS glm.nb
 NB_fit <- function(data, formula, gene_name,
     v) {
-  print(formula)
+  if (v) {
+    print(paste0(gene_name, " : ziNB ~ ", formula))
+  }
   mixed <- grepl(".*\\(.*\\).*", formula)
   model <- tryCatch({
     if (mixed) {
