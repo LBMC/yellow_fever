@@ -45,7 +45,6 @@ lapply_parallel <- function(genes_list, counts, features,
           v, tmp_folder){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
-        print("test")
         DEA_gene(
           data = data,
           formula_null,
@@ -70,7 +69,6 @@ lapply_parallel <- function(genes_list, counts, features,
           v, tmp_folder){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
-        print("test")
         DEA_gene(
           data = data,
           formula_null,
@@ -195,9 +193,28 @@ DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
 }
 
 DEA_format <- function(LRT_result, models_result) {
-  results <- data.frame()
-  if (is.na(LRT_result)) {
-    results <- data.frame(
+  results <- tryCatch({
+    if (models_result[["is_zi"]]) {
+      data.frame(
+        zi = models_result[["is_zi"]],
+        pvalue = LRT_result[["Pr(>Chisq)"]][2],
+        null_loglik = models_result[["formula_null"]]$loglik,
+        null_df = models_result[["formula_null"]]$npar,
+        full_loglik = models_result[["formula_full"]]$loglik,
+        full_df = models_result[["formula_full"]]$npar
+      )
+    } else {
+      data.frame(
+        zi = models_result[["is_zi"]],
+        pvalue = LRT_result[["Pr(>Chisq)"]][2],
+        null_loglik = as.numeric(logLik(models_result[["formula_null"]])),
+        null_df = LRT_result[["#Df"]][2],
+        full_loglik = as.numeric(logLik(models_result[["formula_full"]])),
+        full_df = LRT_result[["#Df"]][1]
+      )
+    }
+  }, error = function(e){
+    data.frame(
       zi = models_result[["is_zi"]],
       pvalue = NA,
       null_loglik = NA,
@@ -205,26 +222,7 @@ DEA_format <- function(LRT_result, models_result) {
       full_loglik = NA,
       full_df = NA
     )
-  }
-  if (models_result[["is_zi"]]) {
-    results <- data.frame(
-      zi = models_result[["is_zi"]],
-      pvalue = LRT_result[["Pr(>Chisq)"]][2],
-      null_loglik = models_result[["formula_null"]]$loglik,
-      null_df = models_result[["formula_null"]]$npar,
-      full_loglik = models_result[["formula_full"]]$loglik,
-      full_df = models_result[["formula_full"]]$npar
-    )
-  } else {
-    results <- data.frame(
-      zi = models_result[["is_zi"]],
-      pvalue = LRT_result[["Pr(>Chisq)"]][2],
-      null_loglik = as.numeric(logLik(models_result[["formula_null"]])),
-      null_df = LRT_result[["#Df"]][2],
-      full_loglik = as.numeric(logLik(models_result[["formula_full"]])),
-      full_df = LRT_result[["#Df"]][1]
-    )
-  }
+  })
   return(results)
 }
 
