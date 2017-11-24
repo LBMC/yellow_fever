@@ -128,27 +128,24 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       formula_full = formula_full
     )
     models_result <- list()
-    models_result[["is_zi"]] <- zi_test(data, gene_name = gene_name, v = v)
-    if (models_result[["is_zi"]]) {
-      for (formula in names(formulas)) {
-        models_result[[formula]] <- ziNB_fit(
-          data = data,
-          formula = formulas[[formula]],
-          gene_name = gene_name,
-          family = family,
-          link = link,
-          v = v
-        )
-      }
-    } else {
-      for (formula in names(formulas)) {
-        models_result[[formula]] <- NB_fit(
-          data = data,
-          formula = formulas[[formula]],
-          gene_name = gene_name,
-          v = v
-        )
-      }
+    models_result[["is_zi"]] <- zi_test(
+      data = data,
+      formula_full = formula_full,
+      gene_name = gene_name,
+      family = family,
+      link = link,
+      threshold = 0.05,
+      v = v)
+    for (formula in names(formulas)) {
+      models_result[[formula]] <- ziNB_fit(
+        data = data,
+        formula = formulas[[formula]],
+        gene_name = gene_name,
+        family = family,
+        link = link,
+        zi = models_result[["is_zi"]],
+        v = v
+      )
     }
     if (!missing(tmp_folder)) {
       save(
@@ -194,25 +191,14 @@ DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
 
 DEA_format <- function(LRT_result, models_result) {
   results <- tryCatch({
-    if (models_result[["is_zi"]]) {
-      data.frame(
-        zi = models_result[["is_zi"]],
-        pvalue = LRT_result[["Pr(>Chisq)"]][2],
-        null_loglik = models_result[["formula_null"]]$loglik,
-        null_df = models_result[["formula_null"]]$npar,
-        full_loglik = models_result[["formula_full"]]$loglik,
-        full_df = models_result[["formula_full"]]$npar
-      )
-    } else {
-      data.frame(
-        zi = models_result[["is_zi"]],
-        pvalue = LRT_result[["Pr(>Chisq)"]][2],
-        null_loglik = as.numeric(logLik(models_result[["formula_null"]])),
-        null_df = LRT_result[["#Df"]][2],
-        full_loglik = as.numeric(logLik(models_result[["formula_full"]])),
-        full_df = LRT_result[["#Df"]][1]
-      )
-    }
+    data.frame(
+      zi = models_result[["is_zi"]],
+      pvalue = LRT_result[["Pr(>Chisq)"]][2],
+      null_loglik = models_result[["formula_null"]]$loglik,
+      null_df = models_result[["formula_null"]]$npar,
+      full_loglik = models_result[["formula_full"]]$loglik,
+      full_df = models_result[["formula_full"]]$npar
+    )
   }, error = function(e){
     data.frame(
       zi = models_result[["is_zi"]],
@@ -228,93 +214,37 @@ DEA_format <- function(LRT_result, models_result) {
 
 #' importFrom glmmADMB glmmadmb
 ziNB_fit <- function(data, formula, gene_name,
-    family = "nbinom1", link = "log",
+    family = "nbinom1", link = "log", zi = TRUE,
     v) {
   if (v) {
-    print(paste0(gene_name, " : ziNB ~ ", formula))
+    if (zi) {
+      print(paste0(gene_name, " : ziNB : ", formula))
+    } else {
+      print(paste0(gene_name, " : NB : ", formula))
+    }
   }
   model <- tryCatch({
     glmmADMB::glmmadmb(
       as.formula(formula),
       data = data,
-      zeroInflation = TRUE,
+      zeroInflation = zi,
       family = family,
       link = link,
       mcmc = FALSE
     )
   }, error = function(e){
     if (v) {
-      print(paste0("error: ziNB_fit for gene ", gene_name))
-      print(e)
-    }
-    tryCatch({
-      glmmADMB::glmmadmb(
-        as.formula(formula),
-        data = data,
-        zeroInflation = TRUE,
-        family = family,
-        link = link,
-        mcmc = TRUE)
-    }, error = function(e){
-      if (v) {
-        print(paste0("error: ziNB_fit with mcmc for ", gene_name))
-        print(e)
+      if (zi) {
+        print(paste0(
+            "error: ziNB_fit for ", gene_name,
+            " with zero-inflation"
+        ))
+      } else {
+        print(paste0("error: ziNB_fit for ", gene_name))
       }
-      return(list(residuals = NA))
-    })
-  })
-  return(model)
-}
-
-#' importFrom lme4 glmer.nb
-#' importFrom MASS glm.nb
-NB_fit <- function(data, formula, gene_name,
-    v) {
-  if (v) {
-    print(paste0(gene_name, " : ziNB ~ ", formula))
-  }
-  mixed <- grepl(".*\\(.*\\).*", formula)
-  model <- tryCatch({
-    if (mixed) {
-      glmer.nb(
-        as.formula(formula),
-        data = data,
-        control = glmerControl(optCtrl = list(maxfun = 10000))
-      )
-    } else {
-      glm.nb(
-        as.formula(formula),
-        data = data
-      )
-    }
-  }, error = function(e){
-    if (v) {
-      print(paste0("error: NB_fit for gene ", gene_name))
       print(e)
     }
-      tryCatch({
-        if (mixed) {
-          glmer.nb(
-            as.formula(formula),
-            data = data,
-            control = glmerControl(
-              optimizer="bobyqa",
-              optCtrl = list(maxfun = 10000)
-            )
-          )
-        } else {
-          glm.nb(
-            as.formula(formula),
-            data = data
-          )
-        }
-      }, error = function(e){
-        if (v) {
-          print(paste0("error: NB_fit with bobyqa for gene ", gene_name))
-          print(e)
-        }
-        return(list(residuals = NA))
-      })
+    return(list(residuals = NA))
   })
   return(model)
 }
@@ -341,59 +271,78 @@ formula_to_features <- function(scd, formula_full){
 
 #' @importFrom MASS glm.nb
 #' @importFrom pscl zeroinfl
-#' @importFrom boot wuong
-zi_test <- function(data, threshold=0.05, v = F, gene_name){
+zi_test <- function(data, formula_full, gene_name,
+    family = "nbinom1", link = "log", threshold = 0.05, v = F){
   if(max(data$y) == 0){
     exit(paste0("error : ", gene_name, " contains only zeros"))
   }
-  if(sum(data$y == 0) < 3){
+  m1 <- ziNB_fit(
+    data = data,
+    formula = formula_full,
+    gene_name = gene_name,
+    family = family,
+    link = link,
+    zi = FALSE,
+    v = v
+  )
+  m2 <- ziNB_fit(
+    data = data,
+    formula = formula_full,
+    gene_name = gene_name,
+    family = family,
+    link = link,
+    zi = TRUE,
+    v = v
+  )
+  if (is.na(m1$residuals[1]) & is.na(m2$residuals[1])) {
+    if(sum(data$y == 0) < 3){
+      if (v) {
+        print(paste0(
+          "no zeroinfl detected with error for",
+          gene_name, " (#y == 0 < 3)"
+        ))
+      }
+      return(FALSE)
+    } else {
+      if (v) {
+        print(paste0(
+          "zeroinfl detected with error for",
+          gene_name, " (#y == 0 >= 3)"
+        ))
+      }
+      return(TRUE)
+    }
+  }
+  if (is.na(m1$residuals[1])) {
     if (v) {
-      print("no zeroinfl detected (#y == 0 < 3)")
+      print(paste0("zeroinfl detected with error for ",
+        gene_name, " (no NB fit)"))
+    }
+    return(TRUE)
+  }
+  if (is.na(m2$residuals[1])) {
+    if (v) {
+      print(paste0("no zeroinfl detected with error for ",
+        gene_name, " (no ziNB fit)"))
     }
     return(FALSE)
   }
-  tryCatch({
-    m1 <- tryCatch({
-        MASS::glm.nb(y ~ 1,
-               data = data)
-      }, error = function(e){
-        return(TRUE)
-      })
-    m2 <- tryCatch({
-        pscl::zeroinfl(y ~ 1,
-                 data = data,
-                 dist = "negbin")
-      }, error = function(e){
-        return(TRUE)
-      })
-    if(is.atomic(m1) | is.atomic(m2)){
-      if (v) {
-        print("zeroinfl detected with error")
-      }
-      return(TRUE)
-    }
-    test <- vuong_test(m1 = m1, m2 = m2, v = v)
-    if(test < threshold){
-      if (v) {
-        print("zeroinfl detected (vuong test)")
-      }
-      return(TRUE)
-    }
+  test <- vuong_test(m1 = m1, m2 = m2, v = T)
+  if(test < threshold){
     if (v) {
-      print("no zeroinfl detected (vuong test)")
-    }
-    return(FALSE)
-  }, error = function(e){
-    if (v) {
-      print("zeroinfl detected with error (vuong test)")
+      print(paste0("zeroinfl detected for ", gene_name, " (vuong test)"))
     }
     return(TRUE)
-  })
+  }
+  if (v) {
+    print(paste0("no zeroinfl detected for ", gene_name, " (vuong test)"))
+  }
+  return(FALSE)
 }
 
 vuong_test <- function (m1, m2, digits = getOption("digits"), v){
-  m1y <- m1$y
-  m2y <- m2$y
+  m1y <- m1$frame$y
+  m2y <- m2$frame$y
   m1n <- length(m1y)
   m2n <- length(m2y)
   if (m1n == 0 | m2n == 0)
@@ -404,8 +353,8 @@ vuong_test <- function (m1, m2, digits = getOption("digits"), v){
         m2n, " observations.\n", sep = ""))
   if (any(m1y != m2y))
     stop(paste("Models appear to have different values on dependent variables.\n"))
-  p1 <- predprob(m1)
-  p2 <- predprob(m2)
+  p1 <- predprob(m1, zi = FALSE)
+  p2 <- predprob(m2, zi = TRUE)
   if (!all(colnames(p1) == colnames(p2)))
     stop("Models appear to have different values on dependent variables.\n")
   whichCol <- match(m1y, colnames(p1))
@@ -458,4 +407,25 @@ vuong_test <- function (m1, m2, digits = getOption("digits"), v){
   out <- data.frame(v, msg, format.pval(pval))
   names(out) <- c("Vuong z-statistic", "H_A", "p-value")
   return(as.numeric(as.vector(pval[3])))
+}
+
+#' importFrom extraDistr dzinb
+predprob <- function(obj, zi = F){
+  yhat <- predict(obj, type="response")
+  y <- obj$frame$y
+  yUnique <- c(0:max(y))
+  nUnique <- length(yUnique)
+  p <- matrix(NA,length(yhat),nUnique)
+  dimnames(p) <- list(NULL,yUnique)
+  for(i in 1:nUnique){
+    p[, i] <- dnbinom(
+      mu = yhat,
+      size = obj$alpha,
+      x = yUnique[i]
+    )
+    if (zi) {
+      p[yhat == 0, i] <- obj$pz + (1 - obj$pz) * p[yhat == 0, i]
+    }
+  }
+  return(p)
 }
