@@ -9,7 +9,6 @@
 #' \dontrun {
 #' classif <- classification(scd, 500000)
 #' }
-#' @importFrom parallel mclapply
 #' @export DEA
 DEA <- function(scd, formula_null, formula_full, b_cells,
   cpus = 4, v = F, tmp_folder) {
@@ -21,28 +20,74 @@ DEA <- function(scd, formula_null, formula_full, b_cells,
     scd = scd_DEA$select(b_cells = b_cells),
     formula_full = formula_full
   )
-  parallel::mclapply(
-    X = genes_list,
-    FUN  = function(x, counts, features, formula_null, formula_full, v, tmp_folder){
-      data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
-      data <- cbind(features, data)
-      DEA_gene(
-        data = data,
-        formula_null,
-        formula_full,
-        gene_name = x,
-        v = v,
-        tmp_folder = tmp_folder
-      )
-    },
-    mc.cores = cpus,
+  results <- lapply_parallel(
+    genes_list = genes_list,
     counts = scd$select(b_cells = b_cells)$getcounts,
     features = features,
     formula_null = formula_null,
     formula_full = formula_full,
+    cpus = cpus,
     v = v,
     tmp_folder = tmp_folder
   )
+  return(unlist(results))
+}
+
+#' @importFrom parallel mclapply
+lapply_parallel <- function(genes_list, counts, features,
+    formula_null, formula_full,
+    cpus = 1, v, tmp_folder) {
+  results <- list()
+  if (cpus > 1) {
+    results <- parallel::mclapply(
+      X = genes_list,
+      FUN  = function(x, counts, features, formula_null, formula_full,
+          v, tmp_folder){
+        data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
+        data <- cbind(features, data)
+        print("test")
+        DEA_gene(
+          data = data,
+          formula_null,
+          formula_full,
+          gene_name = x,
+          v = v,
+          tmp_folder = tmp_folder
+        )
+      },
+      mc.cores = cpus,
+      counts = counts,
+      features = features,
+      formula_null = formula_null,
+      formula_full = formula_full,
+      v = v,
+      tmp_folder = tmp_folder
+    )
+  } else {
+    results <- lapply(
+      X = genes_list,
+      FUN  = function(x, counts, features, formula_null, formula_full,
+          v, tmp_folder){
+        data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
+        data <- cbind(features, data)
+        print("test")
+        DEA_gene(
+          data = data,
+          formula_null,
+          formula_full,
+          gene_name = x,
+          v = v,
+          tmp_folder = tmp_folder
+        )
+      },
+      counts = counts,
+      features = features,
+      formula_null = formula_null,
+      formula_full = formula_full,
+      v = v,
+      tmp_folder = tmp_folder
+    )
+  }
 }
 
 DEA_gene <- function(data, formula_null, formula_full, gene_name,
@@ -64,10 +109,10 @@ DEA_gene <- function(data, formula_null, formula_full, gene_name,
     v = v,
     tmp_folder = tmp_folder
   )
-  DEA_results <- DEA_format(
+  DEA_result <- DEA_format(
     LRT_result = LRT_result,
     models_result = models_result)
-  return(list(models = models_result, LRT = LRT_result))
+  return(DEA_result)
 }
 
 DEA_fit <- function(data, formula_null, formula_full, gene_name,
@@ -120,7 +165,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
 #' importFrom lmtest lrtest
 DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
   tmp_file <- ""
-  LRT_result <- NULL
+  LRT_result <- NA
   if (!missing(tmp_folder)) {
     tmp_file <- paste0(tmp_folder, "/DEA_LRT_", gene_name, ".Rdata")
   }
@@ -137,7 +182,7 @@ DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
         print(paste0("error: DEA_LRT for gene ", gene_name))
         print(e)
       }
-      return(rep(NA, 8))
+      return(NA)
     })
     if (!missing(tmp_folder)) {
       save(
@@ -150,7 +195,37 @@ DEA_LRT <- function(models_result, gene_name, v, tmp_folder) {
 }
 
 DEA_format <- function(LRT_result, models_result) {
-
+  results <- data.frame()
+  if (is.na(LRT_result)) {
+    results <- data.frame(
+      zi = models_result[["is_zi"]],
+      pvalue = NA,
+      null_loglik = NA,
+      null_df = NA,
+      full_loglik = NA,
+      full_df = NA
+    )
+  }
+  if (models_result[["is_zi"]]) {
+    results <- data.frame(
+      zi = models_result[["is_zi"]],
+      pvalue = LRT_result[["Pr(>Chisq)"]][2],
+      null_loglik = models_result[["formula_null"]]$loglik,
+      null_df = models_result[["formula_null"]]$npar,
+      full_loglik = models_result[["formula_full"]]$loglik,
+      full_df = models_result[["formula_full"]]$npar
+    )
+  } else {
+    results <- data.frame(
+      zi = models_result[["is_zi"]],
+      pvalue = LRT_result[["Pr(>Chisq)"]][2],
+      null_loglik = as.numeric(logLik(models_result[["formula_null"]])),
+      null_df = LRT_result[["#Df"]][2],
+      full_loglik = as.numeric(logLik(models_result[["formula_full"]])),
+      full_df = LRT_result[["#Df"]][1]
+    )
+  }
+  return(results)
 }
 
 #' importFrom glmmADMB glmmadmb
