@@ -129,8 +129,9 @@ clean_data <- function(data, group_by) {
       data = data[!row_rm, ], row_rm = row_rm
     ))
   } else {
+    group_by$by <- group_by$by[!row_rm]
     return(list(
-      data = data[!row_rm, ], group_by = group_by[!row_rm], row_rm = row_rm
+      data = data[!row_rm, ], group_by = group_by, row_rm = row_rm
     ))
   }
 }
