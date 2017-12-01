@@ -28,6 +28,7 @@ classification <- function(
   group_by <- group_by_transform(
     scd$select(b_cells = to_train_on)$getfeature(feature)
   )
+  model_type <- scRNAtools::pls_type(as.factor(group_by$names))
   print("building training set...")
   data_train <- scRNAtools::get_data(scd, to_train_on, features, genes)
 
@@ -35,7 +36,6 @@ classification <- function(
   data_train <- rm_data_train$data
   group_by <- rm_data_train$group_by
 
-  model_type <- scRNAtools::pls_type(by)
   print("training PLS...")
   algo_training <- get(paste0(model_type, "_", algo , "_training"))
   training <- algo_training(
@@ -141,8 +141,10 @@ group_by_transform <- function(by) {
 
 pls_type <- function(by){
   if (length(levels(by)) == 2) {
+    print(paste0(length(levels(by)), " levels detected using logistic model"))
     return("logistic")
   }
+  print(paste0(length(levels(by)), " levels detected using multinomial model"))
   return("multinomial")
 }
 
