@@ -50,7 +50,9 @@ scdata <- R6::R6Class("scdata",
         print("cells present in counts, but not infos")
         print(setdiff(id_counts, id_features))
       }
-      r_features <- which(id_features %in% common_cells & !duplicated(id_features))
+      r_features <- which(
+        id_features %in% common_cells & !duplicated(id_features)
+      )
       r_counts <- which(id_counts %in% common_cells & !duplicated(id_counts))
       return(list(features = r_features, counts = r_counts))
     },
@@ -244,7 +246,7 @@ scdata <- R6::R6Class("scdata",
       if (is.null(b_cells)){
         b_cells <- T
       }
-      if(is.null(cells) | length(cells) > 1){
+      if (is.null(cells) | length(cells) > 1){
         return(
           scdata$new(
             infos = self$getfeaturesw(
@@ -435,7 +437,7 @@ load_data_salmon <- function(
   tximport_obj = "",
   ...) {
 
-  if(missing(tximport_obj) |
+  if (missing(tximport_obj) |
     (!missing(tximport_obj) &
     !file.exists(paste0(tximport_obj, ".Rdata")))) {
 
