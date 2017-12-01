@@ -104,7 +104,9 @@ get_data <- function(scd, b_cells, features, genes) {
     } else {
       data <- cbind(
         data,
-        scd$select(b_cells = b_cells)$getcounts
+        scd$select(b_cells = b_cells)$getcounts[,
+          which(scd$getgenes %in% genes)
+        ]
       )
     }
   }
