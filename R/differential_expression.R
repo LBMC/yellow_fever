@@ -30,7 +30,7 @@ DEA <- function(scd, formula_null, formula_full, b_cells,
     v = v,
     folder_name = folder_name
   )
-  results_unlised <- as.data.frame(do.call(rbind, dea_test))
+  results_unlised <- as.data.frame(do.call(rbind, results))
   results_unlised$gene <- names(results)
   passed <- !(is.na(results_unlised$pval))
   results_unlised$padj <- NA
@@ -96,6 +96,7 @@ lapply_parallel <- function(genes_list, counts, features,
 DEA_gene <- function(data, formula_null, formula_full, gene_name,
     family = "nbinom1", link = "log",
     v, folder_name) {
+  print(summary(data))
   models_result <- DEA_fit(
     data = data,
     formula_null = formula_null,
@@ -290,10 +291,11 @@ formula_to_features <- function(scd, formula_full){
 
 #' @importFrom MASS glm.nb
 #' @importFrom pscl zeroinfl
+#' @importFROM pscl vuong
 zi_test <- function(data, formula_full, gene_name,
     family = "nbinom1", link = "log", threshold = 0.05, v = F){
   if(max(data$y) == 0){
-    exit(paste0("error : ", gene_name, " contains only zeros"))
+    stop(paste0("error : ", gene_name, " contains only zeros"))
   }
   m1 <- ziNB_fit(
     data = data,
