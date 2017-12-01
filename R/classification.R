@@ -250,7 +250,11 @@ multinomial_spls_classification <- function(
       lambda.ridge = fit$lambda.ridge.opt,
       lambda.l1 = fit$lambda.l1.opt,
       ncomp = fit$ncomp.opt,
-      Xtest = data
+      Xtest = data,
+      svd.decompose = FALSE,
+      X.center = TRUE,
+      X.scale = TRUE,
+      weighted.center = TRUE
     )
     model$groups_names <- fit$group_by$names
     model$groups <- model$groups_names[model$hatYtest + 1]
@@ -447,7 +451,11 @@ logistic_spls_classification <- function(
       lambda.ridge = fit$lambda.ridge.opt,
       lambda.l1 = fit$lambda.l1.opt,
       ncomp = fit$ncomp.opt,
-      Xtest = data
+      Xtest = data,
+      svd.decompose = FALSE,
+      X.center = TRUE,
+      X.scale = TRUE,
+      weighted.center = TRUE
     )
     model$groups_names <- fit$group_by$names
     model$groups <- model$groups_names[model$hatYtest + 1]
