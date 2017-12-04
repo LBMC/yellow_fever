@@ -112,10 +112,10 @@ DEA_gene <- function(data, formula_null, formula_full, gene_name,
     v = v,
     folder_name = folder_name
   )
-  print(LRT_result$LRT)
   DEA_result <- DEA_format(
     LRT_result = LRT_result,
-    models_result = models_result)
+    models_result = models_result,
+    v = v)
   return(DEA_result)
 }
 
@@ -186,7 +186,15 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
         print(paste0("error: DEA_LRT for gene ", gene_name))
         print(e)
       }
-      return(NA)
+      return(
+        data.frame(
+          NoPar = c(NA, NA),
+          LogLik = c(NA, NA),
+          Df = c(NA, NA),
+          Deviance = c(NA, NA),
+          "Pr(>Chi)" = c(NA, NA)
+        )
+      )
     })
     if (!missing(folder_name)) {
       save(
@@ -198,38 +206,82 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
   return(list(LRT = LRT_result, file = tmp_file))
 }
 
-DEA_format <- function(LRT_result, models_result) {
+DEA_format <- function(LRT_result, models_result, v) {
   results <- tryCatch({
-    data.frame(
+    LRT <- data.frame(
+      null_loglik = LRT_result[["LRT"]][["LogLik"]][1],
+      full_loglik = LRT_result[["LRT"]][["LogLik"]][2],
+      null_Deviance = LRT_result[["LRT"]][["Deviance"]][1],
+      full_Deviance = LRT_result[["LRT"]][["Deviance"]][2],
+      null_df = LRT_result[["LRT"]][["Df"]][1],
+      full_df = LRT_result[["LRT"]][["Df"]][2],
+      null_npar = LRT_result[["LRT"]][["NoPar"]][1],
+      full_npar = LRT_result[["LRT"]][["NoPar"]][2],
+      pvalue = LRT_result[["LRT"]][["Pr(>Chi)"]][2]
+    )
+    model_null <- DEA_format_ziNB(
+      models_result[["formula_null"]], models_result[["is_zi"]]
+    )
+    names(model_null) <- paste0(
+      "null_",
+      names(model_null)
+    )
+    model_full <- DEA_format_ziNB(
+      models_result[["formula_full"]], models_result[["is_zi"]]
+    )
+    names(model_full) <- paste0(
+      "full_",
+      names(model_full)
+    )
+    c(model_null, model_full, unlist(LRT))
+  }, error = function(e){
+    if (v) {
+      print("error: DEA_format")
+      print(e)
+    }
+    return(NA)
+  })
+  results <- c(
+    unlist(data.frame(
       zi = models_result[["is_zi"]],
-      pvalue = LRT_result[["LRT"]][["Pr(>Chisq)"]][2],
-      null_loglik = models_result[["formula_null"]]$loglik,
-      null_df = models_result[["formula_null"]]$npar,
-      full_loglik = models_result[["formula_full"]]$loglik,
-      full_df = models_result[["formula_full"]]$npar,
       LRT_file = LRT_result[["file"]],
       models_file = models_result[["file"]]
-    )
-  }, error = function(e){
-    data.frame(
-      zi = models_result[["is_zi"]],
-      pvalue = NA,
-      null_loglik = NA,
-      null_df = NA,
-      full_loglik = NA,
-      full_df = NA,
-      LRT_file = NA,
-      models_file = NA
-    )
-  })
-  if (results$zi & !is.na(results$pvalue)) {
-    results$null_zi <- models_result[["formula_null"]]$pz
-    results$full_zi <- models_result[["formula_full"]]$pz
+    )),
+    results
+  )
+  return(results)
+}
+
+DEA_format_ziNB <- function(model, zi) {
+  if (length(model$residuals) == 1) {
+    result <- unlist(data.frame(
+      zi = ifelse(zi, model$pz, NA),
+      alpha = model$alpha
+    ))
+    if ("b" %in% names(model)) {
+      b_estimate <- as.data.frame(model[["b"]])
+      b_estimate <- unlist(t(model[["b"]]))
+      names(b_estimate) <- paste0(
+        "fixed_", names(model$b))
+      result <- c(
+        result,
+        b_estimate
+      )
+    }
+    if ("S" %in% names(model)) {
+      S_estimate <- as.data.frame(model[["S"]])
+      S_estimate <- unlist(S_estimate)
+      names(S_estimate) <- paste0(
+        "mixed_", names(model$S))
+      result <- c(
+        result,
+        S_estimate
+      )
+    }
   } else {
-    results$null_zi <- NA
-    results$full_zi <- NA
+    result <- NA
   }
-  return(as.vector(results))
+  return(result)
 }
 
 #' importFrom glmmADMB glmmadmb
@@ -308,7 +360,9 @@ zi_test <- function(data, formula_full, gene_name,
         control = glm.control(maxit = 10000)
       )
     }, error = function(e){
-      print("zi test: error in NB model")
+      if (v) {
+        print("zi test: error in NB model")
+      }
       return(list(residuals = NA))
     })
   m2 <- tryCatch({
@@ -318,7 +372,9 @@ zi_test <- function(data, formula_full, gene_name,
         control = zeroinfl.control(maxit = 10000)
       )
     }, error = function(e){
-      print("zi test: error in ziNB model")
+      if (v) {
+        print("zi test: error in ziNB model")
+      }
       return(list(residuals = NA))
     })
   if (is.na(m1$residuals[1]) & is.na(m2$residuals[1])) {
@@ -373,24 +429,36 @@ vuong_test <- function (m1, m2, digits = getOption("digits"), v = F){
     m2y <- m2$y
     m1n <- length(m1y)
     m2n <- length(m2y)
-    if (m1n == 0 | m2n == 0)
+    if (m1n == 0 | m2n == 0){
+      if (v) {
         stop("Could not extract dependent variables from models.")
-    if (m1n != m2n)
+      }
+    }
+    if (m1n != m2n) {
+      if (v) {
         stop(paste("Models appear to have different numbers of observations.\n",
             "Model 1 has ", m1n, " observations.\n", "Model 2 has ",
             m2n, " observations.\n", sep = ""))
+        }
+    }
     if (any(m1y != m2y)) {
+      if (v){
         stop(paste("Models appear to have different values on dependent variables.\n"))
+      }
     }
     p1 <- predprob(m1)
     p2 <- predprob(m2)
     if (!all(colnames(p1) == colnames(p2))) {
+      if (v){
         stop("Models appear to have different values on dependent variables.\n")
+      }
     }
     whichCol <- match(m1y, colnames(p1))
     whichCol2 <- match(m2y, colnames(p2))
     if (!all(whichCol == whichCol2)) {
+      if (v){
         stop("Models appear to have different values on dependent variables.\n")
+      }
     }
     m1p <- rep(NA, m1n)
     m2p <- rep(NA, m2n)
@@ -409,8 +477,10 @@ vuong_test <- function (m1, m2, digits = getOption("digits"), v = F){
     bad <- bad1 | bad2 | bad3
     neff <- sum(!bad)
     if (any(bad)) {
+      if (v){
         cat("NA or numerical zeros or ones encountered in fitted probabilities\n")
         cat(paste("dropping these", sum(bad), "cases, but proceed with caution\n"))
+      }
     }
     aic.factor <- (k1 - k2)/neff
     bic.factor <- (k1 - k2)/(2 * neff) * log(neff)
