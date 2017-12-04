@@ -96,7 +96,6 @@ lapply_parallel <- function(genes_list, counts, features,
 DEA_gene <- function(data, formula_null, formula_full, gene_name,
     family = "nbinom1", link = "log",
     v, folder_name) {
-  print(summary(data))
   models_result <- DEA_fit(
     data = data,
     formula_null = formula_null,
@@ -113,6 +112,7 @@ DEA_gene <- function(data, formula_null, formula_full, gene_name,
     v = v,
     folder_name = folder_name
   )
+  print(LRT_result$LRT)
   DEA_result <- DEA_format(
     LRT_result = LRT_result,
     models_result = models_result)
@@ -165,7 +165,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
   return(models_result)
 }
 
-#' importFrom lmtest lrtest
+#' importFrom glmmADMB glmmadmb
 DEA_LRT <- function(models_result, gene_name, v, folder_name) {
   tmp_file <- ""
   LRT_result <- NA
@@ -177,9 +177,9 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
     load(tmp_file)
   } else {
     LRT_result <- tryCatch({
-      lmtest::lrtest(
-        models_result[["formula_full"]],
-        models_result[["formula_null"]]
+      anova(
+        models_result[["formula_null"]],
+        models_result[["formula_full"]]
       )
     }, error = function(e){
       if (v) {
@@ -244,6 +244,11 @@ ziNB_fit <- function(data, formula, gene_name,
     }
   }
   model <- tryCatch({
+    glmmADMB::admbControl(
+      impSamp = 1000,
+      maxfn = 10000,
+      imaxf = 10000,
+    )
     glmmADMB::glmmadmb(
       as.formula(formula),
       data = data,
@@ -293,29 +298,34 @@ formula_to_features <- function(scd, formula_full){
 #' @importFrom pscl zeroinfl
 zi_test <- function(data, formula_full, gene_name,
     family = "nbinom1", link = "log", threshold = 0.05, v = F){
+  print(paste0("zi test: zi : ", sum(data$y == 0) / nrow(data)))
   if (max(data$y) == 0){
     stop(paste0("error : ", gene_name, " contains only zeros"))
   }
   m1 <- tryCatch({
       glm.nb(y ~ 1,
-             data = data)
+        data = data,
+        control = glm.control(maxit = 10000)
+      )
     }, error = function(e){
-      print("error in NB model")
+      print("zi test: error in NB model")
       return(list(residuals = NA))
     })
   m2 <- tryCatch({
       zeroinfl(y ~ 1,
-               data = data,
-               dist = "negbin")
+        data = data,
+        dist = "negbin",
+        control = zeroinfl.control(maxit = 10000)
+      )
     }, error = function(e){
-      print("error in ziNB model")
+      print("zi test: error in ziNB model")
       return(list(residuals = NA))
     })
   if (is.na(m1$residuals[1]) & is.na(m2$residuals[1])) {
     if(sum(data$y == 0) < 3){
       if (v) {
         print(paste0(
-          "no zeroinfl detected with error for",
+          "zi test: no zeroinfl detected with error for",
           gene_name, " (#y == 0 < 3)"
         ))
       }
@@ -323,7 +333,7 @@ zi_test <- function(data, formula_full, gene_name,
     } else {
       if (v) {
         print(paste0(
-          "zeroinfl detected with error for",
+          "zi test: zeroinfl detected with error for",
           gene_name, " (#y == 0 >= 3)"
         ))
       }
@@ -332,14 +342,14 @@ zi_test <- function(data, formula_full, gene_name,
   }
   if (is.na(m1$residuals[1])) {
     if (v) {
-      print(paste0("zeroinfl detected with error for ",
+      print(paste0("zi test: zeroinfl detected with error for ",
         gene_name, " (no NB fit)"))
     }
     return(TRUE)
   }
   if (is.na(m2$residuals[1])) {
     if (v) {
-      print(paste0("no zeroinfl detected with error for ",
+      print(paste0("zi test: no zeroinfl detected with error for ",
         gene_name, " (no ziNB fit)"))
     }
     return(FALSE)
@@ -347,17 +357,17 @@ zi_test <- function(data, formula_full, gene_name,
   test <- vuong_test(m1 = m1, m2 = m2, v = T)
   if (test < threshold){
     if (v) {
-      print(paste0("zeroinfl detected for ", gene_name, " (vuong test)"))
+      print(paste0("zi test: zeroinfl detected for ", gene_name, " (vuong test)"))
     }
     return(TRUE)
   }
   if (v) {
-    print(paste0("no zeroinfl detected for ", gene_name, " (vuong test)"))
+    print(paste0("zi test: no zeroinfl detected for ", gene_name, " (vuong test)"))
   }
   return(FALSE)
 }
 
-#' importFrom psclpredprob
+#' importFrom pscl predprob
 vuong_test <- function (m1, m2, digits = getOption("digits"), v = F){
     m1y <- m1$y
     m2y <- m2$y
