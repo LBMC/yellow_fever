@@ -10,10 +10,9 @@
 #' classif <- classification(scd, 500000)
 #' }
 #' @export DEA
-DEA <- function(scd, formula_null, formula_full, b_cells,
-  cpus = 4, v = F, folder_name) {
-  expressed <- scd$getgenes[colSums(scd$getcounts) > 0]
-  scd_DEA <- scd$select(genes = expressed)
+DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
+    cpus = 4, v = F, folder_name) {
+  scd_DEA <- scd$select(genes = expressed(scd, zi_threshold = zi_threshold))
   genes_list <- as.list(scd_DEA$select(b_cells = b_cells)$getgenes)
   names(genes_list) <- scd_DEA$select(b_cells = b_cells)$getgenes
   features <- formula_to_features(
