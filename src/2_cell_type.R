@@ -26,6 +26,17 @@ for (marker_type in colnames(genes_PLS)) {
     }
   }
 }
+
+# build cell_type factor
+phenotype_surface_marker <- scd$getfeature("phenotype_surface_marker")
+phenotype_surface_marker[phenotype_surface_marker == ""] <- NA
+levels(phenotype_surface_marker) <- c("", "MEM", "MEM", "EFF", "EFF", "EFF",
+  "MEM", "Naive", "EFF", "EFF", "EFF", "MEM", "MEM")
+phenotype_surface_marker <- as.factor(as.vector(phenotype_surface_marker))
+scd$setfeature("surface_cell_type", phenotype_surface_marker)
+b_cells <- scd$getfeature("QC_good") %in% T
+
+
 )
 
 
