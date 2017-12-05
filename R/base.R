@@ -316,3 +316,17 @@ TPM <- function(counts, len) {
     return(TPM_matrix(counts, len))
   }
 }
+
+#' return genes expressed with the following criteria
+#' @param scd scdata object
+#' @param zi_threshold persentage of cells == 0
+#' @return return list of genes names
+#' @examples
+#' \dontrun{
+#' expressed_genes = expressed(scd, 0.90)
+#' }
+#' @export expressed
+expressed <- function(scd, zi_threshold = 0.90){
+  zi_rate <- colSums(scd$getcounts == 0) / scd$getncells
+  return(scd$getgenes[zi_rate <= zi_threshold])
+}
