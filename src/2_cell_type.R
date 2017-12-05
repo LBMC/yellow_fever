@@ -56,6 +56,16 @@ save(
 cell_type_groups <- rep(NA, scd$getncells)
 cell_type_groups[b_cells] <- cell_type_classification$groups
 scd$setfeature("surface_cell_type", cell_type_groups)
+
+save(scd, file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+scd_norm <- scd
+load("results/QC/cells_counts_QC.Rdata")
+scd <- scdata$new(
+  infos = scd_norm$getfeatures,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
+
 )
 
 
