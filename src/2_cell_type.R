@@ -37,6 +37,25 @@ scd$setfeature("surface_cell_type", phenotype_surface_marker)
 b_cells <- scd$getfeature("QC_good") %in% T
 
 
+################################################################################
+# classification on surface_marker
+
+surface_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "surface_cell_type",
+  features = surface_marker,
+  genes = genes_marker,
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/surface_cell_types"
+)
+save(
+  surface_cell_type_classification,
+  file = "results/cell_type/surface_cell_types_all_smplscv.Rdata"
+)
+cell_type_groups <- rep(NA, scd$getncells)
+cell_type_groups[b_cells] <- cell_type_classification$groups
+scd$setfeature("surface_cell_type", cell_type_groups)
 )
 
 
