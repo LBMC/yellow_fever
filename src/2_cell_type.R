@@ -1,12 +1,31 @@
 setwd("~/projects/yellow_fever/")
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/QC/counts_QC.Rdata")
-b_cells <- scd$getfeature("QC_good") %in% T &
-  scd$getfeature("clonality") %in% c(47, 152, 6, 162, 73, 177)
-scd_test <- scdata$new(
-  infos = scd$select(b_cells = b_cells)$getfeatures,
-  counts = scd$select(b_cells = b_cells)$getcounts[ ,2100:2120],
-  v = T
+load("results/QC/CB_counts_QC.Rdata")
+system("mkdir -p results/cell_type")
+
+# csv table to select feature to classify the cell-type one
+feature_to_select = c("tcr_found", "norm_fsc", "all_events_fsc_h_mean",
+  "norm_ssc", "all_events_ssc_h_mean", "cd57", "fas", "ptprc_cd45ra", "cd4",
+  "il7ra", "dextramer", "cd3e", "cd8a", "ccr7", "lineage_neg", "itga6.cd49f",
+  "pdcd1", "cd27", "cfse", "quality", "phenotype_surface_marker")
+to_select <- data.frame(features = c(feature_to_select, rep(NA, scd$getngenes - length(feature_to_select))),
+  genes = scd$getgenes)
+write.csv(to_select, file = "results/cell_type/feature_to_select.csv")
+
+# load selection off genes and makers to classify on
+genes_PLS <- read.csv("data/genes_PLS.csv")
+surface_marker <- c()
+genes_marker <- c()
+for (marker_type in colnames(genes_PLS)) {
+  for (marker in genes_PLS[[marker_type]]) {
+    if (marker %in% scd$getgenes) {
+      genes_marker <- c(genes_marker, marker)
+    }
+    if (marker %in% colnames(scd$getfeatures)) {
+      surface_marker <- c(surface_marker, marker)
+    }
+  }
+}
 )
 
 
