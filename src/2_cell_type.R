@@ -66,7 +66,59 @@ scd <- scdata$new(
 )
 save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 
+load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+ggplot(data = data.frame(
+  ccr7 = scd_norm$select(b_cells = b_cells)$getfeature("ccr7"),
+  il7ra = scd_norm$select(b_cells = b_cells)$getfeature("il7ra"),
+  cell_type = scd_norm$select(b_cells = b_cells)$getfeature("surface_cell_type")
+), aes(x = ccr7, y = il7ra, color = cell_type)) +
+  geom_point() +
+  theme_bw()
+ggsave(file = "results/cell_type/counts_QC_surface_cell_type.pdf")
+
+
+system("mkdir -p results/cell_type/pca")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells),
+  color = "surface_cell_type", color_name = "cell_type",
+  tmp_file = "results/tmp/pca_CB_counts_QC_good_tmp.Rdata",
+  main = "all day"
 )
+ggsave(file = "results/cell_type/pca/pca_counts_QC_surface_cell_type.pdf")
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pca_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "surface_cell_type", color_name = "cell_type",
+    tmp_file = paste0("results/tmp/pca_CB_counts_", day, "QC_good_tmp.Rdata"),
+    main = day
+  )
+  ggsave(file = paste0(
+    "results/cell_type/pca/pca_counts_QC_surface_cell_type_", day, ".pdf"
+  ))
+}
+
+system("mkdir -p results/cell_type/pcmf")
+scRNAtools::pCMF_plot(
+  scd$select(b_cells = b_cells),
+  color = "surface_cell_type", color_name = "cell_type",
+  tmp_file = "results/tmp/pCMF_CB_counts_QC_good_tmp.Rdata",
+  main = "all day",,
+  ncores = 11
+)
+ggsave(file = "results/cell_type/pcmf/pcmf_counts_QC_surface_cell_type.pdf")
+for (day in c("D15", "D136", "D593")) {
+  scRNAtools::pCMF_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "surface_cell_type", color_name = "cell_type",
+    tmp_file = paste0("results/tmp/pCMF_CB_counts_", day, "QC_good_tmp.Rdata"),
+    main = day,
+    ncores = 11
+  )
+  ggsave(file = paste0(
+    "results/cell_type/pcmf/pcmf_counts_QC_surface_cell_type_", day, ".pdf"
+  ))
+}
+
 
 
 
