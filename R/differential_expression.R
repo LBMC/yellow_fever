@@ -36,6 +36,99 @@ DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
   return(results_unlisted)
 }
 
+#' helper function for DEA for scRNASeq data
+#'
+#' @param paraload_file paraload table file
+#' @param scd object to analyses
+#' @param job_DEA_number number of DEA per paraload jobs
+#' @return write a paraload ready table with the parameters (as line) on which
+#' to run every DEA_paraload() commands
+#' @examples
+#' \dontrun{
+#' DEA_paraload_parameters('results/cell_type/DEA/paraload_file.txt')
+#' }
+#' @export DEA_paraload_parameters
+DEA_paraload_parameters <- function(
+  paraload_file,
+  scd,
+  job_DEA_number = 5,
+  formula_null, formula_full, b_cells, zi_threshold = 0.9, cpus, folder_name) {
+  job_number <- scd$getngenes / job_DEA_number
+  print(job_number)
+  scd_DEA <- scd$select(b_cells = b_cells)
+  scd_DEA <- scd_DEA$select(genes = expressed(scd_DEA, zi_threshold))
+  save(scd_DEA, file = paste0(paraload_file, ".Rdata"))
+  parameters <- data.frame(
+    analysis = rep("DEA", job_number),
+    job_number = rep(job_DEA_number, job_number),
+    range_from = seq(
+      from = 0,
+      to = scd$getngenes - job_DEA_number,
+      by = job_DEA_number) + 1,
+    range_to = seq(
+      from = job_DEA_number,
+      to = scd$getngenes,
+      by = job_DEA_number),
+    formula_null = gsub(" ", "", formula_null),
+    formula_full = gsub(" ", "", formula_full),
+    folder_name = folder_name,
+    scd_path = paste0(paraload_file, ".Rdata"),
+    cpus = cpus
+  )
+  utils::write.table(
+    parameters,
+    file = paraload_file,
+    append = FALSE,
+    row.names = FALSE,
+    col.names = FALSE,
+    quote = FALSE
+  )
+}
+
+#' helper function to run DEA in a script
+#'
+#' @param scd_file RData file with an scTools data object 'data' saved in it
+#' @param Args agument passsed when used within a script
+#' @return write a paraload ready table with the parameters (as line) on which
+#' to run every DEA() commands
+#' @examples
+#' \dontrun{
+#' DEA_pbs()
+#' }
+#' @export DEA_pbs
+DEA_pbs <- function(Args = commandArgs()) {
+  print(getwd())
+  if (length(Args) > 4) {
+    args <- utils::read.table(Args[6])
+    job_number <- as.numeric(args[2])
+    range_from <- args[3]
+    range_to <- args[4]
+    formula_null <- args[5]
+    formula_full <- args[6]
+    folder_name <- args[7]
+    scd_path <- args[8]
+    print(date())
+    load(scd_path)
+    genes <- (scd$getgenes)[range_from, range_to]
+    DEA <- DEA(
+      scd = scd$select(genes = genes),
+      formula_null = formula_null,
+      formula_full = formula_full,
+      b_cells = rep(TRUE, scd$getncells),
+      cpus = cpus,
+      v = T,
+      folder_name = folder_name
+    )
+  }
+  utils::write.table(
+    "OK",
+    file = Args[7],
+    append = F, row.names = F, col.names = F, quote = F
+  )
+  print("DEA done for genes")
+  print(genes)
+}
+
 unlist_results <- function(results){
   results_unlisted <- as.data.frame(do.call(rbind, results))
   results_unlisted$gene <- names(results)
