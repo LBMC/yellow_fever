@@ -11,9 +11,9 @@
 #' @export ERCC
 ERCC <- function(scd, minus = FALSE) {
   if (minus){
-    return(scd$getgenes[!grepl("ERCC\\.", scd$getgenes)])
+    return(scd$getgenes[!grepl("ERCC.*", scd$getgenes, perl = TRUE)])
   }
-  return(scd$getgenes[grepl("ERCC\\.", scd$getgenes)])
+  return(scd$getgenes[grepl("ERCC.*", scd$getgenes, perl = TRUE)])
 }
 
 get_files <- function(path, regexp) {
@@ -327,6 +327,6 @@ TPM <- function(counts, len) {
 #' }
 #' @export expressed
 expressed <- function(scd, zi_threshold = 0.90){
-  zi_rate <- colSums(scd$getcounts == 0) / scd$getncells
+  zi_rate <- colSums(round(scd$getcounts) == 0) / scd$getncells
   return(scd$getgenes[zi_rate <= zi_threshold])
 }
