@@ -12,16 +12,19 @@
 #' @export DEA
 DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
     cpus = 4, v = F, folder_name) {
-  scd_DEA <- scd$select(genes = expressed(scd, zi_threshold = zi_threshold))
-  genes_list <- as.list(scd_DEA$select(b_cells = b_cells)$getgenes)
-  names(genes_list) <- scd_DEA$select(b_cells = b_cells)$getgenes
+  scd_DEA <- scd$select(b_cells = b_cells)
+  scd_DEA <- scd_DEA$select(
+    genes = expressed(scd = scd_DEA, zi_threshold = zi_threshold)
+  )
+  genes_list <- as.list(scd_DEA$getgenes)
+  names(genes_list) <- scd_DEA$getgenes
   features <- formula_to_features(
-    scd = scd_DEA$select(b_cells = b_cells),
+    scd = scd_DEA,
     formula_full = formula_full
   )
   results <- lapply_parallel(
     genes_list = genes_list,
-    counts = scd$select(b_cells = b_cells)$getcounts,
+    counts = scd_DEA$getcounts,
     features = features,
     formula_null = formula_null,
     formula_full = formula_full,
@@ -29,12 +32,24 @@ DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
     v = v,
     folder_name = folder_name
   )
-  results_unlised <- as.data.frame(do.call(rbind, results))
-  results_unlised$gene <- names(results)
-  passed <- !(is.na(results_unlised$pval))
-  results_unlised$padj <- NA
-  results_unlised$padj[passed] <- stats::p.adjust(results_unlised$pval[passed])
-  return(results_unlised)
+  results_unlisted <- unlist_results(results)
+  return(results_unlisted)
+}
+
+unlist_results <- function(results){
+  results_unlisted <- as.data.frame(do.call(rbind, results))
+  results_unlisted$gene <- names(results)
+  passed <- !is.na(results_unlisted$pval) & results_unlisted$pval != ""
+  results_unlisted[
+    !passed, -c(1:3, ncol(results_unlisted))
+    ] <- NA
+  results_unlisted$pvalue <- as.vector(results_unlisted$pvalue)
+  results_unlisted$padj <- NA
+  results_unlisted$padj[passed] <- stats::p.adjust(
+    results_unlisted$pvalue[passed],
+    method = "BH"
+  )
+  return(results_unlisted)
 }
 
 #' @importFrom parallel mclapply
@@ -191,7 +206,8 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
           LogLik = c(NA, NA),
           Df = c(NA, NA),
           Deviance = c(NA, NA),
-          "Pr(>Chi)" = c(NA, NA)
+          "Pr(>Chi)" = c(NA, NA),
+          stringsAsFactors = FALSE
         )
       )
     })
@@ -201,6 +217,11 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
         file = tmp_file
       )
     }
+  }
+  if (v) {
+    print(paste0(
+      "LRT : ", LRT_result[["Pr(>Chi)"]][2], " (", gene_name, ")"
+    ))
   }
   return(list(LRT = LRT_result, file = tmp_file))
 }
@@ -216,7 +237,8 @@ DEA_format <- function(LRT_result, models_result, v) {
       full_df = LRT_result[["LRT"]][["Df"]][2],
       null_npar = LRT_result[["LRT"]][["NoPar"]][1],
       full_npar = LRT_result[["LRT"]][["NoPar"]][2],
-      pvalue = LRT_result[["LRT"]][["Pr(>Chi)"]][2]
+      pvalue = LRT_result[["LRT"]][["Pr(>Chi)"]][2],
+      stringsAsFactors = FALSE
     )
     model_null <- DEA_format_ziNB(
       models_result[["formula_null"]], models_result[["is_zi"]]
@@ -242,9 +264,10 @@ DEA_format <- function(LRT_result, models_result, v) {
   })
   results <- c(
     unlist(data.frame(
-      zi = models_result[["is_zi"]],
-      LRT_file = LRT_result[["file"]],
-      models_file = models_result[["file"]]
+      zi = as.vector(models_result[["is_zi"]]),
+      LRT_file = as.vector(LRT_result[["file"]]),
+      models_file = as.vector(models_result[["file"]]),
+      stringsAsFactors = FALSE
     )),
     results
   )
@@ -252,34 +275,39 @@ DEA_format <- function(LRT_result, models_result, v) {
 }
 
 DEA_format_ziNB <- function(model, zi) {
-  if (length(model$residuals) == 1) {
-    result <- unlist(data.frame(
+  result <- tryCatch({
+    unlist(data.frame(
       zi = ifelse(zi, model$pz, NA),
       alpha = model$alpha
     ))
+  }, error = function(e){
+    return(NA)
+  })
+  results_b <- tryCatch({
     if ("b" %in% names(model)) {
       b_estimate <- as.data.frame(model[["b"]])
       b_estimate <- unlist(t(model[["b"]]))
       names(b_estimate) <- paste0(
         "fixed_", names(model$b))
-      result <- c(
-        result,
-        b_estimate
-      )
+      return(b_estimate)
     }
+    return(unlist(data.frame(fixed = NA)))
+  }, error = function(e){
+    return(NA)
+  })
+  results_S <- tryCatch({
     if ("S" %in% names(model)) {
       S_estimate <- as.data.frame(model[["S"]])
       S_estimate <- unlist(S_estimate)
       names(S_estimate) <- paste0(
         "mixed_", names(model$S))
-      result <- c(
-        result,
-        S_estimate
-      )
+      return(S_estimate)
     }
-  } else {
-    result <- NA
-  }
+    return(unlist(data.frame(mixed = NA)))
+  }, error = function(e){
+    return(NA)
+  })
+  result <- c(result, results_b, results_S)
   return(result)
 }
 
@@ -349,7 +377,11 @@ formula_to_features <- function(scd, formula_full){
 #' @importFrom pscl zeroinfl
 zi_test <- function(data, formula_full, gene_name,
     family = "nbinom1", link = "log", threshold = 0.05, v = F){
-  print(paste0("zi test: zi : ", sum(data$y == 0) / nrow(data)))
+  if (v) {
+    print(paste0(
+      "zi test: zi : ", sum(data$y == 0) / length(data$y), " for ", gene_name
+    ))
+  }
   if (max(data$y) == 0){
     stop(paste0("error : ", gene_name, " contains only zeros"))
   }
