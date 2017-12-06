@@ -18,6 +18,9 @@ bcd <- scRNAtools::load_data(
 save(bcd, file = paste0(results_folder, "P8164_Bulk_raw_counts.Rdata"))
 load(paste0(results_folder, "P8164_Bulk_raw_counts.Rdata"))
 
+################################################################################
+# analysis with DESeq2
+
 library(DESeq2)
 
 b_cells <- bcd$getfeature("cell_number") %in% 20 &
@@ -28,12 +31,27 @@ countData <- t(round(
       genes = ERCC(bcd, minus = T))$getcounts))
 colData <- bcd$select(b_cells = b_cells)$getfeatures
 
+head(colData)
+
 dds <- DESeqDataSetFromMatrix(
-  countData = countData,
+  countData = countData + 1,
   colData = colData,
   design = ~ clonality)
 dds <- dds[ rowSums(counts(dds)) > 1, ]
-dds <- DESeq(dds, test="LRT", reduced=~1)
+geoMean <- apply(
+  counts(dds),
+  1,
+  FUN = function(x){
+    if(all(x == 0)) {
+      0
+    } else {
+      exp(mean(log(x[x !=0 ])))
+    }
+  }
+)
+dds <- estimateSizeFactors(dds, geoMean = geoMean)
+dds <- estimateDispersions(dds, fitType = "local")
+dds <- nbinomLRT(dds, reduced = ~1)
 res <- results(dds)
 
 save(res, file = paste0(results_folder, "P8164_DEA.Rdata"))
@@ -54,7 +72,7 @@ DE_genes <- DE_genes[!(DE_genes %in% genes_to_excludes)]
 
 devtools::load_all("../scRNAtools/", reset = T)
 pca_plot(bcd$select(b_cells = b_cells, genes = DE_genes), color="clonality",
-  color_name = "clonality")
+  color_name = "clonality", tmp_file = "results/tmp_bulk_pca.Rdata")
 ggsave(
   paste0(results_folder, "pca_DE_genes.pdf"),
   width = 20, height = 15, units = "cm", dpi = 1200
@@ -65,6 +83,17 @@ ggsave(
   paste0(results_folder, "bca_DE_genes.pdf"),
   width = 20, height = 15, units = "cm", dpi = 1200
 )
+
+# check IFNG genes because it's important
+norm_counts <- t(counts(dds, normalized = TRUE))
+ggplot(
+  data = data.frame(
+    IFNG = norm_counts[, colnames(norm_counts) %in% "IFNG"],
+    clonality = colData$clonality
+  ),
+  aes(x = clonality, y = IFNG)) +
+  geom_point() +
+  theme_bw()
 
 # 1 vs all comparison
 res_1vall <- list()
@@ -118,3 +147,32 @@ for (clone in
   }
 }
 write.table(DE_genes, file = paste0(results_folder, "/DE_genes_1vsall.csv"))
+
+
+################################################################################
+# Analysis with Edger
+
+library(edgeR)
+devtools::load_all("../scRNAtools/", reset = T)
+group <- bcd$getfeature("clonality")
+y <- DGEList(
+  counts = t(bcd$select(genes = ERCC(bcd, minus = TRUE))$getcounts),
+  group = group
+)
+y <- calcNormFactors(y)
+design <- model.matrix(~0+group)
+y <- estimateDisp(y, design)
+
+fit <- glmQLFit(y, design)
+fit$design
+qlf <- glmQLFTest(fit, coef = 1:length(levels(group)))
+qlf_padj <- p.adjust(qlf$table$PValue, method = "BH")
+sum(qlf_padj < 0.05)
+qlf$table[qlf_padj < 0.05, ]
+
+
+fit <- glmFit(y, design)
+lrt <- glmLRT(fit)
+lrt_padj <- p.adjust(lrt$table$PValue, method = "BH")
+sum(lrt_padj < 0.05)
+lrt$table[lrt_padj < 0.05, ]
