@@ -121,18 +121,126 @@ for (day in c("D15", "D136", "D593")) {
 
 
 
+################################################################################
+# DEA on surface_cell_type
 
+setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
+load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 
-system("mkdir -p results/test_DEA")
-
-dea_test <- DEA(
-  scd = scd_test,
-  formula_null = "y ~ batch",
-  formula_full = "y ~ batch + (1|clonality)",
-  b_cells = scd_test$getfeature("QC_good") %in% T,
-  cpus = 12,
-  v = T,
-  folder_name = "results/test_DEA"
+b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
+DEA_paraload_parameters(
+  paraload_file = "results/cell_type/paraload_mbatch_surface_cell_type_DEA.txt",
+  scd = scd,
+  job_DEA_number = 5,
+  formula_null = "y ~ (1|batch)",
+  formula_full = "y ~ (1|batch) + surface_cell_type",
+  b_cells = b_cells,
+  cpus = 1,
+  folder_name = "results/cell_type/mbatch_surface_cell_type_DEA"
 )
-dea_test
+table(is.na(batch_surface_cell_type_DEA$padj))
+table(batch_surface_cell_type_DEA$padj < 0.05)
+
+system("mkdir -p results/cell_type/batch_surface_cell_type_DEA")
+b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
+devtools::load_all("../scRNAtools/", reset = T)
+batch_surface_cell_type_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ batch",
+  formula_full = "y ~ batch + surface_cell_type",
+  b_cells = b_cells,
+  cpus = 10,
+  v = F,
+  folder_name = "results/cell_type/batch_surface_cell_type_DEA"
+)
+save(
+  batch_surface_cell_type_DEA,
+  file = "results/cell_type/batch_surface_cell_type_DEA.Rdata"
+)
+system("~/scripts/sms.sh \"DEA done\"")
+table(is.na(mbatch_surface_cell_type_DEA$padj))
+table(mbatch_surface_cell_type_DEA$padj < 0.05)
+
+system("mkdir -p results/cell_type/batch_day_surface_cell_type_DEA")
+b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
+devtools::load_all("../scRNAtools/", reset = T)
+batch_day_surface_cell_type_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ batch + day",
+  formula_full = "y ~ batch + day + surface_cell_type",
+  b_cells = b_cells,
+  cpus = 10,
+  v = F,
+  folder_name = "results/cell_type/batch_day_surface_cell_type_DEA"
+)
+save(
+  batch_day_surface_cell_type_DEA,
+  file = "results/cell_type/batch_day_surface_cell_type_DEA.Rdata"
+)
+system("~/scripts/sms.sh \"DEA done\"")
+table(is.na(batch_day_surface_cell_type_DEA$padj))
+table(batch_day_surface_cell_type_DEA$padj < 0.05)
+
+system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_DEA")
+b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
+devtools::load_all("../scRNAtools/", reset = T)
+mbatch_day_surface_cell_type_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ (1|batch) + day",
+  formula_full = "y ~ (1|batch) + day + surface_cell_type",
+  b_cells = b_cells,
+  cpus = 10,
+  v = F,
+  folder_name = "results/cell_type/mbatch_day_surface_cell_type_DEA"
+)
+save(
+  mbatch_day_surface_cell_type_DEA,
+  file = "results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata"
+)
+system("~/scripts/sms.sh \"DEA done\"")
+table(is.na(mbatch_day_surface_cell_type_DEA$padj))
+table(mbatch_day_surface_cell_type_DEA$padj < 0.05)
+
+system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_DEA")
+b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
+devtools::load_all("../scRNAtools/", reset = T)
+DEA_paraload_parameters(
+  paraload_file = "results/cell_type/mbatch_day_surface_cell_type_DEA/paraload.csv",
+  scd = scd,
+  job_DEA_number = 5,
+  formula_null = "y ~ (1|batch) + day",
+  formula_full = "y ~ (1|batch) + day + surface_cell_type",
+  b_cells = b_cells,
+  cpus = 1,
+  folder_name = "results/cell_type/mbatch_day_surface_cell_type_DEA"
+)
+
+# launch paraload server
+system("
+bin/paraload --server \
+--port 13469 \
+--input results/cell_type/mbatch_day_surface_cell_type_DEA/paraload.csv \
+--output results/cell_type/mbatch_day_surface_cell_type_DEA/paraload_run.txt \
+--log results/cell_type/mbatch_day_surface_cell_type_DEA/paraload.log \
+--report results/cell_type/mbatch_day_surface_cell_type_DEA/paraload_report.txt \
+--conf src/pbs/DEA/DEA.conf
+")
+
+# launch paralod clients
+system("
+bin/paraload --client --port 13469 --host pbil-deb
+")
+system("
+while [ $(ps -u modolo | grep paraload | wc -l) -gt 0 ]
+do
+stat | wc -l
+iter=$(echo 200 - $(qstat -u modolo | grep -e \"[RQ]\" | wc -l) | bc)
+for ((i = 1;i <= $iter;i += 1))
+do
+qsub src/pbs/DEA/DEA_cell_type.pbs &
+/bin/sleep 0.5
+done
+/bin/sleep 3600
+done
+")
