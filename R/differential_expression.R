@@ -100,28 +100,29 @@ DEA_pbs <- function(Args = commandArgs()) {
   print(getwd())
   if (length(Args) > 4) {
     args <- utils::read.table(Args[6])
-    job_number <- as.numeric(args[2])
-    range_from <- args[3]
-    range_to <- args[4]
-    formula_null <- args[5]
-    formula_full <- args[6]
-    folder_name <- args[7]
-    scd_path <- args[8]
+    job_number <- as.numeric(args[, 2])
+    range_from <- as.vector(args[, 3])
+    range_to <- as.vector(args[, 4])
+    formula_null <- as.vector(args[, 5])
+    formula_full <- as.vector(args[, 6])
+    folder_name <- as.vector(args[, 7])
+    scd_path <- as.vector(args[, 8])
+    cpus <- as.numeric(args[, 9])
     print(date())
     load(scd_path)
-    genes <- (scd$getgenes)[range_from, range_to]
+    genes <- scd_DEA$getgenes[range_from:range_to]
     DEA <- DEA(
-      scd = scd$select(genes = genes),
+      scd = scd_DEA$select(genes = genes),
       formula_null = formula_null,
       formula_full = formula_full,
-      b_cells = rep(TRUE, scd$getncells),
+      b_cells = rep(TRUE, scd_DEA$getncells),
       cpus = cpus,
       v = T,
       folder_name = folder_name
     )
   }
   utils::write.table(
-    "OK",
+    genes,
     file = Args[7],
     append = F, row.names = F, col.names = F, quote = F
   )
