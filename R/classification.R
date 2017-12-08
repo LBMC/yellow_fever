@@ -313,7 +313,7 @@ multinomial_pls_cv_training <- function(by, data, ncores, file){
       LambdaRange = signif(
         logspace(d1 = -2, d2 = 3, n = 21), digits = 3
       ),
-      ncompMax = min(3, max(ncol(X))),
+      ncompMax = min(3, max(ncol(data))),
       ncores = ncores
     )
     fit$group_by <- by
@@ -514,7 +514,7 @@ logistic_pls_cv_training <- function(by, data, ncores, file){
       LambdaRange = signif(
         logspace(d1 = -2, d2 = 3, n = 21), digits = 3
       ),
-      ncompMax = min(3, max(ncol(X))),
+      ncompMax = min(3, max(ncol(data))),
       ncores = ncores
     )
     fit$group_by <- by
