@@ -461,12 +461,13 @@ load(
 b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
   mbatch_day_surface_cell_type_DEA$padj < 0.05
 DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
+b_cells <- scd$getfeature("QC_good") %in% T
 
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
-  feature = "surface_cell_type",
+  feature = "phenotype_surface_cell_type",
   features = surface_marker,
-  genes = DEA_genes,
+  genes = c(genes_marker, DEA_genes),
   ncores = 10,
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_cell_types"
@@ -476,9 +477,16 @@ save(
   file = "results/cell_type/DEA_cell_types_all_splsstab.Rdata"
 )
 
+load("results/cell_type/DEA_cell_types_all_splsstab.Rdata")
+str(DEA_cell_type_classification$classification$fit_spls$fit$selected)
+
+str(DEA_cell_type_classification$classification$fit_spls$fit$selected)
 cell_type_groups <- rep(NA, scd$getncells)
-cell_type_groups[b_cells] <- cell_type_classification$groups
+cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
 scd$setfeature("DEA_cell_type", cell_type_groups)
+cell_type_pgroups <- rep(NA, scd$getncells)
+cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
+scd$setfeature("psurface_cell_type", cell_type_pgroups)
 
 save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 scd_norm <- scd
