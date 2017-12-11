@@ -88,7 +88,7 @@ save(
   file = "results/cell_type/surface_cell_types_all_smplscv.Rdata"
 )
 cell_type_groups <- rep(NA, scd$getncells)
-cell_type_groups[b_cells] <- cell_type_classification$groups
+cell_type_groups[b_cells] <- surface_ll_type_classification$groups
 scd$setfeature("surface_cell_type", cell_type_groups)
 save(scd, file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
 ```
@@ -105,10 +105,17 @@ scd <- scdata$new(
 save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 ```
 
+The sparse logistic PLS selected the following feature for the classification:
+
+```R
+surface_cell_type_classification$classification$fit_spls$fit$selected
+```
+The surface marker *ccr7* and the genes *GNLY*, *GZMH* and *LTB*.
+
 \begin{center}
   \begin{figure}
     \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_surface_cell_type.pdf}
-    \caption{PLS cell classification on *ccr7* and *il7ra* surface markers)}
+    \caption{PLS cell classification on \emph{ccr7} and \emph{il7ra} surface markers)}
   \end{figure}
 \end{center}
 
@@ -135,4 +142,102 @@ save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 
 # Differential expression analysis
 
-To improve our classification of the different cell-type
+To improve the different cell-type we performed a DEA between the groups of
+cells predicted by the first PLS classification.
+
+```R
+load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
+system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_DEA")
+b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
+devtools::load_all("../scRNAtools/", reset = T)
+mbatch_day_surface_cell_type_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ (1|batch) + day",
+  formula_full = "y ~ (1|batch) + day + surface_cell_type",
+  b_cells = b_cells,
+  cpus = 10,
+  v = F,
+  folder_name = "results/cell_type/mbatch_day_surface_cell_type_DEA"
+)
+save(
+  mbatch_day_surface_cell_type_DEA,
+  file = "results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata"
+)
+```
+
+We filtered out the genes with less than 10% of cells with a non-zero expression
+value, representing 10856 genes.
+
+```R
+table(scd$getgenes %in% expressed(scd$select(b_cells = b_cells)))
+```
+
+We were able to obtain a fit of our model on
+6847 genes, excluding 2117 additional genes.
+
+```R
+table(is.na(mbatch_day_surface_cell_type_DEA$padj))
+```
+
+Our model test differential genes expression between `surface_cell_type`
+predicted by the first PLS classification while accounting for the batch and
+day effects.
+
+We obtain 49 genes differentially expressed at a FDR level of 0.05.
+
+```R
+table(mbatch_day_surface_cell_type_DEA$padj < 0.05)
+```
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/pca/pca_CB_counts_QC_DEA_surface_cell_type.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/pcmf/pcmf_CB_counts_QC_DEA_surface_cell_type.pdf}
+    \caption{PCA and pCMF plot for cells classification on DE genes and all day)}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/cell_type/pca/pca_CB_counts_QC_DEA_surface_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/pca/pca_CB_counts_QC_DEA_surface_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/pca/pca_CB_counts_QC_DEA_surface_cell_type_D593.pdf}
+    \caption{PCA plot for cells classification on DE genes)}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/cell_type/pcmf/pcmf_CB_counts_QC_DEA_surface_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/pcmf/pcmf_CB_counts_QC_DEA_surface_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/pcmf/pcmf_CB_counts_QC_DEA_surface_cell_type_D593.pdf}
+    \caption{pCMF plot for cells classification on DE genes}
+  \end{figure}
+\end{center}
+
+heatmap of the DE genes between `surface_cell_type`.
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_surface_cell_type.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_surface_cell_type.pdf}
+    \caption{heatmap and correlation plot for cells classification on DE genes and all day)}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_surface_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_surface_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_surface_cell_type_D593.pdf}
+    \caption{heatmap for cells classification on DE genes)}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_surface_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_surface_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_surface_cell_type_D593.pdf}
+    \caption{correlation plot for cells classification on DE genes}
+  \end{figure}
+\end{center}
+
+# PLS classification based the manual annotation
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_surface_cell_type.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_DEA_cell_type.pdf}
+    \caption{PLS cell classification on \emph{ccr7} and \emph{il7ra} surface markers and PLS DEA classification)}
+  \end{figure}
+\end{center}
