@@ -16,8 +16,8 @@ DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
   scd_DEA <- scd_DEA$select(
     genes = expressed(scd = scd_DEA, zi_threshold = zi_threshold)
   )
-  genes_list <- as.list(scd_DEA$getgenes)
-  names(genes_list) <- scd_DEA$getgenes
+  genes_list <- as.list(ERCC(scd_DEA, minus = TRUE))
+  names(genes_list) <- ERCC(scd_DEA, minus = TRUE)
   features <- formula_to_features(
     scd = scd_DEA,
     formula_full = formula_full
