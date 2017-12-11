@@ -67,11 +67,15 @@ classification <- function(
   groups[!to_train_on][!rm_data$row_rm] <- as.vector(
     classification$model$groups
   )
+  pgroups <- rep(NA, scd$getncells)
+  pgroups[to_train_on][!rm_data_train$row_rm] <- classification$model$proba
+  pgroups[!to_train_on][!rm_data$row_rm] <- classification$model$proba.test
   return(list(
     classification = classification,
     scd = scd,
     feature = feature,
-    groups = groups
+    groups = groups,
+    pgroups = pgroups
   ))
 }
 
