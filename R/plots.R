@@ -1,5 +1,5 @@
 ############################## palette function ################################
-#' export day_palette
+#' @export day_palette
 day_palette <- function(day){
   day_color <- list(D15 = "#ffcc03",
                     D90 = "#1565bd",
@@ -16,7 +16,7 @@ day_palette <- function(day){
   return(days_color)
 }
 
-#' export cell_type_palette
+#' @export cell_type_palette
 cell_type_palette <- function(cell_type){
   cell_type_color <- list(EM = "#c90000",
                           TEMRA = "#f4a582",
@@ -39,7 +39,7 @@ cell_type_palette <- function(cell_type){
   return(cell_types_color)
 }
 
-#' export antigen_palette
+#' @export antigen_palette
 antigen_palette <- function(antigen){
   antigen_color <- list(A2 = "#d8b365",
                         B7 = "#5ab4ac")
@@ -52,7 +52,7 @@ antigen_palette <- function(antigen){
   return(antigens_color)
 }
 
-#' export sex_palette
+#' @export sex_palette
 sex_palette <- function(sex){
   sex_color <- list(male = "#5ab4ac",
                     female = "#ee7593")
@@ -65,7 +65,7 @@ sex_palette <- function(sex){
   return(sex_color)
 }
 
-#' export LLC_palette
+#' @export LLC_palette
 LLC_palette <- function(LLC){
   LLC_color <- list(SLC = "#8dd3c7",
                     LLC = "#bebada")
@@ -78,7 +78,7 @@ LLC_palette <- function(LLC){
   return(LLCs_color)
 }
 
-#' export cycling_palette
+#' @export cycling_palette
 cycling_palette <- function(cycling){
   cycling_color <- list(SLC = "white",
                     cycling = "black")
@@ -98,7 +98,7 @@ ggplotColours <- function(n = 6, h = c(0, 360) + 15){
   hcl(h = (seq(h[1], h[2], length = n)), c = 100, l = 65)
 }
 
-#' export clonality_palette
+#' @export clonality_palette
 clonality_palette <- function(clonality, other_set = TRUE){
   if (length(clonality) > 9 | other_set){
     clonality_color <- ggplotColours(length(clonality))
@@ -120,7 +120,7 @@ clonality_palette <- function(clonality, other_set = TRUE){
   return(clonality_color)
 }
 
-#' export clonality_EFF_palette
+#' @export clonality_EFF_palette
 clonality_EFF_palette <- function(clonality, av_EM){
   clonality <- clonality[order(av_EM)]
   av_EM <- as.numeric(as.vector(av_EM[order(av_EM)]))
@@ -797,8 +797,8 @@ pCMF_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
 }
 
 
-#' importFrom ComplexHeatmap HeatmapAnnotation
-#' importFrom circlize colorRamp2
+#' @importFrom ComplexHeatmap HeatmapAnnotation
+#' @importFrom circlize colorRamp2
 heatmap_annotation <- function(
   scd,
   features,
@@ -832,12 +832,33 @@ heatmap_annotation <- function(
   return(ha)
 }
 
-#' importFrom ComplexHeatmap Heatmap
+#' heatmap of genes
+#'
+#' @param scd is a scRNASeq data object
+#' @param features features of the scd object to display
+#' @param cells_order cells order
+#' @param genes_order genes order
+#' @param factor vector indicating which features should be dealt with like a
+#' factor
+#' @param show_legend (default: TRUE) should the legend be displayed
+#' @param title title of the heatmap
+#' @return return a heatmap object
+#' @examples
+#' \dontrun{
+#' headmap_genes(
+#'   scd = scd,
+#'   features = c("cell_type", "day"),
+#'   cells_order = order(scd$getfeature("cell_type")),
+#'   title = "cell type heatmap"
+#' )
+#' }
+#' @importFrom ComplexHeatmap Heatmap
+#' @export heatmap_genes
 heatmap_genes <- function(
   scd,
   features,
-  cells_order,
-  genes_order,
+  cells_order = order(scd$getcells),
+  genes_order = order(scd$getgenes),
   factor = rep(TRUE, length(features)),
   show_legend = TRUE,
   title = ""
@@ -869,11 +890,31 @@ heatmap_genes <- function(
     heatmap_legend_param = list(color_bar = "continuous"),
     bottom_annotation = ha
   )
-  print(hmap)
   return(hmap)
 }
 
-#' importFrom ComplexHeatmap Heatmap
+#' correlation heatmap of cells
+#'
+#' @param scd is a scRNASeq data object
+#' @param features features of the scd object to display
+#' @param cells_order cells order
+#' @param genes_order genes order
+#' @param factor vector indicating which features should be dealt with like a
+#' factor
+#' @param show_legend (default: TRUE) should the legend be displayed
+#' @param title title of the heatmap
+#' @return return a heatmap object
+#' @examples
+#' \dontrun{
+#' headmap_corr_genes(
+#'   scd = scd,
+#'   features = c("cell_type", "day"),
+#'   cells_order = order(scd$getfeature("cell_type")),
+#'   title = "cell type heatmap"
+#' )
+#' }
+#' @importFrom ComplexHeatmap Heatmap
+#' @export heatmap_corr_genes
 heatmap_corr_genes <- function(
   scd,
   features,
@@ -921,6 +962,5 @@ heatmap_corr_genes <- function(
     heatmap_legend_param = list(color_bar = "continuous"),
     bottom_annotation = ha
   )
-  print(hmap)
   return(hmap)
 }
