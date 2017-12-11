@@ -437,22 +437,18 @@ for (day in c("D15", "D136", "D593")) {
 # classification on DEA genes for surface_cell_type
 
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/QC/CB_counts_QC.Rdata")
-
-# build cell_type factor
-phenotype_surface_marker <- scd$getfeature("phenotype_surface_marker")
-phenotype_surface_marker[phenotype_surface_marker == ""] <- NA
-levels(phenotype_surface_marker) <- c("", "MEM", "MEM", "EFF", "EFF", "EFF",
-  "MEM", "Naive", "EFF", "EFF", "EFF", "MEM", "MEM")
-phenotype_surface_marker <- as.factor(as.vector(phenotype_surface_marker))
-scd$setfeature("surface_cell_type", phenotype_surface_marker)
-b_cells <- scd$getfeature("QC_good") %in% T
+load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
 
 # load selection off genes and makers to classify on
 genes_PLS <- read.csv("data/genes_PLS.csv")
 surface_marker <- c()
+genes_marker <- c()
 for (marker_type in colnames(genes_PLS)) {
   for (marker in genes_PLS[[marker_type]]) {
+    if (marker %in% scd$getgenes) {
+      genes_marker <- c(genes_marker, marker)
+    }
     if (marker %in% colnames(scd$getfeatures)) {
       surface_marker <- c(surface_marker, marker)
     }
