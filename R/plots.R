@@ -806,15 +806,15 @@ heatmap_annotation <- function(
   show_legend = TRUE,
   cells_order
 ) {
-  df <- data.frame()
+  df <- NULL
   color <- list()
-  feature_number <- 1
   continuous <- list()
+  feature_number <- 1
   for (feature in features){
     if (factor[feature_number]) {
-      df[[feature]] <- scd$getfeature(feature)
+      df[[feature]] <- as.factor(as.vector(scd$getfeature(feature)))
       fun_palette <- get(paste0(feature, "_palette"))
-      color[[features]] <- fun_palette(levels(df[[feature]]))
+      color[[feature]] <- fun_palette(levels(df[[feature]]))
     } else {
       df[[feature]] <- as.numeric(as.vector(scd$getfeature(feature)))
       color[[feature]] <- circlize::colorRamp2(
@@ -822,7 +822,9 @@ heatmap_annotation <- function(
       )
       continuous[[feature]] <- list(color_bar = "continuous")
     }
+    feature_number <- feature_number + 1
   }
+  df <- data.frame(df)
   ha <- ComplexHeatmap::HeatmapAnnotation(
     df = df[cells_order, ],
     show_legend = rep(TRUE, ncol(df)),
@@ -830,6 +832,14 @@ heatmap_annotation <- function(
     annotation_legend_param = continuous
   )
   return(ha)
+}
+
+save_classic_pdf <- function(obj, file, width = 7, height = 7){
+  if (!missing(file)) {
+    pdf(file = file, width = width, height = height)
+    print(obj)
+    dev.off()
+  }
 }
 
 #' heatmap of genes
@@ -842,6 +852,7 @@ heatmap_annotation <- function(
 #' factor
 #' @param show_legend (default: TRUE) should the legend be displayed
 #' @param title title of the heatmap
+#' @param file name of the pdf to save the heatmap
 #' @return return a heatmap object
 #' @examples
 #' \dontrun{
@@ -861,13 +872,14 @@ heatmap_genes <- function(
   genes_order = order(scd$getgenes),
   factor = rep(TRUE, length(features)),
   show_legend = TRUE,
-  title = ""
+  title = "",
+  file
 ) {
   ha <- heatmap_annotation(
     scd = scd,
     features = features,
-    factor = rep(TRUE, length(features)),
-    show_legend = TRUE,
+    factor = factor,
+    show_legend = show_legend,
     cells_order
   )
   h_data <- count_scale_and_color(scd$getcounts,
@@ -875,7 +887,7 @@ heatmap_genes <- function(
     FUN = function(x){
       x <- ascb(x, to_zero = TRUE) - ascb(mean(x), to_zero = TRUE)
     })
-  h_data$counts <- h_data_data$counts[cell_order, genes_order]
+  h_data$counts <- h_data$counts[cells_order, genes_order]
   hmap <- ComplexHeatmap::Heatmap(t(h_data$counts),
     name = "expression",
     column_title = title,
@@ -890,6 +902,7 @@ heatmap_genes <- function(
     heatmap_legend_param = list(color_bar = "continuous"),
     bottom_annotation = ha
   )
+  save_classic_pdf(hmap, file)
   return(hmap)
 }
 
@@ -898,11 +911,11 @@ heatmap_genes <- function(
 #' @param scd is a scRNASeq data object
 #' @param features features of the scd object to display
 #' @param cells_order cells order
-#' @param genes_order genes order
 #' @param factor vector indicating which features should be dealt with like a
 #' factor
 #' @param show_legend (default: TRUE) should the legend be displayed
 #' @param title title of the heatmap
+#' @param file name of the pdf to save the heatmap
 #' @return return a heatmap object
 #' @examples
 #' \dontrun{
@@ -919,36 +932,32 @@ heatmap_corr_genes <- function(
   scd,
   features,
   cells_order,
-  genes_order,
   factor = rep(TRUE, length(features)),
   show_legend = TRUE,
-  title = ""
+  title = "",
+  file
 ) {
   ha <- scRNAtools::heatmap_annotation(
     scd = scd,
     features = features,
-    factor = rep(TRUE, length(features)),
-    show_legend = TRUE,
+    factor = factor,
+    show_legend = show_legend,
     cells_order
   )
-  h_data <- ascb(scd$getcounts, to_zero = TRUE)
-  h_data <- h_data[cells_order, genes_order]
+  h_data <- scd$getcounts
+  h_data <- h_data[cells_order, ]
+  h_data <- ascb(h_data, to_zero = TRUE)
   h_data <- as.matrix(dist(h_data,
       method = "manhattan",
     diag = TRUE))
   h_data <- apply(h_data, c(1:2), function(x, x_mean, x_sd){
-      (x-x_mean ) / x_sd
+      (x - x_mean) / x_sd
     },
     x_mean = mean(as.vector(h_data)),
     x_sd = sd(as.vector(h_data)))
   diag(h_data) <- NA
   h_data <- corr_scale_and_color(h_data)
-  h_data <- count_scale_and_color(scd$getcounts,
-    quant = TRUE,
-    FUN = function(x){
-      x <- ascb(x, to_zero = TRUE) - ascb(mean(x), to_zero = TRUE)
-    })
-  hmap <- ComplexHeatmap::Heatmap(t(h_data$counts),
+  hmap <- ComplexHeatmap::Heatmap(h_data$counts,
     name = "expression",
     column_title = title,
     col = h_data$colors,
@@ -962,5 +971,6 @@ heatmap_corr_genes <- function(
     heatmap_legend_param = list(color_bar = "continuous"),
     bottom_annotation = ha
   )
+  save_classic_pdf(hmap, file)
   return(hmap)
 }
