@@ -497,17 +497,30 @@ scd <- scdata$new(
 )
 save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 
+table(scd$getfeature("surface_cell_type"))
+table(scd$getfeature("DEA_cell_type"))
+table(scd$getfeature("surface_cell_type"), scd$getfeature("DEA_cell_type"))
 
 load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
-ggplot(data = data.frame(
-  ccr7 = scd_norm$select(b_cells = b_cells)$getfeature("ccr7"),
-  il7ra = scd_norm$select(b_cells = b_cells)$getfeature("il7ra"),
-  cell_type = scd_norm$select(b_cells = b_cells)$getfeature("DEA_cell_type")
-), aes(x = ccr7, y = il7ra, color = cell_type)) +
+b_cells <- scd$getfeature("QC_good") %in% T
+data_gplot <- data.frame(
+  ccr7 = scd$select(b_cells = b_cells)$getfeature("ccr7"),
+  il7ra = scd$select(b_cells = b_cells)$getfeature("il7ra"),
+  cell_type = scd$select(b_cells = b_cells)$getfeature("DEA_cell_type")
+)
+data_gplot$ccr7 <- as.numeric(as.vector(data_gplot$ccr7))
+data_gplot$il7ra <- as.numeric(as.vector(data_gplot$il7ra))
+ggplot(data = data_gplot, aes(x = ccr7, y = il7ra, color = cell_type)) +
   geom_point() +
+  scale_fill_manual(
+      values = scRNAtools::cell_type_palette(levels(data_gplot$cell_type))
+  ) +
+  scale_color_manual(
+    values = scRNAtools::cell_type_palette(levels(data_gplot$cell_type))
+  ) +
+  theme_bw()
   theme_bw()
 ggsave(file = "results/cell_type/counts_QC_DEA_cell_type.pdf")
-
 
 system("mkdir -p results/cell_type/pca")
 scRNAtools::pca_plot(
