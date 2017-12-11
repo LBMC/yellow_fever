@@ -1,4 +1,5 @@
 ############################## palette function ################################
+#' export day_palette
 day_palette <- function(day){
   day_color <- list(D15 = "#ffcc03",
                     D90 = "#1565bd",
@@ -15,6 +16,7 @@ day_palette <- function(day){
   return(days_color)
 }
 
+#' export cell_type_palette
 cell_type_palette <- function(cell_type){
   cell_type_color <- list(EM = "#c90000",
                           TEMRA = "#f4a582",
@@ -37,6 +39,7 @@ cell_type_palette <- function(cell_type){
   return(cell_types_color)
 }
 
+#' export antigen_palette
 antigen_palette <- function(antigen){
   antigen_color <- list(A2 = "#d8b365",
                         B7 = "#5ab4ac")
@@ -49,6 +52,7 @@ antigen_palette <- function(antigen){
   return(antigens_color)
 }
 
+#' export sex_palette
 sex_palette <- function(sex){
   sex_color <- list(male = "#5ab4ac",
                     female = "#ee7593")
@@ -61,6 +65,7 @@ sex_palette <- function(sex){
   return(sex_color)
 }
 
+#' export LLC_palette
 LLC_palette <- function(LLC){
   LLC_color <- list(SLC = "#8dd3c7",
                     LLC = "#bebada")
@@ -73,6 +78,7 @@ LLC_palette <- function(LLC){
   return(LLCs_color)
 }
 
+#' export cycling_palette
 cycling_palette <- function(cycling){
   cycling_color <- list(SLC = "white",
                     cycling = "black")
@@ -92,6 +98,7 @@ ggplotColours <- function(n = 6, h = c(0, 360) + 15){
   hcl(h = (seq(h[1], h[2], length = n)), c = 100, l = 65)
 }
 
+#' export clonality_palette
 clonality_palette <- function(clonality, other_set = TRUE){
   if (length(clonality) > 9 | other_set){
     clonality_color <- ggplotColours(length(clonality))
@@ -113,6 +120,7 @@ clonality_palette <- function(clonality, other_set = TRUE){
   return(clonality_color)
 }
 
+#' export clonality_EFF_palette
 clonality_EFF_palette <- function(clonality, av_EM){
   clonality <- clonality[order(av_EM)]
   av_EM <- as.numeric(as.vector(av_EM[order(av_EM)]))
@@ -786,4 +794,133 @@ pCMF_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
   if (return_data){
     return(pCMF_out)
   }
+}
+
+
+#' importFrom ComplexHeatmap HeatmapAnnotation
+#' importFrom circlize colorRamp2
+heatmap_annotation <- function(
+  scd,
+  features,
+  factor = rep(TRUE, length(features)),
+  show_legend = TRUE,
+  cells_order
+) {
+  df <- data.frame()
+  color <- list()
+  feature_number <- 1
+  continuous <- list()
+  for (feature in features){
+    if (factor[feature_number]) {
+      df[[feature]] <- scd$getfeature(feature)
+      fun_palette <- get(paste0(feature, "_palette"))
+      color[[features]] <- fun_palette(levels(df[[feature]]))
+    } else {
+      df[[feature]] <- as.numeric(as.vector(scd$getfeature(feature)))
+      color[[feature]] <- circlize::colorRamp2(
+        c(0, 0.5, 1), c("blue", "white", "red")
+      )
+      continuous[[feature]] <- list(color_bar = "continuous")
+    }
+  }
+  ha <- ComplexHeatmap::HeatmapAnnotation(
+    df = df[cells_order, ],
+    show_legend = rep(TRUE, ncol(df)),
+    col = color,
+    annotation_legend_param = continuous
+  )
+  return(ha)
+}
+
+#' importFrom ComplexHeatmap Heatmap
+heatmap_genes <- function(
+  scd,
+  features,
+  cells_order,
+  genes_order,
+  factor = rep(TRUE, length(features)),
+  show_legend = TRUE,
+  title = ""
+) {
+  ha <- heatmap_annotation(
+    scd = scd,
+    features = features,
+    factor = rep(TRUE, length(features)),
+    show_legend = TRUE,
+    cells_order
+  )
+  h_data <- count_scale_and_color(scd$getcounts,
+    quant = TRUE,
+    FUN = function(x){
+      x <- ascb(x, to_zero = TRUE) - ascb(mean(x), to_zero = TRUE)
+    })
+  h_data$counts <- h_data_data$counts[cell_order, genes_order]
+  hmap <- ComplexHeatmap::Heatmap(t(h_data$counts),
+    name = "expression",
+    column_title = title,
+    col = h_data$colors,
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    show_row_names = show_legend,
+    row_names_side = "left",
+    show_column_names = FALSE,
+    row_title = "genes",
+    show_heatmap_legend = TRUE,
+    heatmap_legend_param = list(color_bar = "continuous"),
+    bottom_annotation = ha
+  )
+  print(hmap)
+  return(hmap)
+}
+
+#' importFrom ComplexHeatmap Heatmap
+heatmap_corr_genes <- function(
+  scd,
+  features,
+  cells_order,
+  genes_order,
+  factor = rep(TRUE, length(features)),
+  show_legend = TRUE,
+  title = ""
+) {
+  ha <- scRNAtools::heatmap_annotation(
+    scd = scd,
+    features = features,
+    factor = rep(TRUE, length(features)),
+    show_legend = TRUE,
+    cells_order
+  )
+  h_data <- ascb(scd$getcounts, to_zero = TRUE)
+  h_data <- h_data[cells_order, genes_order]
+  h_data <- as.matrix(dist(h_data,
+      method = "manhattan",
+    diag = TRUE))
+  h_data <- apply(h_data, c(1:2), function(x, x_mean, x_sd){
+      (x-x_mean ) / x_sd
+    },
+    x_mean = mean(as.vector(h_data)),
+    x_sd = sd(as.vector(h_data)))
+  diag(h_data) <- NA
+  h_data <- corr_scale_and_color(h_data)
+  h_data <- count_scale_and_color(scd$getcounts,
+    quant = TRUE,
+    FUN = function(x){
+      x <- ascb(x, to_zero = TRUE) - ascb(mean(x), to_zero = TRUE)
+    })
+  hmap <- ComplexHeatmap::Heatmap(t(h_data$counts),
+    name = "expression",
+    column_title = title,
+    col = h_data$colors,
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    show_row_names = FALSE,
+    row_names_side = "left",
+    show_column_names = FALSE,
+    row_title = "cells",
+    show_heatmap_legend = TRUE,
+    heatmap_legend_param = list(color_bar = "continuous"),
+    bottom_annotation = ha
+  )
+  print(hmap)
+  return(hmap)
 }
