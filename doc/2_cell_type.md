@@ -63,6 +63,13 @@ genes_marker <- c(
 )
 ```
 
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_phenotype_surface_cell_type.pdf}
+    \caption{Manual cell classification on *ccr7* and *il7ra* surface markers)}
+  \end{figure}
+\end{center}
+
 We then fit a sparse logistic PLS model on the annotated subset of cells using
 these features with the following command:
 
@@ -100,6 +107,13 @@ save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 
 \begin{center}
   \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_surface_cell_type.pdf}
+    \caption{PLS cell classification on *ccr7* and *il7ra* surface markers)}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
     \includegraphics[width=0.5\textwidth]{../results/cell_type/pca/pca_counts_QC_surface_cell_type.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/pcmf/pcmf_counts_QC_surface_cell_type.pdf}
     \caption{PCA and pCMF plot for cells classification on all genes and all day)}
   \end{figure}
@@ -115,7 +129,7 @@ save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 \begin{center}
   \begin{figure}
     \includegraphics[width=0.3\textwidth]{../results/cell_type/pcmf/pcmf_counts_QC_surface_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/pcmf/pcmf_counts_QC_surface_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/pcmf/pcmf_counts_QC_surface_cell_type_D593.pdf}
-    \caption{pCMF plot for cells classification on all genes)}
+    \caption{pCMF plot for cells classification on all genes}
   \end{figure}
 \end{center}
 
