@@ -477,6 +477,21 @@ save(
   file = "results/cell_type/DEA_cell_types_all_splsstab.Rdata"
 )
 
+devtools::load_all("../scRNAtools/", reset = T)
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "surface_cell_type",
+  features = surface_marker,
+  genes = c(genes_marker, DEA_genes),
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_full"
+)
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_full_splsstab.Rdata"
+)
+
 load("results/cell_type/DEA_cell_types_all_splsstab.Rdata")
 str(DEA_cell_type_classification$classification$fit_spls$fit$selected)
 
