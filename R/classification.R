@@ -61,6 +61,7 @@ classification <- function(
     v = v
   )
   data <- rm_data$data
+  to_predict_on <- rm_data$b_cells
   print("predicting from PLS model...")
   algo_classification <- get(paste0(model_type, "_", algo , "_classification"))
   classification <- algo_classification(
@@ -76,12 +77,12 @@ classification <- function(
   groups[to_train_on] <- as.vector(
     scd$select(b_cells = to_train_on)$getfeature(feature)
   )
-  groups[!to_train_on][!rm_data$row_rm] <- as.vector(
+  groups[to_predict_on][!rm_data$row_rm] <- as.vector(
     classification$model$groups
   )
   pgroups <- rep(NA, scd$getncells)
   pgroups[to_train_on][!rm_data_train$row_rm] <- classification$model$proba
-  pgroups[!to_train_on][!rm_data$row_rm] <- classification$model$proba.test
+  pgroups[to_predict_on][!rm_data$row_rm] <- classification$model$proba.test
   return(list(
     classification = classification,
     scd = scd,
@@ -123,7 +124,8 @@ get_data <- function(scd, b_cells, features, genes, group_by, v = TRUE) {
     list(
       data = data[b_cells & !row_rm, ],
       group_by = group_by[b_cells & !row_rm],
-      row_rm = row_rm[b_cells]
+      row_rm = row_rm[b_cells],
+      b_cells = !b_cells[!row_rm]
     )
   )
 }
