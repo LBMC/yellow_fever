@@ -125,7 +125,7 @@ get_data <- function(scd, b_cells, features, genes, group_by, v = TRUE) {
   )
   data <- apply(as.matrix(data), c(1, 2), as.numeric)
   data <- apply(data, 2, scRNAtools::ascb)
-  row_rm <- scRNAtools::clean_data(data = data, group_by = group_by)
+  row_rm <- scRNAtools::clean_data(data = data)
   if (!any(b_cells[!row_rm])) {
     if (v) {
       print("warning: predicted set empty. Using predicting set.")
@@ -133,12 +133,13 @@ get_data <- function(scd, b_cells, features, genes, group_by, v = TRUE) {
     b_cells <- rep(TRUE, nrow(data))
   }
   print(dim(data[b_cells & !row_rm, ]))
+  group_by$by <- group_by$by[!row_rm[b_cells]]
   return(
     list(
       data = data[b_cells & !row_rm, ],
-      group_by = group_by[b_cells & !row_rm],
       row_rm = row_rm[b_cells],
-      b_cells = !b_cells[!row_rm]
+      b_cells = !b_cells[!row_rm],
+      group_by = group_by
     )
   )
 }
@@ -149,7 +150,7 @@ get_features <- function(scd, features, v = TRUE) {
     if (length(features) == 1) {
       data <- scd$getfeature(features)
     } else {
-      data <- scd$select(features = features)$getfeatures
+      data <- scd$select(features = unique(features))$getfeatures
     }
   }
   return(data)
@@ -162,14 +163,14 @@ get_genes <- function(scd, genes, v = TRUE) {
       data <- scd$getgene(genes)
     } else {
       data <- scd$getcounts[,
-          which(scd$getgenes %in% genes)
+          which(scd$getgenes %in% unique(genes))
         ]
     }
   }
   return(data)
 }
 
-clean_data <- function(data, group_by) {
+clean_data <- function(data) {
   row_rm <- apply(
     X = data,
     MARGIN = 1,
