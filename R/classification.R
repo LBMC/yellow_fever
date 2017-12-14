@@ -45,24 +45,21 @@ classification <- function(
     group_by = group_by,
     v = v
   )
-  data_train <- rm_data_train$data
   if ( length(force) > 0) {
-    if (any(!(force %in% colnames(data_train)))) {
+    if (any(!(force %in% colnames(rm_data_train$data)))) {
       stop("error: genes or features to force not in the features and genes to
       learn on")
     }
   }
-  group_by <- rm_data_train$group_by
   print("training PLS...")
   algo_training <- get(paste0(model_type, "_", algo , "_training"))
   training <- algo_training(
-    by = group_by,
-    data = data_train,
+    by = rm_data_train$group_by,
+    data = rm_data_train$data,
     ncores = ncores,
     file = paste0(output_file, "_training"),
     force = force
   )
-
   print("building set to predict...")
   rm_data <- scRNAtools::get_data(
     scd = scd,
@@ -72,14 +69,12 @@ classification <- function(
     group_by = group_by,
     v = v
   )
-  data <- rm_data$data
-  to_predict_on <- rm_data$b_cells
   print("predicting from PLS model...")
   algo_classification <- get(paste0(model_type, "_", algo , "_classification"))
   classification <- algo_classification(
     fit = training,
-    data = data,
-    data_train = data_train,
+    data = rm_data$data,
+    data_train = rm_data_train$data,
     ncores = ncores,
     file = paste0(output_file, "_classification"),
     force = force
@@ -87,15 +82,15 @@ classification <- function(
   classification$rm_NA_training <- rm_data_train$row_rm
   classification$rm_NA <- rm_data$row_rm
   groups <- rep(NA, scd$getncells)
-  groups[to_train_on] <- as.vector(
-    scd$select(b_cells = to_train_on)$getfeature(feature)
+  groups[rm_data_train$b_cells] <- as.vector(
+    scd$select(b_cells = rm_data_train$b_cells)$getfeature(feature)
   )
-  groups[to_predict_on][!rm_data$row_rm] <- as.vector(
+  groups[rm_data$b_cells & !rm_data$row_rm] <- as.vector(
     classification$model$groups
   )
   pgroups <- rep(NA, scd$getncells)
-  pgroups[to_train_on][!rm_data_train$row_rm] <- classification$model$proba
-  pgroups[to_predict_on][!rm_data$row_rm] <- classification$model$proba.test
+  pgroups[rm_data_train$b_cells & !rm_data_train$row_rm] <- classification$model$proba
+  pgroups[rm_data$b_cells & !rm_data$row_rm] <- classification$model$proba.test
   return(list(
     classification = classification,
     scd = scd,
@@ -133,12 +128,12 @@ get_data <- function(scd, b_cells, features, genes, group_by, v = TRUE) {
     b_cells <- rep(TRUE, nrow(data))
   }
   print(dim(data[b_cells & !row_rm, ]))
-  group_by$by <- group_by$by[!row_rm[b_cells]]
+  group_by$by <- group_by$by[b_cells & !row_rm]
   return(
     list(
       data = data[b_cells & !row_rm, ],
-      row_rm = row_rm[b_cells],
-      b_cells = !b_cells[!row_rm],
+      row_rm = row_rm,
+      b_cells = b_cells,
       group_by = group_by
     )
   )
