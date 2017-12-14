@@ -1,10 +1,14 @@
 #' classification for scRNASeq data
 #'
 #' @param scd is a scRNASeq data object
-#' @param feature is the name of the feature to classifiy on
+#' @param feature the feature defining the groups to learn on
+#' @param ncores (default:4) number of cpus to use
+#' @param features a vector of the names of the feature to classifiy on
+#' @param genes a vector of the names of the genes to classifiy on
 #' @param training is a vector of cell names to train on
 #' @param algo is the algorithm to use
 #' @param output_file if non empty file to save the classification results
+#' @param force a list of features and genes
 #' @return a list() with the result of the classification
 #' @examples
 #' \dontrun {
@@ -22,6 +26,7 @@ classification <- function(
   algo = "spls_pls",
   selection = "stab",
   output_file = "",
+  force = c(),
   v = F) {
 
   to_train_on <- !is.na(scd$getfeature(feature))
@@ -41,6 +46,12 @@ classification <- function(
     v = v
   )
   data_train <- rm_data_train$data
+  if ( length(force) > 0) {
+    if (any(!(force %in% colnames(data_train)))) {
+      stop("error: genes or features to force not in the features and genes to
+      learn on")
+    }
+  }
   group_by <- rm_data_train$group_by
   print("training PLS...")
   algo_training <- get(paste0(model_type, "_", algo , "_training"))
@@ -48,7 +59,8 @@ classification <- function(
     by = group_by,
     data = data_train,
     ncores = ncores,
-    file = paste0(output_file, "_training")
+    file = paste0(output_file, "_training"),
+    force = force
   )
 
   print("building set to predict...")
@@ -69,7 +81,8 @@ classification <- function(
     data = data,
     data_train = data_train,
     ncores = ncores,
-    file = paste0(output_file, "_classification")
+    file = paste0(output_file, "_classification"),
+    force = force
   )
   classification$rm_NA_training <- rm_data_train$row_rm
   classification$rm_NA <- rm_data$row_rm
@@ -186,7 +199,7 @@ pls_type <- function(by){
 # multinomial functions
 
 #' @importFrom plsgenomics multinomial.spls.stab
-multinomial_spls_stab_training <- function(by, data, ncores, file) {
+multinomial_spls_stab_training <- function(by, data, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_msplsstab.Rdata"))) {
     print(paste0(file, "_msplsstab.Rdata found. skipping training step..."))
     load(paste0(file, "_msplsstab.Rdata"))
@@ -215,7 +228,7 @@ multinomial_spls_stab_training <- function(by, data, ncores, file) {
 }
 
 #' @importFrom plsgenomics multinomial.spls.stab
-multinomial_spls_cv_training <- function(by, data, ncores, file) {
+multinomial_spls_cv_training <- function(by, data, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_msplscv.Rdata"))) {
     print(paste0(file, "_msplscv.Rdata found. skipping training step..."))
     load(paste0(file, "_msplscv.Rdata"))
@@ -246,31 +259,36 @@ multinomial_spls_cv_training <- function(by, data, ncores, file) {
 
 #' @importFrom plsgenomics stability.selection
 multinomial_spls_stab_classification <- function(
-    fit, data, data_train, ncores, file) {
-  fit$fit$selected <- plsgenomics::stability.selection(fit$fit)$selected.predictor
+    fit, data, data_train, ncores, file, force) {
+  fit$fit$selected <- unique(c(
+    plsgenomics::stability.selection(fit$fit)$selected.predictor,
+    force
+  ))
   print("training PLS with selected genes...")
   fit_pls <- multinomial_pls_cv_training(
     by = fit$fit$group_by,
     data = data_train[, fit$fit$selected],
     ncores = ncores,
-    file = file
+    file = file,
+    force = force,
   )
   model <- multinomial_pls_cv_classification(
     fit = fit_pls$fit,
     data = data[, fit$fit$selected],
     data_train = data_train[, fit$fit$selected],
-    file = file
+    file = file,
+    force = force
   )
   return(list(
     fit_spls = fit,
     fit_pls = fit_pls,
-    model = model$model
+    model = model$model,
   ))
 }
 
 #' @importFrom plsgenomics multinomial.spls
 multinomial_spls_classification <- function(
-    fit, data, data_train, ncores, file) {
+    fit, data, data_train, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_mspls.Rdata"))) {
     print(paste0(file, "_mspls.Rdata found. skipping classification step..."))
     load(paste0(file, "_mspls.Rdata"))
@@ -301,24 +319,33 @@ multinomial_spls_classification <- function(
 
 
 multinomial_spls_cv_classification <- function(
-    fit, data, data_train, ncores, file) {
+    fit, data, data_train, ncores, file, force) {
   model_spls <- multinomial_spls_classification(
     fit = fit$fit,
     data = data,
     data_train = data_train,
     ncores = ncores,
-    file = file)
+    file = file,
+    force = force
+  )
+  model_spls$selected <- unique(c(
+    colnames(data)[model_spls$model$A.full],
+    force
+  ))
   fit_pls <- multinomial_pls_cv_training(
     by = model_spls$fit$group_by,
-    data = data_train[, model_spls$model$A.full],
+    data = data_train[, model_spls$selected],
     ncores = ncores,
-    file = file
+    file = file,
+    force = force
   )
   model <- multinomial_pls_cv_classification(
     fit = fit_pls$fit,
-    data = data[, model_spls$model$A.full],
-    data_train = data[, model_spls$model$A.full],
-    file = file)
+    data = data[, model_spls$selected],
+    data_train = data[, model_spls$selected],
+    file = file,
+    force = force
+  )
   return(list(
     fit_spls = model_spls$fit,
     model_spls = model_spls$model,
@@ -327,13 +354,13 @@ multinomial_spls_cv_classification <- function(
   ))
 }
 
-multinomial_pls_stab_training <- function(by, data, ncores, file) {
+multinomial_pls_stab_training <- function(by, data, ncores, file, force) {
   print("no stability selection for multinomial pls switching to CV")
-  return(multinomial_pls_cv_training(data, by, ncores, file))
+  return(multinomial_pls_cv_training(data, by, ncores, file, force))
 }
 
 #' @importFrom plsgenomics mrpls.cv
-multinomial_pls_cv_training <- function(by, data, ncores, file){
+multinomial_pls_cv_training <- function(by, data, ncores, file, force){
   if (!missing(file) & file.exists(paste0(file, "_mplscv.Rdata"))) {
     print(paste0(file, "_mplscv.Rdata found. skipping training step..."))
     load(paste0(file, "_mplscv.Rdata"))
@@ -356,13 +383,13 @@ multinomial_pls_cv_training <- function(by, data, ncores, file){
 }
 
 multinomial_pls_stab_classification <- function(
-    fit, data, data_train, ncores, file) {
-  multinomial_pls_cv_classification(fit, data, data_train, ncores, file)
+    fit, data, data_train, ncores, file, force) {
+  multinomial_pls_cv_classification(fit, data, data_train, ncores, file, force)
 }
 
 #' @importFrom plsgenomics mrpls
 multinomial_pls_cv_classification <- function(
-    fit, data, data_train, ncores, file) {
+    fit, data, data_train, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_mpls.Rdata"))) {
     print(paste0(file, "_mpls.Rdata found. skipping classification step..."))
     load(paste0(file, "_mpls.Rdata"))
@@ -387,7 +414,7 @@ multinomial_pls_cv_classification <- function(
 # logistic functions
 
 #' @importFrom plsgenomics logistic.spls.stab
-logistic_spls_stab_training <- function(by, data, ncores, file) {
+logistic_spls_stab_training <- function(by, data, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_lsplsstab.Rdata"))) {
     print(paste0(file, "_lsplsstab.Rdata found. skipping training step..."))
     load(paste0(file, "_lsplsstab.Rdata"))
@@ -416,7 +443,7 @@ logistic_spls_stab_training <- function(by, data, ncores, file) {
 }
 
 #' @importFrom plsgenomics logistic.spls.stab
-logistic_spls_cv_training <- function(by, data, ncores, file) {
+logistic_spls_cv_training <- function(by, data, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_lsplscv.Rdata"))) {
     print(paste0(file, "_lsplscv.Rdata found. skipping training step..."))
     load(paste0(file, "_lsplscv.Rdata"))
@@ -447,31 +474,37 @@ logistic_spls_cv_training <- function(by, data, ncores, file) {
 
 #' @importFrom plsgenomics stability.selection
 logistic_spls_stab_classification <- function(
-    fit, data, data_train, ncores, file) {
-  fit$fit$selected <- plsgenomics::stability.selection(fit$fit)$selected.predictor
+    fit, data, data_train, ncores, file, force) {
+  fit$fit$selected <- unique(c(
+    plsgenomics::stability.selection(fit$fit)$selected.predictor,
+    force
+  ))
   print("training PLS with selected genes...")
   fit_pls <- logistic_pls_cv_training(
     by = fit$fit$group_by,
     data = data_train[, fit$fit$selected],
     ncores = ncores,
-    file = file
+    file = file,
+    force = force
   )
   model <- logistic_pls_cv_classification(
     fit = fit_pls$fit,
     data = data[, fit$fit$selected],
     data_train = data_train[, fit$fit$selected],
-    file = file
+    file = file,
+    force = force
   )
   return(list(
     fit_spls = fit,
     fit_pls = fit_pls,
-    model = model$model
+    model = model$model,
+    force = force
   ))
 }
 
 #' @importFrom plsgenomics logistic.spls
 logistic_spls_classification <- function(
-    fit, data, data_train, ncores, file) {
+    fit, data, data_train, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_lspls.Rdata"))) {
     print(paste0(file, "_lspls.Rdata found. skipping classification step..."))
     load(paste0(file, "_lspls.Rdata"))
@@ -502,39 +535,49 @@ logistic_spls_classification <- function(
 
 
 logistic_spls_cv_classification <- function(
-    fit, data, data_train, ncores, file) {
+    fit, data, data_train, ncores, file, force) {
   model_spls <- logistic_spls_classification(
     fit = fit$fit,
     data = data,
     data_train = data_train,
     ncores = ncores,
-    file = file)
+    file = file,
+    force = force
+  )
+  model_spls$selected <- unique(c(
+    colnames(data)[model_spls$model$A.full],
+    force
+  ))
   fit_pls <- logistic_pls_cv_training(
     by = model_spls$fit$group_by,
-    data = data_train[, model_spls$model$A.full],
+    data = data_train[, model_spls$selected],
     ncores = ncores,
-    file = file
+    file = file,
+    force = force
   )
   model <- logistic_pls_cv_classification(
     fit = fit_pls$fit,
-    data = data[, model_spls$model$A.full],
-    data_train = data[, model_spls$model$A.full],
-    file = file)
+    data = data[, model_spls$selected],
+    data_train = data[, model_spls$selected],
+    file = file,
+    force = force
+  )
   return(list(
     fit_spls = model_spls$fit,
     model_spls = model_spls$model,
     fit_pls = fit_pls,
-    model = model$model
+    model = model$model,
+    force = force
   ))
 }
 
-logistic_pls_stab_training <- function(by, data, ncores, file) {
+logistic_pls_stab_training <- function(by, data, ncores, file, force) {
   print("no stability selection for logistic pls switching to CV")
-  return(logistic_pls_cv_training(data, by, ncores, file))
+  return(logistic_pls_cv_training(data, by, ncores, file, force))
 }
 
 #' @importFrom plsgenomics mrpls.cv
-logistic_pls_cv_training <- function(by, data, ncores, file){
+logistic_pls_cv_training <- function(by, data, ncores, file, force){
   if (!missing(file) & file.exists(paste0(file, "_lplscv.Rdata"))) {
     print(paste0(file, "_lplscv.Rdata found. skipping training step..."))
     load(paste0(file, "_lplscv.Rdata"))
@@ -557,13 +600,13 @@ logistic_pls_cv_training <- function(by, data, ncores, file){
 }
 
 logistic_pls_stab_classification <- function(
-    fit, data, data_train, ncores, file) {
-  logistic_pls_cv_classification(fit, data, data_train, ncores, file)
+    fit, data, data_train, ncores, file, force) {
+  logistic_pls_cv_classification(fit, data, data_train, ncores, file, force)
 }
 
 #' @importFrom plsgenomics mrpls
 logistic_pls_cv_classification <- function(
-    fit, data, data_train, ncores, file) {
+    fit, data, data_train, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_lpls.Rdata"))) {
     print(paste0(file, "_lpls.Rdata found. skipping classification step..."))
     load(paste0(file, "_lpls.Rdata"))
