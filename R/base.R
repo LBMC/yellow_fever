@@ -330,3 +330,67 @@ expressed <- function(scd, zi_threshold = 0.90){
   zi_rate <- colSums(round(scd$getcounts) == 0) / scd$getncells
   return(scd$getgenes[zi_rate <= zi_threshold])
 }
+
+#' return order base on the rank FUN in groups
+#' @param score score to order on
+#' @param by factor to group on
+#' @param FUN (default: mean) function on apply on factor in each groups
+#' @return return order
+#' @examples
+#' \dontrun{
+#' cells_order = order_by_groups(scd$get_feature("pDEA_cell_type"), scd$get_feature("DEA_cell_type"))
+#' }
+#' @export order_by_groups
+order_by_groups <- function(score, by, FUN = mean){
+  score_av <- aggregate(score, by = list(as.factor(by)), FUN = FUN)
+  names(score_av) <- c("by", "mean")
+  score_av_list <- as.list(score_av$mean)
+  names(score_av_list) <- score_av$by
+  score_by <- unlist(score_av_list[as.vector(by)])
+  return(order(score_by))
+}
+
+#' return order base on the rank FUN in groups
+#' @param scd an scdata object
+#' @param by factor to group on
+#' @param FUN (default: mean) function on apply on factor in each groups
+#' @return return order
+#' @examples
+#' \dontrun{
+#' genes_order = order_by_groups(scd$getcounts, scd$get_feature("DEA_cell_type"))
+#' }
+#' @export order_2_groups
+order_2_groups <- function(
+  scd, b_cells = NULL, cells = NULL, genes = NULL,
+  by, FUN = function(x){mean(x)}, top = ncol(data), min_cell = 5) {
+  data <- scd$select(
+    genes = genes,
+    cells = cells,
+    b_cells = b_cells)$getcounts
+  if(top > ncol(data)){
+    top <- ncol(data)
+  }
+  by <- factorize(by)
+  by_dist <- list()
+  for(i in levels(by)){
+    r_select <- by %in% i
+    by_dist[[i]] <- apply(data[r_select,], 2, FUN=function(x, FUNx){
+        FUNx(x)
+      }, FUNx=FUN)
+  }
+  by_order <- as.vector(by_dist[[1]])
+  by_order_abs <- as.vector(by_dist[[1]])
+  for(i in 2:length(by_dist)){
+    by_order <- by_order - as.vector(by_dist[[i]])
+    by_order_abs <- abs(by_order_abs - as.vector(by_dist[[i]]))
+  }
+  results <- which(by_order_abs %in% by_order_abs[order(by_order_abs,
+                                                        decreasing=TRUE)][1:top])
+  results <- results[order(by_order[results], decreasing=TRUE)]
+  if(top < ncol(data)){
+    results <- results[colSums(data[, results] >= 5) >= 5]
+    return(results[1:top])
+  }else{
+    return(results)
+  }
+}
