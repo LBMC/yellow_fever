@@ -233,11 +233,50 @@ heatmap of the DE genes between `surface_cell_type`.
   \end{figure}
 \end{center}
 
-# PLS classification based the manual annotation
+# PLS classification based the differential expression analysis
+
+
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_surface_cell_type_histogram.pdf}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_DEA_cell_type_histogram.pdf}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_DEA_cell_type_histogram_full.pdf}
+    \caption{PLS cell classification group probability)}
+  \end{figure}
+\end{center}
 
 \begin{center}
   \begin{figure}
     \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_surface_cell_type.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_DEA_cell_type.pdf}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_DEA_cell_type_full.pdf}
     \caption{PLS cell classification on \emph{ccr7} and \emph{il7ra} surface markers and PLS DEA classification)}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D593.pdf}
+    \caption{heatmap for cells classification on DE genes)}
+  \end{figure}
+\end{center}
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D15_full.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D136_full.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D593_full.pdf}
+    \caption{heatmap for cells classification on DE genes)}
+  \end{figure}
+\end{center}
+
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D593.pdf}
+    \caption{correlation plot for cells classification on DE genes}
+  \end{figure}
+\end{center}
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D15_full.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D136_full.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D593_full.pdf}
+    \caption{correlation plot for cells classification on DE genes}
   \end{figure}
 \end{center}
