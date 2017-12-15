@@ -28,6 +28,7 @@ b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
 DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
 b_cells <- scd$getfeature("QC_good") %in% T
 
+b_cells <- scd$getfeature("QC_good") %in% T
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "phenotype_surface_cell_type",
@@ -35,7 +36,8 @@ DEA_cell_type_classification <- classification(
   genes = c(genes_marker, DEA_genes),
   ncores = 10,
   algo = "spls_stab",
-  output_file = "results/cell_type/DEA_cell_types"
+  output_file = "results/cell_type/DEA_cell_types",
+  v = T
 )
 save(
   DEA_cell_type_classification,
@@ -43,6 +45,7 @@ save(
 )
 
 devtools::load_all("../scRNAtools/", reset = T)
+b_cells <- scd$getfeature("QC_good") %in% T
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "phenotype_surface_cell_type",
@@ -59,6 +62,8 @@ save(
   file = "results/cell_type/DEA_cell_types_force_splsstab.Rdata"
 )
 
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "surface_cell_type",
@@ -72,6 +77,9 @@ save(
   DEA_cell_type_classification,
   file = "results/cell_type/DEA_cell_types_full_splsstab.Rdata"
 )
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "surface_cell_type",
@@ -80,7 +88,6 @@ DEA_cell_type_classification <- classification(
   ncores = 10,
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_cell_types_full_force",
-
   force  = c(surface_marker, genes_marker),
   v = T
 )
@@ -270,9 +277,16 @@ for (day in c("D15", "D136", "D593")) {
   print(hm_corr)
 }
 
+genes_list <- c("NELL2", "LTB", "GZMK", "IL7R", "GZMM", "CCL5", "NKG7", "CST7",
+  "GZMA", "GZMH", "GZMB", "PRF1", "IFNG", "CCL3", "CCL4", "CCL4L1", "FASLG",
+  "GNLY", "CCR7", "SELL", "ITGB1", "CXCR3", "CXCR4", "S1PR1", "S1PR5", "GPR56",
+  "CXCR6", "CX3CR1", "BACH2", "TCF7", "LEF1", "TSC22D3", "JUNB", "ID2",
+  "PRDM1", "ZNF683", "TBX21", "ZEB2", "HOPX", "CD69", "KLRB1", "KLRG1",
+  "PDCD1", "CTLA4", "TIGIT", "TIMD4", "HAVCR2", "KLRD1", "CD2", "CD3E", "CD3D",
+  "CD3G", "CD8A", "CD8B", "CD4")
 per_genes_barplot(
   scd = scd$select(b_cells = b_cells),
-  genes = c("CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB", "NELL2", "CCR7"),
+  genes = genes_list,
   features = c("ccr7", "il7ra", "pDEA_cell_type"),
   order_by = "pDEA_cell_type",
   color_by = "DEA_cell_type",
@@ -450,9 +464,16 @@ for (day in c("D15", "D136", "D593")) {
   print(hm_corr)
 }
 
+genes_list <- c("NELL2", "LTB", "GZMK", "IL7R", "GZMM", "CCL5", "NKG7", "CST7",
+  "GZMA", "GZMH", "GZMB", "PRF1", "IFNG", "CCL3", "CCL4", "CCL4L1", "FASLG",
+  "GNLY", "CCR7", "SELL", "ITGB1", "CXCR3", "CXCR4", "S1PR1", "S1PR5", "GPR56",
+  "CXCR6", "CX3CR1", "BACH2", "TCF7", "LEF1", "TSC22D3", "JUNB", "ID2",
+  "PRDM1", "ZNF683", "TBX21", "ZEB2", "HOPX", "CD69", "KLRB1", "KLRG1",
+  "PDCD1", "CTLA4", "TIGIT", "TIMD4", "HAVCR2", "KLRD1", "CD2", "CD3E", "CD3D",
+  "CD3G", "CD8A", "CD8B", "CD4")
 per_genes_barplot(
   scd = scd$select(b_cells = b_cells),
-  genes = c("CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB", "NELL2", "CCR7"),
+  genes = genes_list,
   features = c("ccr7", "il7ra", "pDEA_cell_type"),
   order_by = "pDEA_cell_type",
   color_by = "DEA_cell_type",
@@ -630,9 +651,16 @@ for (day in c("D15", "D136", "D593")) {
   print(hm_corr)
 }
 
+genes_list <- c("NELL2", "LTB", "GZMK", "IL7R", "GZMM", "CCL5", "NKG7", "CST7",
+  "GZMA", "GZMH", "GZMB", "PRF1", "IFNG", "CCL3", "CCL4", "CCL4L1", "FASLG",
+  "GNLY", "CCR7", "SELL", "ITGB1", "CXCR3", "CXCR4", "S1PR1", "S1PR5", "GPR56",
+  "CXCR6", "CX3CR1", "BACH2", "TCF7", "LEF1", "TSC22D3", "JUNB", "ID2",
+  "PRDM1", "ZNF683", "TBX21", "ZEB2", "HOPX", "CD69", "KLRB1", "KLRG1",
+  "PDCD1", "CTLA4", "TIGIT", "TIMD4", "HAVCR2", "KLRD1", "CD2", "CD3E", "CD3D",
+  "CD3G", "CD8A", "CD8B", "CD4")
 per_genes_barplot(
   scd = scd$select(b_cells = b_cells),
-  genes = c("CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB", "NELL2", "CCR7"),
+  genes = genes_list,
   features = c("ccr7", "il7ra", "pDEA_cell_type"),
   order_by = "pDEA_cell_type",
   color_by = "DEA_cell_type",
