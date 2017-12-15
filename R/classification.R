@@ -79,18 +79,16 @@ classification <- function(
     file = paste0(output_file, "_classification"),
     force = force
   )
-  classification$rm_NA_training <- rm_data_train$row_rm
-  classification$rm_NA <- rm_data$row_rm
   groups <- rep(NA, scd$getncells)
   groups[rm_data_train$b_cells] <- as.vector(
     scd$select(b_cells = rm_data_train$b_cells)$getfeature(feature)
   )
-  groups[rm_data$b_cells & !rm_data$row_rm] <- as.vector(
+  groups[rm_data$b_cells] <- as.vector(
     classification$model$groups
   )
   pgroups <- rep(NA, scd$getncells)
-  pgroups[rm_data_train$b_cells & !rm_data_train$row_rm] <- classification$model$proba
-  pgroups[rm_data$b_cells & !rm_data$row_rm] <- classification$model$proba.test
+  pgroups[rm_data_train$b_cells] <- classification$model$proba
+  pgroups[rm_data$b_cells] <- classification$model$proba.test
   return(list(
     classification = classification,
     scd = scd,
@@ -119,20 +117,21 @@ get_data <- function(scd, b_cells, features, genes, group_by, v = TRUE) {
     scRNAtools::get_genes(scd = scd, genes = genes)
   )
   data <- apply(as.matrix(data), c(1, 2), as.numeric)
-  data <- apply(data, 2, scRNAtools::ascb)
-  row_rm <- scRNAtools::clean_data(data = data)
-  if (!any(b_cells[!row_rm])) {
+  data <- scRNAtools::ascb(data)
+  if (!any(b_cells)) {
     if (v) {
       print("warning: predicted set empty. Using predicting set.")
     }
     b_cells <- rep(TRUE, nrow(data))
+    group_by$by <- group_by$by[b_cells]
+  } else {
+    group_by$by <- group_by$by
   }
-  print(dim(data[b_cells & !row_rm, ]))
-  group_by$by <- group_by$by[b_cells & !row_rm]
+  print(dim(data[b_cells, ]))
+  print(length(group_by$by))
   return(
     list(
-      data = data[b_cells & !row_rm, ],
-      row_rm = row_rm,
+      data = data[b_cells, ],
       b_cells = b_cells,
       group_by = group_by
     )
@@ -163,17 +162,6 @@ get_genes <- function(scd, genes, v = TRUE) {
     }
   }
   return(data)
-}
-
-clean_data <- function(data) {
-  row_rm <- apply(
-    X = data,
-    MARGIN = 1,
-    FUN = function(x) {
-      any(is.na(x))
-    }
-  )
-  return(row_rm)
 }
 
 group_by_transform <- function(by) {
