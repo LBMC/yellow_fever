@@ -974,3 +974,103 @@ heatmap_corr_genes <- function(
   save_classic_pdf(hmap, file)
   return(hmap)
 }
+
+#' genes expression barplot graph
+#'
+#' @param scd is a scRNASeq data object
+#' @param features features of the scd object to display
+#' @param cells_order cells order
+#' @param factor vector indicating which features should be dealt with like a
+#' factor
+#' @param show_legend (default: TRUE) should the legend be displayed
+#' @param title title of the heatmap
+#' @param file name of the pdf to save the heatmap
+#' @param decreasing (default: FALSE) should the reverse order of order_by be used ?
+#' @return return a heatmap object
+#' @examples
+#' \dontrun{
+#' headmap_corr_genes(
+#'   scd = scd,
+#'   features = c("cell_type", "day"),
+#'   cells_order = order(scd$getfeature("cell_type")),
+#'   title = "cell type heatmap"
+#' )
+#' }
+#' @import ggplot2
+#' @importFrom reshape2 melt
+#' @export per_genes_barplot
+per_genes_barplot <- function(
+  scd,
+  genes,
+  features,
+  order_by,
+  color_by,
+  quantile_cut = 0.95,
+  main = "",
+  file,
+  decreasing = F
+  ){
+  data <- scd$select(genes = genes)$getcounts
+  data <- scRNAtools::ascb(data)
+  id <- as.factor(scd$getcells)
+  order_by <- as.numeric(as.vector(scd$getfeature(order_by)))
+  color_by <- scd$getfeature(color_by)
+  data <- apply(data, 2, FUN = function(x, quantile_cut){
+      quant <- quantile(x, quantile_cut, na.rm = TRUE)
+      if (quant > 0) {
+        x <- ifelse(x > quant, quant, x)
+      }
+      x / max(x)
+    },
+    quantile_cut = quantile_cut
+  )
+  if (length(features) > 1) {
+    infos <- scd$getfeatures[, colnames(scd$getfeatures) %in% features]
+    data <- cbind(data, vectorize(infos), stringsAsFactors = T)
+  } else {
+    infos <- vectorize(scd$getfeature(features))
+    data <- cbind(data, infos)
+    colnames(data)[ncol(data)] <- features
+  }
+  data <- cbind(data, id)
+  data.m <- reshape2::melt(
+    data,
+    id.vars = c("id")
+  )
+  colnames(data.m) <- c("id", "variable", "value")
+  data.m <- cbind(data.m, color_by)
+  data.m$id <- factor(
+    data.m$id,
+    levels = levels(data.m$id)[order(order_by, decreasing = decreasing)]
+  )
+  data.m$variable <- factor(
+    data.m$variable,
+    levels = c(genes, features)
+  )
+  g <- ggplot(data = data.m,
+      aes(x = id, y = value, fill = color_by)) +
+    facet_wrap(~variable, ncol = 1, strip.position = "left", scale = "free_y") +
+    geom_bar(stat = "identity", width = 1, size = 0) +
+    theme_bw() +
+    scale_fill_manual(values = cell_type_palette(levels(data.m$color_by))) +
+    theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    # panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    panel.margin = unit(0, "lines"),
+    panel.margin.x = unit(0, "lines"),
+    panel.margin.y = unit(0, "lines"),
+    axis.ticks = element_blank(),
+    strip.text.y = element_text(angle = 180),
+    strip.background = element_blank()
+  ) + labs(x = "cells",
+     y =  "genes",
+     title = main)
+  print(g)
+  if(!missing(file)){
+    ggsave(height = 20, width = 10, file = paste0(file,".pdf"))
+  }
+}
