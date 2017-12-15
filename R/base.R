@@ -68,6 +68,21 @@ ascb <- function(x, to_zero=TRUE, na.rm=FALSE){
         !any(is.na(x))
       })]
     }
+  } else {
+    if (is.null(dim(x))) {
+      x <- ifelse(is.na(x), 0, x)
+    } else {
+      x <- apply(x, 2, FUN = function(y) {
+        ifelse(is.na(y), 0, y)
+      })
+    }
+  }
+  if (is.null(dim(x))) {
+    x <- ifelse(x < 0, 0, x)
+  } else {
+    x <- apply(x, 2, FUN = function(y) {
+      ifelse(y < 0, 0, y)
+    })
   }
   if (to_zero){
     if (min(x, na.rm = T) < 0){
