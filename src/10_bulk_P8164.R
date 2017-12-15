@@ -19,6 +19,30 @@ save(bcd, file = paste0(results_folder, "P8164_Bulk_raw_counts.Rdata"))
 load(paste0(results_folder, "P8164_Bulk_raw_counts.Rdata"))
 
 ################################################################################
+# analysis with ziNB
+b_cells <- bcd$getfeature("cell_number") %in% 20 &
+  bcd$getfeature("sex") %in% "M"
+
+system("mkdir -p results/P8164_bulk/clonality_DEA")
+clonality_DEA <- DEA(
+  scd = bcd,
+  formula_null = "y ~ 1",
+  formula_full = "y ~ clonality",
+  b_cells = b_cells,
+  cpus = 10,
+  v = F,
+  folder_name = "results/P8164_bulk/clonality_DEA",
+  zi_threshold = 0.99
+)
+save(
+  clonality_DEA,
+  file = "results/P8164_bulk/clonality_DEA.Rdata"
+)
+table(is.na(clonality_DEA$padj))
+table(clonality_DEA$padj < 0.05)
+write.csv(clonality_DEA, file = "results/P8164_bulk/clonality_DEA.csv")
+
+################################################################################
 # analysis with DESeq2
 
 library(DESeq2)
