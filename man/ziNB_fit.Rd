@@ -4,7 +4,8 @@
 \alias{ziNB_fit}
 \title{importFrom glmmADMB glmmadmb}
 \usage{
-ziNB_fit(data, formula, gene_name, family = "nbinom1", link = "log", v)
+ziNB_fit(data, formula, gene_name, family = "nbinom1", link = "log",
+  zi = TRUE, v)
 }
 \description{
 importFrom glmmADMB glmmadmb

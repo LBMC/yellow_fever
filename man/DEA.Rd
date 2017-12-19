@@ -4,7 +4,8 @@
 \alias{DEA}
 \title{DEA for scRNASeq data}
 \usage{
-DEA(scd, formula_null, formula_full, b_cells, cpus = 4, v = F, tmp_folder)
+DEA(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9, cpus = 4,
+  v = F, folder_name)
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}

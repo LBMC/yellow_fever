@@ -4,19 +4,27 @@
 \alias{classification}
 \title{classification for scRNASeq data}
 \usage{
-classification(scd, feature, training, ncores = 4, algo = "mspls_mpls",
-  output_file = "")
+classification(scd, feature, ncores = 4, features, genes, algo = "spls_pls",
+  selection = "stab", output_file = "", force = c(), v = F)
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}
 
-\item{feature}{is the name of the feature to classifiy on}
+\item{feature}{the feature defining the groups to learn on}
 
-\item{training}{is a vector of cell names to train on}
+\item{ncores}{(default:4) number of cpus to use}
+
+\item{features}{a vector of the names of the feature to classifiy on}
+
+\item{genes}{a vector of the names of the genes to classifiy on}
 
 \item{algo}{is the algorithm to use}
 
 \item{output_file}{if non empty file to save the classification results}
+
+\item{force}{a list of features and genes}
+
+\item{training}{is a vector of cell names to train on}
 }
 \value{
 a list() with the result of the classification

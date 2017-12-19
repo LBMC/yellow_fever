@@ -2,10 +2,10 @@
 % Please edit documentation in R/differential_expression.R
 \name{DEA_LRT}
 \alias{DEA_LRT}
-\title{importFrom lmtest lrtest}
+\title{importFrom glmmADMB glmmadmb}
 \usage{
-DEA_LRT(models_result, gene_name, v, tmp_folder)
+DEA_LRT(models_result, gene_name, v, folder_name)
 }
 \description{
-importFrom lmtest lrtest
+importFrom glmmADMB glmmadmb
 }
