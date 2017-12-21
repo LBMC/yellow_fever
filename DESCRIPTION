@@ -1,6 +1,6 @@
 Package: scRNAtools
 Title: Set of functions for the analysis of scRNASeq data
-Version: 0.2
+Version: 0.3
 Authors@R: person("Laurent", "Modolo", email = "laurent.modolo@ens-lyon.fr",
                   role = c("aut", "cre"))
 Description: The package scRNASeq provides a set of function to perform quality
