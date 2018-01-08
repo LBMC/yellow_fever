@@ -383,17 +383,16 @@ save(
 system("~/scripts/sms.sh \"PLS done\"")
 load("results/cell_type/raw_old_surface_cell_types_all_smplscv.Rdata")
 
-length(old_surface_cell_type_classification$groups)
-old_surface_cell_type_classification$classification$fit_spls$fit$selected
+length(raw_old_surface_cell_type_classification$groups)
+raw_old_surface_cell_type_classification$classification$fit_spls$fit$selected
 cell_type_groups <- rep(NA, scd$getncells)
-cell_type_groups[b_cells] <- old_surface_cell_type_classification$groups
+cell_type_groups[b_cells] <- raw_old_surface_cell_type_classification$groups
 scd$setfeature("raw_old_surface_cell_type", cell_type_groups)
 cell_type_pgroups <- rep(NA, scd$getncells)
-cell_type_pgroups[b_cells] <- old_surface_cell_type_classification$pgroups
+cell_type_pgroups[b_cells] <- raw_old_surface_cell_type_classification$pgroups
 scd$setfeature("p_raw_old_surface_cell_type", cell_type_pgroups)
-save(scd, file = "results/cell_type/raw_counts_QC_raw_old_surface_cell_type.Rdata")
+save(scd, file = "results/cell_type/counts_QC_raw_old_surface_cell_type.Rdata")
 
-save(scd, file = "results/cell_type/raw_counts_QC_old_surface_cell_type.Rdata")
 scd_norm <- scd
 load("results/QC/CB_counts_QC.Rdata")
 scd <- scdata$new(
@@ -401,6 +400,13 @@ scd <- scdata$new(
   counts = scd$getcounts
 )
 save(scd, file = "results/cell_type/CB_counts_QC_raw_old_surface_cell_type.Rdata")
+
+load("results/QC/cells_counts_QC.Rdata")
+scd <- scdata$new(
+  infos = scd_norm$getfeatures,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cell_type/cells_counts_QC_raw_old_surface_cell_type.Rdata")
 
 load("results/cell_type/CB_counts_QC_raw_old_surface_cell_type.Rdata")
 devtools::load_all("../scRNAtools/", reset = T)
