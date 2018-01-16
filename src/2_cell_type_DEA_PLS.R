@@ -8,6 +8,7 @@ load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
 
 # load selection off genes and makers to classify on
 genes_PLS <- read.csv("data/genes_PLS.csv")
+genes_PLS <- read.csv("~/data/yellow_fever/2017_11_28_List_Laurent_Genes_PLS.csv")
 surface_marker <- c()
 genes_marker <- c()
 for (marker_type in colnames(genes_PLS)) {
@@ -45,6 +46,22 @@ save(
   file = "results/cell_type/DEA_cell_types_all_splsstab.Rdata"
 )
 
+b_cells <- scd$getfeature("QC_good") %in% T
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "phenotype_surface_cell_type",
+  features = c(),
+  genes = c(genes_marker, DEA_genes),
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_noprot",
+  v = T
+)
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_noprot_all_splsstab.Rdata"
+)
+
 devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
 DEA_cell_type_classification <- classification(
@@ -61,6 +78,41 @@ DEA_cell_type_classification <- classification(
 save(
   DEA_cell_type_classification,
   file = "results/cell_type/DEA_cell_types_force_splsstab.Rdata"
+)
+
+b_cells <- scd$getfeature("QC_good") %in% T
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "phenotype_surface_cell_type",
+  features = c(),
+  genes = c(genes_marker, DEA_genes),
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_noprot_force",
+  force  = c(genes_marker),
+  v = T
+)
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_noprot_force_splsstab.Rdata"
+)
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "surface_cell_type",
+  features = c(),
+  genes = c(genes_marker, DEA_genes),
+  ncores = 16,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_noprot_force",
+  force  = c(genes_marker),
+  v = T
+)
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_noprot_force_splsstab.Rdata"
 )
 
 b_cells <- scd$getfeature("QC_good") %in% T &
@@ -88,14 +140,13 @@ DEA_cell_type_classification <- classification(
   genes = c(genes_marker, DEA_genes),
   ncores = 16,
   algo = "spls_stab",
-  output_file = "results/cell_type/DEA_cell_types_noprot_force",
-  force  = c(genes_marker),
-  v = T
+  output_file = "results/cell_type/DEA_cell_types_noprot_full"
 )
 save(
   DEA_cell_type_classification,
-  file = "results/cell_type/DEA_cell_types_noprot_force_splsstab.Rdata"
+  file = "results/cell_type/DEA_cell_types_noprot_full_splsstab.Rdata"
 )
+
 
 ################################################################################
 load("results/cell_type/DEA_cell_types_all_splsstab.Rdata")
