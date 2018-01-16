@@ -1071,6 +1071,6 @@ per_genes_barplot <- function(
      title = main)
   print(g)
   if(!missing(file)){
-    ggsave(height = 20, width = 10, file = paste0(file,".pdf"))
+    ggsave(height = 9.75, width = 10, file = paste0(file,".pdf"))
   }
 }
