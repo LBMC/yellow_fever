@@ -84,17 +84,17 @@ b_cells <- scd$getfeature("QC_good") %in% T &
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "surface_cell_type",
-  features = surface_marker,
+  features = c(),
   genes = c(genes_marker, DEA_genes),
-  ncores = 10,
+  ncores = 16,
   algo = "spls_stab",
-  output_file = "results/cell_type/DEA_cell_types_full_force",
-  force  = c(surface_marker, genes_marker),
+  output_file = "results/cell_type/DEA_cell_types_noprot_force",
+  force  = c(genes_marker),
   v = T
 )
 save(
   DEA_cell_type_classification,
-  file = "results/cell_type/DEA_cell_types_full_force_splsstab.Rdata"
+  file = "results/cell_type/DEA_cell_types_noprot_force_splsstab.Rdata"
 )
 
 ################################################################################
@@ -1047,4 +1047,30 @@ DEA_cell_type_classification <- classification(
 save(
   DEA_cell_type_classification,
   file = "results/cell_type/DEA_cell_types_full_force_raw_splsstab.Rdata"
+)
+
+load("results/cell_type/DEA_cell_types_full_force_raw_splsstab.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+str(DEA_cell_type_classification$classification$fit_spls$fit$selected)
+cell_type_groups <- rep(NA, scd$getncells)
+cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
+scd$setfeature("DEA_cell_type", cell_type_groups)
+cell_type_pgroups <- rep(NA, scd$getncells)
+cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
+scd$setfeature("pDEA_cell_type", cell_type_pgroups)
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+
+genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+  "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+  "NELL2", "CCR7")
+per_genes_barplot(
+  scd = scd$select(b_cells = b_cells),
+  genes = genes_list,
+  features = c("ccr7", "pDEA_cell_type"),
+  order_by = "pDEA_cell_type",
+  color_by = "DEA_cell_type",
+  file = "results/cell_type/per_genes_barplot_counts_QC_DEA_DEA_cell_type_full_force_raw.pdf",
+  main = "DEA DEA_cell_type full force raw"
 )
