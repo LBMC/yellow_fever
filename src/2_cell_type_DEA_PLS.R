@@ -846,10 +846,14 @@ genes_list <- c("NELL2", "LTB", "GZMK", "IL7R", "GZMM", "CCL5", "NKG7", "CST7",
   "PRDM1", "ZNF683", "TBX21", "ZEB2", "HOPX", "CD69", "KLRB1", "KLRG1",
   "PDCD1", "CTLA4", "TIGIT", "TIMD4", "HAVCR2", "KLRD1", "CD2", "CD3E", "CD3D",
   "CD3G", "CD8A", "CD8B", "CD4")
+
+genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+  "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+  "NELL2", "CCR7")
 per_genes_barplot(
   scd = scd$select(b_cells = b_cells),
   genes = genes_list,
-  features = c("ccr7", "il7ra", "pDEA_cell_type"),
+  features = c("ccr7", "pDEA_cell_type"),
   order_by = "pDEA_cell_type",
   color_by = "DEA_cell_type",
   file = "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_DEA_cell_type_full_force.pdf",
@@ -873,12 +877,14 @@ b_cells <- scd$getfeature("QC_good") %in% T
 
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("old_surface_cell_type"))
+system("rm -R results/cell_type/DEA_old_cell_types_full_force")
+system("rm -R results/cell_type/DEA_old_cell_types_full_force_classification_lpls*")
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "old_surface_cell_type",
   features = marker_list,
   genes = unique(c(marker_list, genes_list, DEA_genes)),
-  ncores = 10,
+  ncores = 16,
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_old_cell_types_full_force",
   force  = genes_list,
@@ -888,8 +894,9 @@ save(
   DEA_cell_type_classification,
   file = "results/cell_type/DEA_old_cell_types_full_force_splsstab.Rdata"
 )
+system("~/scripts/sms.sh \"PLS done\"")
 
-load("results/cell_type/DEA_old_cell_types_all_splsstab.Rdata")
+load("results/cell_type/DEA_old_cell_types_full_force_splsstab.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T
 str(DEA_cell_type_classification$classification$fit_spls$fit$selected)
 cell_type_groups <- rep(NA, scd$getncells)
@@ -908,10 +915,14 @@ genes_list <- c("NELL2", "LTB", "GZMK", "IL7R", "GZMM", "CCL5", "NKG7", "CST7",
   "PRDM1", "ZNF683", "TBX21", "ZEB2", "HOPX", "CD69", "KLRB1", "KLRG1",
   "PDCD1", "CTLA4", "TIGIT", "TIMD4", "HAVCR2", "KLRD1", "CD2", "CD3E", "CD3D",
   "CD3G", "CD8A", "CD8B", "CD4")
+
+genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+  "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+  "NELL2", "CCR7")
 per_genes_barplot(
   scd = scd$select(b_cells = b_cells),
   genes = genes_list,
-  features = c("ccr7", "il7ra", "pDEA_cell_type"),
+  features = c("ccr7", "il7ra", "pDEA_old_cell_type"),
   order_by = "pDEA_old_cell_type",
   color_by = "DEA_old_cell_type",
   file = "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_DEA_old_cell_type_full_force.pdf",
@@ -919,11 +930,11 @@ per_genes_barplot(
 )
 
 ################################################################################
-# classification on DEA genes for old_surface_cell_type
+# classification on DEA genes for raw_old_surface_cell_type
 
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/cell_type/counts_QC_raw_old_surface_cell_type.Rdata")
+load("results/cell_type/cells_counts_QC_raw_old_surface_cell_type.Rdata")
 load("results/cell_type/mbatch_day_raw_old_surface_cell_type_DEA.Rdata")
 b_genes <- !is.na(mbatch_day_raw_old_surface_cell_type_DEA$padj) &
   mbatch_day_raw_old_surface_cell_type_DEA$padj < 0.05
@@ -950,8 +961,9 @@ save(
   DEA_cell_type_classification,
   file = "results/cell_type/DEA_raw_old_cell_types_full_force_splsstab.Rdata"
 )
+system("~/scripts/sms.sh \"PLS done\"")
 
-load("results/cell_type/DEA_raw_old_cell_types_all_splsstab.Rdata")
+load("results/cell_type/DEA_raw_old_cell_types_full_force_splsstab.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T
 str(DEA_cell_type_classification$classification$fit_spls$fit$selected)
 cell_type_groups <- rep(NA, scd$getncells)
@@ -970,12 +982,69 @@ genes_list <- c("NELL2", "LTB", "GZMK", "IL7R", "GZMM", "CCL5", "NKG7", "CST7",
   "PRDM1", "ZNF683", "TBX21", "ZEB2", "HOPX", "CD69", "KLRB1", "KLRG1",
   "PDCD1", "CTLA4", "TIGIT", "TIMD4", "HAVCR2", "KLRD1", "CD2", "CD3E", "CD3D",
   "CD3G", "CD8A", "CD8B", "CD4")
+
+genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+  "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+  "NELL2", "CCR7")
 per_genes_barplot(
   scd = scd$select(b_cells = b_cells),
   genes = genes_list,
-  features = c("ccr7", "il7ra", "pDEA_cell_type"),
+  features = c("ccr7", "pDEA_raw_old_cell_type"),
   order_by = "pDEA_raw_old_cell_type",
   color_by = "DEA_raw_old_cell_type",
   file = "results/cell_type/per_genes_barplot_counts_QC_DEA_DEA_raw_sold_cell_type_full_force.pdf",
   main = "DEA DEA_raw_old_cell_type full force"
+)
+
+################################################################################
+
+setwd("~/projects/yellow_fever")
+devtools::load_all("../scRNAtools/", reset = T)
+load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+scd_norm <- scd
+load("results/QC/counts_QC.Rdata")
+scd <- scdata$new(
+  infos = scd_norm$getfeatures,
+  counts = scd$getcounts
+)
+load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
+
+genes_PLS <- read.csv("data/genes_PLS.csv")
+surface_marker <- c()
+genes_marker <- c()
+for (marker_type in colnames(genes_PLS)) {
+  for (marker in genes_PLS[[marker_type]]) {
+    if (marker %in% scd$getgenes) {
+      genes_marker <- c(genes_marker, marker)
+    }
+    if (marker %in% colnames(scd$getfeatures)) {
+      surface_marker <- c(surface_marker, marker)
+    }
+  }
+}
+load(
+  file = "results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata",
+  v = T
+)
+b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
+  mbatch_day_surface_cell_type_DEA$padj < 0.05
+DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
+b_cells <- scd$getfeature("QC_good") %in% T
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "surface_cell_type",
+  features = surface_marker,
+  genes = c(genes_marker, DEA_genes),
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_full_force_raw",
+  force  = c(surface_marker, genes_marker),
+  v = T
+)
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_full_force_raw_splsstab.Rdata"
 )
