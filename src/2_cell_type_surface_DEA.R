@@ -277,13 +277,14 @@ devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/cells_counts_QC_old_surface_cell_type.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("old_surface_cell_type"))
 
+system("rm -R results/cell_type/mbatch_day_old_surface_cell_type_DEA")
 system("mkdir -p results/cell_type/mbatch_day_old_surface_cell_type_DEA")
 mbatch_day_old_surface_cell_type_DEA <- DEA(
   scd = scd,
   formula_null = "y ~ (1|batch) + day",
-  formula_full = "y ~ (1|batch) + day + old_old_surface_cell_type",
+  formula_full = "y ~ (1|batch) + day + old_surface_cell_type",
   b_cells = b_cells,
-  cpus = 10,
+  cpus = 15,
   v = F,
   folder_name = "results/cell_type/mbatch_day_old_surface_cell_type_DEA"
 )
