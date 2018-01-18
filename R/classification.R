@@ -197,9 +197,9 @@ multinomial_spls_stab_training <- function(by, data, ncores, file, force) {
       lambda.l1.range = seq(0.05, 0.95, by = 0.05),
       ncomp.range = c(1:min(ncol(data), 3)),
       svd.decompose = FALSE,
-      center.X = TRUE,
+      center.X = FALSE,
       scale.X = TRUE,
-      weighted.center = TRUE,
+      weighted.center = FALSE,
       ncores = ncores,
       verbose = TRUE
     )
@@ -226,9 +226,9 @@ multinomial_spls_cv_training <- function(by, data, ncores, file, force) {
       lambda.l1.range = seq(0.05, 0.95, by = 0.05),
       ncomp.range = c(1:min(ncol(data), 3)),
       svd.decompose = FALSE,
-      center.X = TRUE,
+      center.X = FALSE,
       scale.X = TRUE,
-      weighted.center = TRUE,
+      weighted.center = FALSE,
       ncores = ncores,
       verbose = TRUE
     )
@@ -285,9 +285,9 @@ multinomial_spls_classification <- function(
       ncomp = fit$ncomp.opt,
       Xtest = data,
       svd.decompose = FALSE,
-      X.center = TRUE,
+      X.center = FALSE,
       X.scale = TRUE,
-      weighted.center = TRUE
+      weighted.center = FALSE
     )
     model$groups_names <- fit$group_by$names
     model$groups <- model$groups_names[model$hatYtest + 1]
@@ -412,9 +412,9 @@ logistic_spls_stab_training <- function(by, data, ncores, file, force) {
       lambda.l1.range = seq(0.05, 0.95, by = 0.05),
       ncomp.range = c(1:min(ncol(data), 3)),
       svd.decompose = FALSE,
-      center.X = TRUE,
+      center.X = FALSE,
       scale.X = TRUE,
-      weighted.center = TRUE,
+      weighted.center = FALSE,
       ncores = ncores,
       verbose = TRUE
     )
@@ -441,9 +441,9 @@ logistic_spls_cv_training <- function(by, data, ncores, file, force) {
       lambda.l1.range = seq(0.05, 0.95, by = 0.05),
       ncomp.range = c(1:min(ncol(data), 3)),
       svd.decompose = FALSE,
-      center.X = TRUE,
+      center.X = FALSE,
       scale.X = TRUE,
-      weighted.center = TRUE,
+      weighted.center = FALSE,
       ncores = ncores,
       verbose = TRUE
     )
@@ -501,9 +501,9 @@ logistic_spls_classification <- function(
       ncomp = fit$ncomp.opt,
       Xtest = data,
       svd.decompose = FALSE,
-      X.center = TRUE,
+      X.center = FALSE,
       X.scale = TRUE,
-      weighted.center = TRUE
+      weighted.center = FALSE
     )
     model$groups_names <- fit$group_by$names
     model$groups <- model$groups_names[model$hatYtest + 1]
