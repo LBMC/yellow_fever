@@ -14,6 +14,7 @@ write.csv(to_select, file = "results/cell_type/feature_to_select.csv")
 
 # load selection off genes and makers to classify on
 genes_PLS <- read.csv("data/genes_PLS.csv")
+genes_PLS <- read.csv("~/data/yellow_fever/2017_11_28_List_Laurent_Genes_PLS.csv")
 surface_marker <- c()
 genes_marker <- c()
 for (marker_type in colnames(genes_PLS)) {
@@ -45,7 +46,7 @@ surface_cell_type_classification <- classification(
   feature = "phenotype_surface_cell_type",
   features = surface_marker,
   genes = genes_marker,
-  ncores = 10,
+  ncores = 16,
   algo = "spls_stab",
   output_file = "results/cell_type/surface_cell_types"
 )
@@ -53,7 +54,7 @@ save(
   surface_cell_type_classification,
   file = "results/cell_type/surface_cell_types_all_smplscv.Rdata"
 )
-system("~/scripts/sms.sh \"DEA done\"")
+system("~/scripts/sms.sh \"PLS done\"")
 load("results/cell_type/surface_cell_types_all_smplscv.Rdata")
 
 length(surface_cell_type_classification$groups)
