@@ -110,12 +110,19 @@ The sparse logistic PLS selected the following feature for the classification:
 ```R
 surface_cell_type_classification$classification$fit_spls$fit$selected
 ```
-The surface marker *ccr7* and the genes *GNLY*, *GZMH* and *LTB*.
+The surface marker *ccr7* and *il7ra* and the genes *GNLY*, *GZMB*, *GZMH*, *GZMK*, *KLRD1*, *LTB* and *SELL*.
 
 \begin{center}
   \begin{figure}
     \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_surface_cell_type.pdf}
-    \caption{PLS cell classification on \emph{ccr7} and \emph{il7ra} surface markers)}
+    \caption{PLS cell classification on \emph{ccr7} and \emph{il7ra} surface markers}
+  \end{figure}
+\end{center}
+
+\begin{center}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_surface_cell_type.pdf.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_surface_cell_type_selected.pdf.pdf}
+    \caption{PLS cell classification}
   \end{figure}
 \end{center}
 
@@ -166,14 +173,14 @@ save(
 ```
 
 We filtered out the genes with less than 10% of cells with a non-zero expression
-value, representing 10856 genes.
+value, representing 10848 genes.
 
 ```R
 table(scd$getgenes %in% expressed(scd$select(b_cells = b_cells)))
 ```
 
 We were able to obtain a fit of our model on
-6847 genes, excluding 2117 additional genes.
+6994 genes, excluding 1978 additional genes.
 
 ```R
 table(is.na(mbatch_day_surface_cell_type_DEA$padj))
@@ -183,7 +190,7 @@ Our model test differential genes expression between `surface_cell_type`
 predicted by the first PLS classification while accounting for the batch and
 day effects.
 
-We obtain 49 genes differentially expressed at a FDR level of 0.05.
+We obtain 248 genes differentially expressed at a FDR level of 0.05.
 
 ```R
 table(mbatch_day_surface_cell_type_DEA$padj < 0.05)
@@ -235,48 +242,43 @@ heatmap of the DE genes between `surface_cell_type`.
 
 # PLS classification based the differential expression analysis
 
+To distance ourself from the weight the surface markers play in the first PLS
+classification, we make a second PLS classification using only the 248
+differentially expressed genes. In this analysis we force the usage of the genes
+*GNLY*, *GZMH*, *CCL4*, *KLRD1*, *GZMB*, *ZEB2*, *LTB*, *TCF7*, *CCR7*, *GZMK*
+and *SELL* in the classification.
 
+```R
+load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "surface_cell_type",
+  features = c(),
+  genes = c(genes_marker, DEA_genes),
+  ncores = 16,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_force_full",
+  force = genes_marker,
+)
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_force_full_splsstab.Rdata"
+)
+```
 
 \begin{center}
   \begin{figure}
-    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_surface_cell_type_histogram.pdf}
-    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_DEA_cell_type_histogram.pdf}
-    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_DEA_cell_type_histogram_full.pdf}
-    \caption{PLS cell classification group probability)}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_surface_cell_type.pdf.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_surface_cell_type_selected.pdf.pdf}
+    \caption{1th PLS cell classification}
   \end{figure}
 \end{center}
 
 \begin{center}
   \begin{figure}
-    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_surface_cell_type.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_DEA_cell_type.pdf}
-    \includegraphics[width=0.5\textwidth]{../results/cell_type/counts_QC_DEA_cell_type_full.pdf}
-    \caption{PLS cell classification on \emph{ccr7} and \emph{il7ra} surface markers and PLS DEA classification)}
-  \end{figure}
-\end{center}
-
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D593.pdf}
-    \caption{heatmap for cells classification on DE genes)}
-  \end{figure}
-\end{center}
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D15_full.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D136_full.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_D593_full.pdf}
-    \caption{heatmap for cells classification on DE genes)}
-  \end{figure}
-\end{center}
-
-
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D593.pdf}
-    \caption{correlation plot for cells classification on DE genes}
-  \end{figure}
-\end{center}
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D15_full.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D136_full.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_D593_full.pdf}
-    \caption{correlation plot for cells classification on DE genes}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_DEA_DEA_cell_types_force_full_splsstab.pdf.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_DEA_DEA_cell_types_force_full_splsstab_selected.pdf.pdf}
+    \caption{2nd PLS cell classification}
   \end{figure}
 \end{center}
