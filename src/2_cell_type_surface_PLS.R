@@ -67,6 +67,7 @@ cell_type_pgroups[b_cells] <- surface_cell_type_classification$pgroups
 scd$setfeature("psurface_cell_type", cell_type_pgroups)
 
 save(scd, file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+load(file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
 scd_norm <- scd
 load("results/QC/cells_counts_QC.Rdata")
 scd <- scdata$new(
@@ -74,6 +75,44 @@ scd <- scdata$new(
   counts = scd$getcounts
 )
 save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
+
+genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+"PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+"NELL2", "CCR7")
+b_cells <- scd$getfeature("QC_good") %in% T &
+!is.na(scd$getfeature("surface_cell_type"))
+cell_type_groups <- rep(NA, scd$getncells)
+cell_type_groups[b_cells] <- surface_cell_type_classification$groups
+scd$setfeature("DEA_cell_type", cell_type_groups)
+cell_type_pgroups <- rep(NA, scd$getncells)
+cell_type_pgroups[b_cells] <- surface_cell_type_classification$pgroups
+scd$setfeature("pDEA_cell_type", cell_type_pgroups)
+per_genes_barplot(
+  scd = scd$select(b_cells = b_cells),
+  genes = genes_list,
+  features = c("ccr7", "psurface_cell_type"),
+  order_by = "psurface_cell_type",
+  color_by = "surface_cell_type",
+  file = paste0(
+    "results/cell_type/per_genes_barplot_CB_counts_QC_surface_cell_type.pdf"),
+  main = paste0("surface cell-type PLS")
+)
+
+genes_list <- surface_cell_type_classification$classification$fit_spls$fit$selected
+features_list <- names(scd$getfeatures)[names(scd$getfeatures) %in% genes_list]
+genes_list <- scd$getgenes[scd$getgenes %in% genes_list]
+per_genes_barplot(
+  scd = scd$select(b_cells = b_cells),
+  genes = genes_list,
+  features = c(features_list, "psurface_cell_type"),
+  order_by = "psurface_cell_type",
+  color_by = "surface_cell_type",
+  file = paste0(
+    "results/cell_type/per_genes_barplot_CB_counts_QC_surface_cell_type_selected.pdf"),
+  main = paste0("surface cell-type PLS selected")
+)
+
+
 
 load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
 devtools::load_all("../scRNAtools/", reset = T)
