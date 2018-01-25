@@ -5,7 +5,6 @@ setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
 load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
-
 # load selection off genes and makers to classify on
 genes_PLS <- read.csv("data/genes_PLS.csv")
 genes_PLS <- read.csv("~/data/yellow_fever/2017_11_28_List_Laurent_Genes_PLS.csv")
@@ -21,14 +20,11 @@ for (marker_type in colnames(genes_PLS)) {
     }
   }
 }
-load(
-  file = "results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata",
-  v = T
-)
 b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
   mbatch_day_surface_cell_type_DEA$padj < 0.05
 DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
 b_cells <- scd$getfeature("QC_good") %in% T
+length(DEA_genes)
 
 b_cells <- scd$getfeature("QC_good") %in% T
 DEA_cell_type_classification <- classification(
@@ -233,22 +229,15 @@ save(
 ################################################################################
 
 PLS_types <- c(
-  "DEA_cell_types_all_splsstab",
-  "DEA_cell_types_force_splsstab",
-  "DEA_cell_types_full_splsstab",
-  "DEA_cell_types_force_full_splsstab",
-  "DEA_cell_types_noprot_ssplsstab",
-  "DEA_cell_types_noprot_force_splsstab",
-  "DEA_cell_types_noprot_full_splsstab",
-  "DEA_cell_types_noprot_force_full_splsstab"
+  "DEA_cell_types_force_full_splsstab"
 )
-genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
-  "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
-  "NELL2", "CCR7")
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
 for (PLS_type in PLS_types) {
   if (file.exists(paste0("results/cell_type/", PLS_type, ".Rdata"))) {
+    genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+      "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+      "NELL2", "CCR7")
     load(paste0("results/cell_type/", PLS_type, ".Rdata"), v = T)
     cell_type_groups <- rep(NA, scd$getncells)
     cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
@@ -266,6 +255,20 @@ for (PLS_type in PLS_types) {
         "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_",
         PLS_type,
         ".pdf"),
+      main = paste0("DEA DEA_cell_type ", PLS_type)
+    )
+    genes_list <- DEA_cell_type_classification$classification$fit_spls$fit$selected
+    genes_list <- scd$getgenes[scd$getgenes %in% genes_list]
+    per_genes_barplot(
+      scd = scd$select(b_cells = b_cells),
+      genes = genes_list,
+      features = c("ccr7", "pDEA_cell_type"),
+      order_by = "pDEA_cell_type",
+      color_by = "DEA_cell_type",
+      file = paste0(
+        "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_",
+        PLS_type,
+        "_selected.pdf"),
       main = paste0("DEA DEA_cell_type ", PLS_type)
     )
   }
