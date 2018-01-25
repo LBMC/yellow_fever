@@ -22,18 +22,18 @@ table(batch_surface_cell_type_DEA$padj < 0.05)
 system("mkdir -p results/cell_type/batch_surface_cell_type_DEA")
 b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
 devtools::load_all("../scRNAtools/", reset = T)
-batch_surface_cell_type_DEA <- DEA(
+mbatch_surface_cell_type_DEA <- DEA(
   scd = scd,
-  formula_null = "y ~ batch",
-  formula_full = "y ~ batch + surface_cell_type",
+  formula_null = "y ~ (1|batch)",
+  formula_full = "y ~ (1|batch) + surface_cell_type",
   b_cells = b_cells,
   cpus = 10,
   v = F,
-  folder_name = "results/cell_type/batch_surface_cell_type_DEA"
+  folder_name = "results/cell_type/mbatch_surface_cell_type_DEA"
 )
 save(
-  batch_surface_cell_type_DEA,
-  file = "results/cell_type/batch_surface_cell_type_DEA.Rdata"
+  mbatch_surface_cell_type_DEA,
+  file = "results/cell_type/mbatch_surface_cell_type_DEA.Rdata"
 )
 system("~/scripts/sms.sh \"DEA done\"")
 table(is.na(mbatch_surface_cell_type_DEA$padj))
@@ -58,6 +58,7 @@ save(
 system("~/scripts/sms.sh \"DEA done\"")
 table(is.na(batch_day_surface_cell_type_DEA$padj))
 table(batch_day_surface_cell_type_DEA$padj < 0.05)
+summary(batch_day_surface_cell_type_DEA)
 
 system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_DEA")
 b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
@@ -67,7 +68,7 @@ mbatch_day_surface_cell_type_DEA <- DEA(
   formula_null = "y ~ (1|batch) + day",
   formula_full = "y ~ (1|batch) + day + surface_cell_type",
   b_cells = b_cells,
-  cpus = 10,
+  cpus = 16,
   v = F,
   folder_name = "results/cell_type/mbatch_day_surface_cell_type_DEA"
 )
