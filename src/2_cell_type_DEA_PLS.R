@@ -90,9 +90,33 @@ save(
   DEA_cell_type_classification,
   file = "results/cell_type/DEA_cell_types_force_full_splsstab.Rdata"
 )
+
+load("results/cell_type/DEA_cell_types_force_full_splsstab.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+DEA_cell_type_classification$classification$fit_spls$fit$selected
+cell_type_groups <- rep(NA, scd$getncells)
+cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
+scd$setfeature("DEA_cell_type", cell_type_groups)
+cell_type_pgroups <- rep(NA, scd$getncells)
+cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
+scd$setfeature("pDEA_cell_type", cell_type_pgroups)
+
+save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+load(file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+scd_norm <- scd
+load("results/QC/cells_counts_QC.Rdata")
+scd <- scdata$new(
+  infos = scd_norm$getfeatures,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 ################################################################################
 
 PLS_types <- c(
+  "DEA_cell_types_splsstab",
+  "DEA_cell_types_force_splsstab",
+  "DEA_cell_types_full_splsstab",
   "DEA_cell_types_force_full_splsstab"
 )
 b_cells <- scd$getfeature("QC_good") %in% T &
@@ -121,23 +145,24 @@ for (PLS_type in PLS_types) {
         ".pdf"),
       main = paste0("DEA DEA_cell_type ", PLS_type)
     )
-    genes_list <- DEA_cell_type_classification$classification$fit_spls$fit$selected
-    genes_list <- scd$getgenes[scd$getgenes %in% genes_list]
-    per_genes_barplot(
-      scd = scd$select(b_cells = b_cells),
-      genes = genes_list,
-      features = c("ccr7", "pDEA_cell_type"),
-      order_by = "pDEA_cell_type",
-      color_by = "DEA_cell_type",
-      file = paste0(
-        "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_",
-        PLS_type,
-        "_selected.pdf"),
-      main = paste0("DEA DEA_cell_type ", PLS_type)
-    )
+    # genes_list <- DEA_cell_type_classification$classification$fit_spls$fit$selected
+    # genes_list <- scd$getgenes[scd$getgenes %in% genes_list]
+    # per_genes_barplot(
+    #   scd = scd$select(b_cells = b_cells),
+    #   genes = genes_list,
+    #   features = c("ccr7", "pDEA_cell_type"),
+    #   order_by = "pDEA_cell_type",
+    #   color_by = "DEA_cell_type",
+    #   file = paste0(
+    #     "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_",
+    #     PLS_type,
+    #     "_selected.pdf"),
+    #   main = paste0("DEA DEA_cell_type ", PLS_type, " selected")
+    # )
   }
 }
 
+PLS_type <- PLS_types
 # zoom on EFF cells that are NELL2 and CCR7 positives
 genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY",
   "NELL2", "CCR7")
@@ -152,6 +177,20 @@ b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type")) &
   scd$getfeature("surface_cell_type") %in% "EFF" &
   (scd$getgene("NELL2") > 50 | scd$getgene("CCR7") > 50)
+
+genes_data <- as.data.frame(scd$select(b_cells = b_cells, genes = genes_list)$getcounts)
+genes_data$pDEA_cell_type <- as.numeric(scd$select(b_cells = b_cells)$getfeature("pDEA_cell_type"))
+genes_data$DEA_cell_type <- scd$select(b_cells = b_cells)$getfeature("DEA_cell_type")
+genes_data$id <- scd$select(b_cells = b_cells)$getcells
+head(genes_data)
+genes_data <- reshape2::melt(genes_data, id.vars = c("id", "DEA_cell_type", "pDEA_cell_type"))
+
+head(genes_data)
+
+ggplot(data = genes_data, aes(color = DEA_cell_type, x = variable, y = ascb(value))) +
+geom_violin() +
+geom_jitter(height = 0) +
+theme_bw()
 
 per_genes_barplot(
   scd = scd$select(b_cells = b_cells),
