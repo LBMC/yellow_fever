@@ -252,16 +252,29 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       link = link,
       threshold = 0.05,
       v = v)
-    for (formula in names(formulas)) {
-      models_result[[formula]] <- ziNB_fit(
+    if (formula_null == formula_full) {
+      models_result[["formula_null"]] <- ziNB_fit(
         data = data,
-        formula = formulas[[formula]],
+        formula = formulas[["formula_null"]],
         gene_name = gene_name,
         family = family,
         link = link,
         zi = models_result[["is_zi"]],
         v = v
       )
+      models_result[["formula_full"]] <- models_result[["formula_null"]]
+    } else {
+      for (formula in names(formulas)) {
+        models_result[[formula]] <- ziNB_fit(
+          data = data,
+          formula = formulas[[formula]],
+          gene_name = gene_name,
+          family = family,
+          link = link,
+          zi = models_result[["is_zi"]],
+          v = v
+        )
+      }
     }
     if (!missing(folder_name)) {
       save(
