@@ -27,8 +27,17 @@ classification <- function(
   selection = "stab",
   output_file = "",
   force = c(),
+  weight = TRUE,
   v = F) {
 
+  if (weight) {
+    scd <- weight_genes(
+      scd = scd,
+      genes = genes,
+      cpus = ncores,
+      v = v
+    )
+  }
   to_train_on <- !is.na(scd$getfeature(feature))
   print("training on:")
   group_by <- group_by_transform(
@@ -103,6 +112,82 @@ classification <- function(
 
 logspace <- function( d1, d2, n) {
   return(exp(log(10) * seq(d1, d2, length.out = n)))
+}
+
+weight_regression <- function( gene, scd, v) {
+  data <- data.frame(y = round(scd$getgene(gene)))
+  is_zi <- zi_test(
+    data = data,
+    formula_full = "y ~ 1",
+    gene_name = gene,
+    family = "nbinom1",
+    link = "log",
+    threshold = 0.05,
+    v = v)
+  models_result <- scRNAtools::ziNB_fit(
+    data = data,
+    formula = "y ~ 1",
+    gene_name = gene,
+    family = "nbinom1",
+    link = "log",
+    zi = is_zi,
+    v = v
+  )
+  return(list(
+    gene_weight = 1 - models_result$pz,
+    gene_scale = exp(models_result$b[1]) * models_result$alpha
+  ))
+}
+
+get_weights <- function(scd, genes, cpus = 1, v = TRUE) {
+  genes_list <- as.list(genes)
+  results <- list()
+  if (cpus > 1) {
+    results <- parallel::mclapply(
+      X = genes_list,
+      FUN  = function(x, scd, v){
+        scRNAtools::weight_regression(x, scd, v)
+      },
+      mc.cores = cpus,
+      scd = scd,
+      v = v
+    )
+  } else {
+    results <- lapply(
+      X = genes_list,
+      FUN  = function(x, scd, v){
+        scRNAtools::weight_regression(x, scd, v)
+      },
+      scd = scd,
+      v = v
+    )
+  }
+  names(results) <- genes
+  results_unlisted <- as.data.frame(do.call(rbind, results))
+  results_unlisted$gene <- names(results)
+  return(results_unlisted)
+}
+
+weight_genes <- function(scd, genes, cpus = 1, v = T) {
+  weight <- scRNAtools::get_weights(scd, genes, cpus, v)
+  weighted_counts <- apply(
+    scd$getcounts[, scd$getgenes %in% genes],
+    1,
+    FUN = function(x, weight) {
+      x / weight$gene_scale
+    },
+    weight)
+  weighted_counts <- apply(
+    weighted_counts,
+    1,
+    FUN = function(x, weight) {
+      x * weight$gene_weight
+    },
+    weight)
+  return(scdata$new(
+    infos = scd$getfeatures,
+    counts = weighted_counts
+  ))
 }
 
 get_data <- function(scd, b_cells, features, genes, group_by, v = TRUE) {
