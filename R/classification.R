@@ -133,9 +133,14 @@ weight_regression <- function( gene, scd, v) {
     zi = is_zi,
     v = v
   )
+  zi_weight <- 1
+  if (is_zi) {
+    zi_weight <- 1 - models_result$pz
+  }
   return(list(
-    gene_weight = 1 - models_result$pz,
-    gene_scale = exp(models_result$b[1]) * models_result$alpha
+    gene = gene,
+    gene_weight = zi_weight,
+    gene_scale = exp(models_result$b) * models_result$alpha
   ))
 }
 
@@ -162,28 +167,28 @@ get_weights <- function(scd, genes, cpus = 1, v = TRUE) {
       v = v
     )
   }
-  names(results) <- genes
   results_unlisted <- as.data.frame(do.call(rbind, results))
-  results_unlisted$gene <- names(results)
   return(results_unlisted)
 }
 
 weight_genes <- function(scd, genes, cpus = 1, v = T) {
   weight <- scRNAtools::get_weights(scd, genes, cpus, v)
   weighted_counts <- apply(
-    scd$getcounts[, scd$getgenes %in% genes],
+    scRNAtools::get_genes(scd, genes),
     1,
     FUN = function(x, weight) {
-      x / weight$gene_scale
+      x / as.numeric(weight$gene_scale)
     },
-    weight)
+    weight
+  )
   weighted_counts <- apply(
     weighted_counts,
     1,
     FUN = function(x, weight) {
-      x * weight$gene_weight
+      x * as.numeric(weight$gene_weight)
     },
-    weight)
+    weight
+  )
   return(scdata$new(
     infos = scd$getfeatures,
     counts = weighted_counts
