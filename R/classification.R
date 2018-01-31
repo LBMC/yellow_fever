@@ -31,9 +31,10 @@ classification <- function(
   v = F) {
 
   if (weight) {
-    scd <- weight_genes(
+    scd <- weight_genes_features(
       scd = scd,
       genes = genes,
+      features = features,
       cpus = ncores,
       v = v
     )
@@ -171,7 +172,7 @@ get_weights <- function(scd, genes, cpus = 1, v = TRUE) {
   return(results_unlisted)
 }
 
-weight_genes <- function(scd, genes, cpus = 1, v = T) {
+weight_genes_features <- function(scd, genes, features, cpus = 1, v = T) {
   weight <- scRNAtools::get_weights(scd, genes, cpus, v)
   weighted_counts <- apply(
     scRNAtools::get_genes(scd, genes),
@@ -189,8 +190,17 @@ weight_genes <- function(scd, genes, cpus = 1, v = T) {
     },
     weight
   )
+  infos <- scd$getfeatures
+  if (length(features) > 0) {
+    infos[, features] <- apply(
+      infos[, features],
+      2,
+      FUN = function(x) {
+        scale(as.numeric(as.vector(x)))
+      })
+  }
   return(scdata$new(
-    infos = scd$getfeatures,
+    infos = infos,
     counts = weighted_counts
   ))
 }
