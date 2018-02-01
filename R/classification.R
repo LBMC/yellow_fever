@@ -146,7 +146,7 @@ weight_regression <- function( gene, scd, v) {
 }
 
 get_weights <- function(scd, genes, cpus = 1, v = TRUE) {
-  genes_list <- as.list(genes)
+  genes_list <- as.list(unique(genes))
   results <- list()
   if (cpus > 1) {
     results <- parallel::mclapply(
