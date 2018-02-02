@@ -3,10 +3,9 @@
 
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
-load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
 # load selection off genes and makers to classify on
 genes_PLS <- read.csv("data/genes_PLS.csv")
+genes_PLS <- read.csv("~/data/yellow_fever/2017_11_28_List_Laurent_Genes_PLS.csv")
 surface_marker <- c()
 genes_marker <- c()
 for (marker_type in colnames(genes_PLS)) {
@@ -19,6 +18,78 @@ for (marker_type in colnames(genes_PLS)) {
     }
   }
 }
+
+# with weights
+devtools::load_all("../scRNAtools/", reset = T)
+load("results/cell_type/CB_counts_QC_surface_cell_type_weighted.Rdata")
+load("results/cell_type/mbatch_day_surface_cell_type_weighted_DEA.Rdata")
+b_genes <- !is.na(mbatch_day_surface_cell_type_weighted_DEA$padj) &
+  mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05
+DEA_genes <- mbatch_day_surface_cell_type_weighted_DEA$gene[b_genes]
+b_cells <- scd$getfeature("QC_good") %in% T
+length(DEA_genes)
+
+b_cells <- scd$getfeature("QC_good") %in% T
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "phenotype_surface_cell_type",
+  features = c(),
+  genes = c(genes_marker, DEA_genes),
+  ncores = 16,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force",
+  force = genes_marker,
+  v = T
+)
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_weighted_force_splsstab.Rdata"
+)
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "surface_cell_type",
+  features = c(),
+  genes = c(genes_marker, DEA_genes),
+  ncores = 16,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force_full",
+  force = genes_marker,
+)
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata"
+)
+
+load("results/cell_type/DEA_cell_types_force_full_splsstab.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+DEA_cell_type_classification$classification$fit_spls$fit$selected
+cell_type_groups <- rep(NA, scd$getncells)
+cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
+scd$setfeature("DEA_cell_type", cell_type_groups)
+cell_type_pgroups <- rep(NA, scd$getncells)
+cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
+scd$setfeature("pDEA_cell_type", cell_type_pgroups)
+
+save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+load(file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+scd_norm <- scd
+load("results/QC/cells_counts_QC.Rdata")
+scd <- scdata$new(
+  infos = scd_norm$getfeatures,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+
+
+# small DEA to get PLS weights
+load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
 b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
   mbatch_day_surface_cell_type_DEA$padj < 0.05
 DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
@@ -34,6 +105,7 @@ DEA_cell_type_classification <- classification(
   ncores = 16,
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_cell_types",
+  weight = FALSE,
   v = T
 )
 save(
@@ -50,6 +122,7 @@ DEA_cell_type_classification <- classification(
   genes = c(genes_marker, DEA_genes),
   ncores = 16,
   algo = "spls_stab",
+  weight = FALSE,
   output_file = "results/cell_type/DEA_cell_types_full"
 )
 save(
@@ -67,6 +140,7 @@ DEA_cell_type_classification <- classification(
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_cell_types_force",
   force = genes_marker,
+  weight = FALSE,
   v = T
 )
 save(
@@ -84,6 +158,7 @@ DEA_cell_type_classification <- classification(
   ncores = 16,
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_cell_types_force_full",
+  weight = FALSE,
   force = genes_marker,
 )
 save(
@@ -114,6 +189,8 @@ save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 ################################################################################
 
 PLS_types <- c(
+  "DEA_cell_types_weighted_force_splsstab",
+  "DEA_cell_types_weighted_force_full_splsstab",
   "DEA_cell_types_splsstab",
   "DEA_cell_types_force_splsstab",
   "DEA_cell_types_full_splsstab",
@@ -145,65 +222,8 @@ for (PLS_type in PLS_types) {
         ".pdf"),
       main = paste0("DEA DEA_cell_type ", PLS_type)
     )
-    # genes_list <- DEA_cell_type_classification$classification$fit_spls$fit$selected
-    # genes_list <- scd$getgenes[scd$getgenes %in% genes_list]
-    # per_genes_barplot(
-    #   scd = scd$select(b_cells = b_cells),
-    #   genes = genes_list,
-    #   features = c("ccr7", "pDEA_cell_type"),
-    #   order_by = "pDEA_cell_type",
-    #   color_by = "DEA_cell_type",
-    #   file = paste0(
-    #     "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_",
-    #     PLS_type,
-    #     "_selected.pdf"),
-    #   main = paste0("DEA DEA_cell_type ", PLS_type, " selected")
-    # )
   }
 }
-
-PLS_type <- PLS_types
-# zoom on EFF cells that are NELL2 and CCR7 positives
-genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY",
-  "NELL2", "CCR7")
-load(paste0("results/cell_type/", PLS_type, ".Rdata"), v = T)
-cell_type_groups <- rep(NA, scd$getncells)
-cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
-scd$setfeature("DEA_cell_type", cell_type_groups)
-cell_type_pgroups <- rep(NA, scd$getncells)
-cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
-scd$setfeature("pDEA_cell_type", cell_type_pgroups)
-b_cells <- scd$getfeature("QC_good") %in% T &
-  !is.na(scd$getfeature("surface_cell_type")) &
-  scd$getfeature("surface_cell_type") %in% "EFF" &
-  (scd$getgene("NELL2") > 50 | scd$getgene("CCR7") > 50)
-
-genes_data <- as.data.frame(scd$select(b_cells = b_cells, genes = genes_list)$getcounts)
-genes_data$pDEA_cell_type <- as.numeric(scd$select(b_cells = b_cells)$getfeature("pDEA_cell_type"))
-genes_data$DEA_cell_type <- scd$select(b_cells = b_cells)$getfeature("DEA_cell_type")
-genes_data$id <- scd$select(b_cells = b_cells)$getcells
-head(genes_data)
-genes_data <- reshape2::melt(genes_data, id.vars = c("id", "DEA_cell_type", "pDEA_cell_type"))
-
-head(genes_data)
-
-ggplot(data = genes_data, aes(color = DEA_cell_type, x = variable, y = ascb(value))) +
-geom_violin() +
-geom_jitter(height = 0) +
-theme_bw()
-
-per_genes_barplot(
-  scd = scd$select(b_cells = b_cells),
-  genes = genes_list,
-  features = c("ccr7", "pDEA_cell_type"),
-  order_by = "pDEA_cell_type",
-  quantile_cut = 0.5,
-  color_by = "DEA_cell_type",
-  file = paste0(
-    "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_DEA_cell_types_force_full_splsstab_zoom.pdf"),
-  main = paste0("DEA DEA_cell_type ", PLS_type)
-)
-
 
 ################################################################################
 load("results/cell_type/DEA_cell_types_all_splsstab.Rdata")
