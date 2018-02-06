@@ -55,7 +55,7 @@ save(
   file = "results/cell_type/surface_cell_types_weighted_all_smplscv.Rdata"
 )
 system("~/scripts/sms.sh \"PLS done\"")
-load("results/cell_type/surface_cell_types_all_smplscv.Rdata")
+load("results/cell_type/surface_cell_types_weighted_all_smplscv.Rdata")
 
 length(surface_cell_type_classification$groups)
 surface_cell_type_classification$classification$fit_spls$fit$selected
