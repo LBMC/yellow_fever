@@ -62,7 +62,7 @@ classification <- function(
     }
   }
   print("training PLS...")
-  algo_training <- get(paste0(model_type, "_", algo , "_training"))
+  algo_training <- get(paste0(model_type, "_", algo, "_training"))
   training <- algo_training(
     by = rm_data_train$group_by,
     data = rm_data_train$data,
@@ -173,6 +173,7 @@ get_weights <- function(scd, genes, cpus = 1, v = TRUE) {
 }
 
 weight_genes_features <- function(scd, genes, features, cpus = 1, v = T) {
+  print("scaling genes...")
   weight <- scRNAtools::get_weights(scd, genes, cpus, v)
   weighted_counts <- apply(
     scRNAtools::get_genes(scd, genes),
@@ -192,6 +193,7 @@ weight_genes_features <- function(scd, genes, features, cpus = 1, v = T) {
   )
   infos <- scd$getfeatures
   if (length(features) > 0) {
+    print("scaling features...")
     infos[, features] <- apply(
       infos[, features],
       2,
@@ -243,7 +245,8 @@ get_features <- function(scd, features, v = TRUE) {
   if (!missing(features)) {
     if (length(features) == 1) {
       data <- scd$getfeature(features)
-    } else {
+    }
+    if (length(features) > 1) {
       data <- scd$select(features = unique(features))$getfeatures
     }
   }
