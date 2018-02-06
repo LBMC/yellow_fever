@@ -298,7 +298,7 @@ multinomial_spls_stab_training <- function(by, data, ncores, file, force) {
       ncomp.range = c(1:min(ncol(data), 3)),
       svd.decompose = FALSE,
       center.X = FALSE,
-      scale.X = TRUE,
+      scale.X = FALSE,
       weighted.center = FALSE,
       ncores = ncores,
       verbose = TRUE
@@ -327,7 +327,7 @@ multinomial_spls_cv_training <- function(by, data, ncores, file, force) {
       ncomp.range = c(1:min(ncol(data), 3)),
       svd.decompose = FALSE,
       center.X = FALSE,
-      scale.X = TRUE,
+      scale.X = FALSE,
       weighted.center = FALSE,
       ncores = ncores,
       verbose = TRUE
@@ -513,7 +513,7 @@ logistic_spls_stab_training <- function(by, data, ncores, file, force) {
       ncomp.range = c(1:min(ncol(data), 3)),
       svd.decompose = FALSE,
       center.X = FALSE,
-      scale.X = TRUE,
+      scale.X = FALSE,
       weighted.center = FALSE,
       ncores = ncores,
       verbose = TRUE
@@ -542,7 +542,7 @@ logistic_spls_cv_training <- function(by, data, ncores, file, force) {
       ncomp.range = c(1:min(ncol(data), 3)),
       svd.decompose = FALSE,
       center.X = FALSE,
-      scale.X = TRUE,
+      scale.X = FALSE,
       weighted.center = FALSE,
       ncores = ncores,
       verbose = TRUE
@@ -602,7 +602,7 @@ logistic_spls_classification <- function(
       Xtest = data,
       svd.decompose = FALSE,
       X.center = FALSE,
-      X.scale = TRUE,
+      X.scale = FALSE,
       weighted.center = FALSE
     )
     model$groups_names <- fit$group_by$names
