@@ -29,6 +29,7 @@ DEA_genes <- mbatch_day_surface_cell_type_weighted_DEA$gene[b_genes]
 b_cells <- scd$getfeature("QC_good") %in% T
 length(DEA_genes)
 
+devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
@@ -46,6 +47,7 @@ save(
   DEA_cell_type_classification,
   file = "results/cell_type/DEA_cell_types_weighted_force_splsstab.Rdata"
 )
+system("~/scripts/sms.sh \"PLS done\"")
 
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
@@ -64,8 +66,9 @@ save(
   DEA_cell_type_classification,
   file = "results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata"
 )
+system("~/scripts/sms.sh \"PLS done\"")
 
-load("results/cell_type/DEA_cell_types_force_full_splsstab.Rdata")
+load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
 DEA_cell_type_classification$classification$fit_spls$fit$selected
@@ -203,7 +206,7 @@ for (PLS_type in PLS_types) {
     genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
       "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
       "NELL2", "CCR7")
-    load(paste0("results/cell_type/", PLS_type, ".Rdata"), v = T)
+    load(paste0("results/cell_type/", PLS_type[1], ".Rdata"), v = T)
     cell_type_groups <- rep(NA, scd$getncells)
     cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
     scd$setfeature("DEA_cell_type", cell_type_groups)
@@ -221,6 +224,21 @@ for (PLS_type in PLS_types) {
         PLS_type,
         ".pdf"),
       main = paste0("DEA DEA_cell_type ", PLS_type)
+    )
+    genes_list <- DEA_cell_type_classification$classification$fit_spls$fit$selected
+    features_list <- names(scd$getfeatures)[names(scd$getfeatures) %in% genes_list]
+    genes_list <- scd$getgenes[scd$getgenes %in% genes_list]
+    per_genes_barplot(
+      scd = scd$select(b_cells = b_cells),
+      genes = genes_list,
+      features = c(features_list, "psurface_cell_type"),
+      order_by = "psurface_cell_type",
+      color_by = "surface_cell_type",
+      file = paste0(
+        "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_",
+        PLS_type,
+        "_selected.pdf"),
+        main = paste0("DEA DEA_cell_type ", PLS_type, "_selected")
     )
   }
 }
