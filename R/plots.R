@@ -810,10 +810,13 @@ heatmap_annotation <- function(
   color <- list()
   continuous <- list()
   feature_number <- 1
+  if (is.null(names(features))) {
+    names(features) <- features
+  }
   for (feature in features){
     if (factor[feature_number]) {
       df[[feature]] <- as.factor(as.vector(scd$getfeature(feature)))
-      fun_palette <- get(paste0(feature, "_palette"))
+      fun_palette <- get(paste0(names(feature), "_palette"))
       color[[feature]] <- fun_palette(levels(df[[feature]]))
     } else {
       df[[feature]] <- as.numeric(as.vector(scd$getfeature(feature)))
