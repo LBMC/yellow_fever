@@ -288,18 +288,13 @@ predicted by the first PLS classification while accounting for the batch at D15.
 
 We obtain 143 genes differentially expressed at a FDR level of 0.05.
 
-\begin{center}
+<!-- \begin{center}
   \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/pca/pca_CB_counts_QC_DEA_D15_DEA_cell_type.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/pcmf/pcmf_CB_counts_QC_DEA_D15_DEA_cell_type.pdf.pdf}
-    \caption{PCA and pCMF plot on DE genes at D15)}
-  \end{figure}
-\end{center}
-
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_D15_DEA_cell_type.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_D15_DEA_cell_type.pdf}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_D15_DEA_cell_type.pdf} \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEAD15_DEA_cell_type.pdf}
   \caption{heatmaps on DE genes at D15}
 \end{figure}
+\end{center} -->
+
 
 ## day 136
 
@@ -314,18 +309,12 @@ predicted by the first PLS classification while accounting for the batch at D136
 
 We obtain 151 genes differentially expressed at a FDR level of 0.05.
 
-\begin{center}
+<!-- \begin{center}
   \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/pca/pca_CB_counts_QC_DEA_D136_DEA_cell_type.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/pcmf/pcmf_CB_counts_QC_DEA_D136_DEA_cell_type.pdf.pdf}
-    \caption{PCA and pCMF plot on DE genes at D136)}
-  \end{figure}
-\end{center}
-
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_D136_DEA_cell_type.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_D136_DEA_cell_type.pdf}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_D136_DEA_cell_type.pdf} \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEAD136_DEA_cell_type.pdf}
   \caption{heatmaps on DE genes at D136}
 \end{figure}
+\end{center} -->
 
 ## day 593
 
@@ -340,15 +329,9 @@ predicted by the first PLS classification while accounting for the batch at D593
 
 We obtain 164 genes differentially expressed at a FDR level of 0.05.
 
-\begin{center}
+<!-- \begin{center}
   \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/pca/pca_CB_counts_QC_DEA_D593_DEA_cell_type.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/pcmf/pcmf_CB_counts_QC_DEA_D593_DEA_cell_type.pdf.pdf}
-    \caption{PCA and pCMF plot on DE genes at D593)}
-  \end{figure}
-\end{center}
-
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_D593_DEA_cell_type.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_D593_DEA_cell_type.pdf}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_D593_DEA_cell_type.pdf} \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEAD593_DEA_cell_type.pdf}
   \caption{heatmaps on DE genes at D593}
 \end{figure}
+\end{center} -->
