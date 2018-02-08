@@ -113,6 +113,9 @@ for (day in c("D15", "D136", "D593")) {
   print(table(scd$getgenes %in% expressed(scd$select(b_cells = b_cells))))
   print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
   print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
+  write.csv(
+    mbatch_DEA_cell_type_DEA,
+    file = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.csv"))
 }
 
 load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
