@@ -77,6 +77,7 @@ scd <- scdata$new(
 save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 
 load(file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+
 genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
 "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
 "NELL2", "CCR7")
@@ -109,7 +110,7 @@ per_genes_barplot(
   order_by = "psurface_cell_type",
   color_by = "surface_cell_type",
   file = paste0(
-    "results/cell_type/per_genes_barplot_CB_counts_QC_surface_cell_type.pdf"),
+    "results/cell_type/per_genes_barplot_CB_counts_QC_surface_cell_type_selected.pdf"),
   main = paste0("surface cell-type PLS selected")
 )
 
