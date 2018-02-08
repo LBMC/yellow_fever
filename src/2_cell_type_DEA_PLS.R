@@ -70,7 +70,8 @@ scd <- scdata$new(
 save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 
 ################################################################################
-
+load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata")
+load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 PLS_types <- c(
   "DEA_cell_types_weighted_force_full_splsstab"
 )
