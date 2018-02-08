@@ -107,9 +107,9 @@ for (PLS_type in PLS_types) {
     per_genes_barplot(
       scd = scd$select(b_cells = b_cells),
       genes = genes_list,
-      features = c(features_list, "psurface_cell_type"),
-      order_by = "psurface_cell_type",
-      color_by = "surface_cell_type",
+      features = c("ccr7", "pDEA_cell_type"),
+      order_by = "pDEA_cell_type",
+      color_by = "DEA_cell_type",
       file = paste0(
         "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_",
         PLS_type,
