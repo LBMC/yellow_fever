@@ -286,3 +286,56 @@ for (day in c("D15", "D136", "D593")) {
   )
   print(hm_corr)
 }
+
+################################################################################
+# DEA PLS for the F data
+setwd("~/projects/yellow_fever")
+devtools::load_all("../scRNAtools/", reset = T)
+
+load(file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+scd_PLS <- scd
+load("results/QC/CB_counts_QC_F.Rdata")
+scd <- scdata$new(
+  infos = scd_PLS$getfeatures,
+  counts = scd$getcounts
+)
+
+b_cells <- scd$getfeature("QC_good") %in% T
+
+load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata")
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "DEA_cell_type",
+  features = c(),
+  genes = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  ncores = 16,
+  algo = "pls_cv",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force_full_F"
+)
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_weighted_force_full_splsstab_F.Rdata"
+)
+system("~/scripts/sms.sh \"PLS done\"")
+
+load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+DEA_cell_type_classification$classification$fit_spls$fit$selected
+cell_type_groups <- rep(NA, scd$getncells)
+cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
+scd$setfeature("DEA_cell_type", cell_type_groups)
+cell_type_pgroups <- rep(NA, scd$getncells)
+cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
+scd$setfeature("pDEA_cell_type", cell_type_pgroups)
+
+save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
+load(file = "results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
+scd_norm <- scd
+load("results/QC/cells_counts_QC_F.Rdata")
+scd <- scdata$new(
+  infos = scd_norm$getfeatures,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_F.Rdata")
