@@ -184,7 +184,7 @@ weight_genes_features <- function(scd, genes, features, cpus = 1, v = T) {
     weight
   )
   weighted_counts <- apply(
-    weighted_counts,
+    t(weighted_counts),
     1,
     FUN = function(x, weight) {
       x * as.numeric(weight$gene_weight)
@@ -203,7 +203,7 @@ weight_genes_features <- function(scd, genes, features, cpus = 1, v = T) {
   }
   return(scdata$new(
     infos = infos,
-    counts = weighted_counts
+    counts = t(weighted_counts)
   ))
 }
 
