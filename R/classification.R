@@ -81,6 +81,10 @@ classification <- function(
   )
   print("predicting from PLS model...")
   algo_classification <- get(paste0(model_type, "_", algo , "_classification"))
+  if (length(training$group$by) != nrow(rm_data_train$data)) {
+    print("reusing old model for prediction, adjusting grouping factor...")
+    training$group_by <- rm_data_train$group_by
+  }
   classification <- algo_classification(
     fit = training,
     data = rm_data$data,
@@ -567,6 +571,7 @@ logistic_spls_stab_classification <- function(
     force
   ))
   print("training PLS with selected genes...")
+  print(fit$fit$selected)
   fit_pls <- logistic_pls_cv_training(
     by = fit$fit$group_by,
     data = data_train[, fit$fit$selected],
@@ -574,6 +579,10 @@ logistic_spls_stab_classification <- function(
     file = file,
     force = force
   )
+  if (length(fit_pls$group_by$by) != length(fit$fit$group_by$by)) {
+    fit_pls$group_by <- fit$group_by
+    fit_pls$fit$group_by <- fit$group_by
+  }
   model <- logistic_pls_cv_classification(
     fit = fit_pls$fit,
     data = data[, fit$fit$selected],
