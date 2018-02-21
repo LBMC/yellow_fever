@@ -250,3 +250,41 @@ save(scd, file = "results/QC/CB_counts_QC.Rdata")
     \caption{pCMF plot for cells and batch effect normalization}
   \end{figure}
 \end{center}
+
+# analysis of the Female donor data
+
+For the female donor, we knew before hand that the data were of lesser quality
+and with fewer cells. To be more precise and to obtain a comparable QC methods
+with the Male donor we used the results of the Male QC analysis as a learning
+set to classify the Female cells.
+
+We start by attributing the `QC_score` of 0.5 to all Female cells, which should
+place them between the blank looking and non blank looking Male cells.
+
+```R
+scd$setfeature("QC_score",
+  ifelse(scd$getfeature("sex") %in% "F",
+    0.5,
+    scd$getfeature("QC_score")
+  )
+)
+scd$setfeature("to_QC",
+  ifelse(scd$getfeature("sex") %in% "F",
+    TRUE,
+    scd$getfeature("to_QC")
+  )
+)
+```
+
+Then we use an SVM classification learning from the set of `QC_good == T` and
+the set of `QC_good == F` in the Male donor.
+
+```R
+scRNAtools::QC_classification(
+  scd = scd,
+  is_blank = scd$getfeature("QC_score") <= 0.5
+)
+save(scd, file = "results/QC/counts_QC_F.Rdata")
+```
+
+We identify 314 cells looking like blanks and 262 cells looking like non blanks.
