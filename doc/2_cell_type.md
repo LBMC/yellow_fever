@@ -180,7 +180,7 @@ table(scd$getgenes %in% expressed(scd$select(b_cells = b_cells)))
 ```
 
 We were able to obtain a fit of our model on
-6994 genes, excluding 1978 additional genes.
+7471 genes, excluding 1501 additional genes.
 
 ```R
 table(is.na(mbatch_day_surface_cell_type_DEA$padj))
@@ -190,7 +190,7 @@ Our model test differential genes expression between `surface_cell_type`
 predicted by the first PLS classification while accounting for the batch and
 day effects.
 
-We obtain 248 genes differentially expressed at a FDR level of 0.05.
+We obtain 221 genes differentially expressed at a FDR level of 0.05.
 
 ```R
 table(mbatch_day_surface_cell_type_DEA$padj < 0.05)
@@ -243,7 +243,7 @@ heatmap of the DE genes between `surface_cell_type`.
 # PLS classification based the differential expression analysis
 
 To distance ourself from the weight the surface markers play in the first PLS
-classification, we make a second PLS classification using only the 248
+classification, we make a second PLS classification using only the 227
 differentially expressed genes. In this analysis we force the usage of the genes
 *GNLY*, *GZMH*, *CCL4*, *KLRD1*, *GZMB*, *ZEB2*, *LTB*, *TCF7*, *CCR7*, *GZMK*
 and *SELL* in the classification.
