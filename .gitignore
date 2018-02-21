@@ -3,3 +3,4 @@ bin/*
 results/*
 doc/*.pdf
 *.ipynb*
+*DS_Store
