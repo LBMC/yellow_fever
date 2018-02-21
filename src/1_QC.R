@@ -481,6 +481,8 @@ save(scd, file = "results/QC/counts_QC_F.Rdata")
 b_cells = scd$getfeature('sex') %in% "F"
 summary(scd$select(b_cells = b_cells)$getfeature("QC_good"))
 
+table(scd$getfeature('sex'), scd$getfeature("QC_good"))
+
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "QC_good", color_name = "antigen",
   tmp_file = "results/tmp/pca_counts_F_tmp.Rdata",
