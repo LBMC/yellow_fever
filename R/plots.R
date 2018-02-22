@@ -825,11 +825,12 @@ heatmap_annotation <- function(
       )
       continuous[[feature]] <- list(color_bar = "continuous")
     }
+    df[[feature]] <- df[[feature]][cells_order]
     feature_number <- feature_number + 1
   }
   df <- data.frame(df)
   ha <- ComplexHeatmap::HeatmapAnnotation(
-    df = df[cells_order, ],
+    df = df,
     show_legend = rep(TRUE, ncol(df)),
     col = color,
     annotation_legend_param = continuous
@@ -876,20 +877,22 @@ heatmap_genes <- function(
   factor = rep(TRUE, length(features)),
   show_legend = TRUE,
   title = "",
-  file
+  file,
+  FUN = function(x){
+      x <- ascb(x, to_zero = TRUE) - ascb(mean(x), to_zero = TRUE)
+    }
 ) {
   ha <- heatmap_annotation(
     scd = scd,
     features = features,
     factor = factor,
     show_legend = show_legend,
-    cells_order
+    cells_order = cells_order
   )
   h_data <- count_scale_and_color(scd$getcounts,
     quant = TRUE,
-    FUN = function(x){
-      x <- ascb(x, to_zero = TRUE) - ascb(mean(x), to_zero = TRUE)
-    })
+    FUN = FUN
+  )
   h_data$counts <- h_data$counts[cells_order, genes_order]
   hmap <- ComplexHeatmap::Heatmap(t(h_data$counts),
     name = "expression",
@@ -945,7 +948,7 @@ heatmap_corr_genes <- function(
     features = features,
     factor = factor,
     show_legend = show_legend,
-    cells_order
+    cells_order = cells_order
   )
   h_data <- scd$getcounts
   h_data <- h_data[cells_order, ]
