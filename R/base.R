@@ -365,6 +365,44 @@ order_by_groups <- function(score, by, FUN = mean){
   return(order(score_by))
 }
 
+#' return scalled counts for zidata
+#' @param scd scdata object to scale
+#' @return return scdata object with scaled counts
+#' @examples
+#' \dontrun{
+#' scd_norm = zinorm(scd)
+#' }
+#' @export zinorm
+zinorm <- function(scd, cpu = 4, v = F){
+  weight <- scRNAtools::get_weights(
+    scd = scd,
+    genes = scd$getgenes,
+    cpus = cpus,
+    v = v
+  )
+  weighted_counts <- apply(
+    scRNAtools::get_genes(scd, genes),
+    1,
+    FUN = function(x, weight) {
+      x / as.numeric(weight$gene_scale)
+    },
+    weight
+  )
+  weighted_counts <- apply(
+    t(weighted_counts),
+    1,
+    FUN = function(x, weight) {
+      x * as.numeric(weight$gene_weight)
+    },
+    weight
+  )
+  return(scdata$new(
+    infos = scd$getfeatures,
+    counts = t(weighted_counts)
+  ))
+  return(order(score_by))
+}
+
 #' return order base on the rank FUN in groups
 #' @param scd an scdata object
 #' @param by factor to group on
