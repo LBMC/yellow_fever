@@ -373,34 +373,43 @@ order_by_groups <- function(score, by, FUN = mean){
 #' scd_norm = zinorm(scd)
 #' }
 #' @export zinorm
-zinorm <- function(scd, cpu = 4, v = F){
-  weight <- scRNAtools::get_weights(
-    scd = scd,
-    genes = scd$getgenes,
-    cpus = cpus,
-    v = v
-  )
-  weighted_counts <- apply(
-    scRNAtools::get_genes(scd, genes),
-    1,
-    FUN = function(x, weight) {
-      x / as.numeric(weight$gene_scale)
-    },
-    weight
-  )
-  weighted_counts <- apply(
-    t(weighted_counts),
-    1,
-    FUN = function(x, weight) {
-      x * as.numeric(weight$gene_weight)
-    },
-    weight
-  )
-  return(scdata$new(
-    infos = scd$getfeatures,
-    counts = t(weighted_counts)
-  ))
-  return(order(score_by))
+zinorm <- function(scd, cpu = 4, v = F, file){
+  if(!missing(file) & file.exists(file)){
+    print("cache found...")
+    load(file)
+  } else {
+    print("computing weight...")
+    weight <- scRNAtools::get_weights(
+      scd = scd,
+      genes = scd$getgenes,
+      cpus = cpus,
+      v = v
+    )
+    weighted_counts <- apply(
+      scRNAtools::get_genes(scd, genes),
+      1,
+      FUN = function(x, weight) {
+        x / as.numeric(weight$gene_scale)
+      },
+      weight
+    )
+    weighted_counts <- apply(
+      t(weighted_counts),
+      1,
+      FUN = function(x, weight) {
+        x * as.numeric(weight$gene_weight)
+      },
+      weight
+    )
+    scd_norm <- scdata$new(
+      infos = scd$getfeatures,
+      counts = t(weighted_counts)
+    )
+  }
+  if(!missing(file) & !file.exists(file)){
+    save(scd_norm, file = file)
+  }
+  return(scd_norm)
 }
 
 #' return order base on the rank FUN in groups
