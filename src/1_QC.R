@@ -478,6 +478,8 @@ scRNAtools::QC_classification(
 )
 save(scd, file = "results/QC/counts_QC_F.Rdata")
 
+load(file = "results/QC/counts_QC_F.Rdata")
+
 b_cells = scd$getfeature('sex') %in% "F"
 summary(scd$select(b_cells = b_cells)$getfeature("QC_good"))
 
