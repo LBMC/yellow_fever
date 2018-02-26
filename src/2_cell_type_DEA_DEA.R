@@ -28,6 +28,70 @@ for (day in c("D15", "D136", "D593")) {
   print(table(mbatch_surface_cell_type_DEA$padj < 0.05))
 }
 
+system("mkdir -p results/cell_type/heatmap/")
+devtools::load_all("../scRNAtools/", reset = T)
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "M"
+DEA_cell_type_palette <- cell_type_palette
+for (day in c("D15", "D136", "D593")) {
+  load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
+  b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
+    mbatch_DEA_cell_type_DEA$padj < 0.05
+  DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
+  scd_norm <- zinorm(
+    scd = scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes = DEA_genes
+    ),
+    cpus = 10,
+    file = paste0("results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
+      day, ".RData")
+  )
+  hm <- heatmap_genes(
+    scd = scd_norm,
+    features = c("DEA_cell_type", "day", "pDEA_cell_type"),
+    cells_order = order(
+      as.numeric(as.vector(
+        scd_norm$getfeature("pDEA_cell_type")
+      ))
+    ),
+    genes_order = order_2_groups(
+      scd = scd_norm,
+      by = scd_norm$getfeature("DEA_cell_type")
+    ),
+    title = paste0("DE genes between DEA_cell_type ", day),
+    factor = c(T, T, F),
+    file = paste0(
+      "results/cell_type/heatmap/hm_CB_counts_QC_DEA_cell_type_",
+      day, ".pdf"
+    )
+  )
+  print(hm)
+
+  genes_top <- top_2_groups(
+    scd = scd_norm,
+    by = scd_norm$getfeature("DEA_cell_type"),
+    top = 100
+  )
+  hm_corr <- heatmap_corr_genes(
+    scd = scd_norm$select(genes = genes_top),
+    features = c("DEA_cell_type", "day", "pDEA_cell_type"),
+    cells_order = order(
+      as.numeric(as.vector(
+        scd_norm$getfeature("pDEA_cell_type")
+      ))
+    ),
+    title = paste0("DE genes between DEA_cell_type ", day),
+    factor = c(T, T, F),
+    file = paste0(
+      "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
+      day, ".pdf"
+    )
+  )
+  print(hm_corr)
+}
+
 ################################################################################
 ## DEA for the F donor
 
@@ -58,4 +122,67 @@ for (day in c("D15", "D90")) {
   print(day)
   print(table(is.na(mbatch_surface_cell_type_DEA$padj)))
   print(table(mbatch_surface_cell_type_DEA$padj < 0.05))
+}
+
+system("mkdir -p results/cell_type/heatmap/")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "F"
+DEA_cell_type_palette <- cell_type_palette
+for (day in c("D15", "D90")) {
+  load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F.Rdata"))
+  b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
+    mbatch_DEA_cell_type_DEA$padj < 0.05
+  DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
+  scd_norm <- zinorm(
+    scd = scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes = DEA_genes
+    ),
+    cpus = 10,
+    file = paste0("results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
+      day, "_F.RData")
+  )
+  hm <- heatmap_genes(
+    scd = scd_norm,
+    features = c("DEA_cell_type", "day", "pDEA_cell_type"),
+    cells_order = order(
+      as.numeric(as.vector(
+        scd_norm$getfeature("pDEA_cell_type")
+      ))
+    ),
+    genes_order = order_2_groups(
+      scd = scd_norm,
+      by = scd_norm$getfeature("DEA_cell_type")
+    ),
+    title = paste0("DE genes between DEA_cell_type ", day),
+    factor = c(T, T, F),
+    file = paste0(
+      "results/cell_type/heatmap/hm_CB_counts_QC_DEA_cell_type_",
+      day, "_F.pdf"
+    )
+  )
+  print(hm)
+
+  genes_top <- top_2_groups(
+    scd = scd_norm,
+    by = scd_norm$getfeature("DEA_cell_type"),
+    top = 100
+  )
+  hm_corr <- heatmap_corr_genes(
+    scd = scd_norm$select(genes = genes_top),
+    features = c("DEA_cell_type", "day", "pDEA_cell_type"),
+    cells_order = order(
+      as.numeric(as.vector(
+        scd_norm$getfeature("pDEA_cell_type")
+      ))
+    ),
+    title = paste0("DE genes between DEA_cell_type ", day),
+    factor = c(T, T, F),
+    file = paste0(
+      "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
+      day, "_F.pdf"
+    )
+  )
+  print(hm_corr)
 }
