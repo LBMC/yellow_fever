@@ -373,15 +373,16 @@ order_by_groups <- function(score, by, FUN = mean){
 #' scd_norm = zinorm(scd)
 #' }
 #' @export zinorm
-zinorm <- function(scd, cpu = 4, v = F, file){
+zinorm <- function(scd, cpus = 4, v = F, file){
   if(!missing(file) & file.exists(file)){
     print("cache found...")
     load(file)
   } else {
     print("computing weight...")
+    genes <- scd$getgenes
     weight <- scRNAtools::get_weights(
       scd = scd,
-      genes = scd$getgenes,
+      genes = genes,
       cpus = cpus,
       v = v
     )
@@ -412,6 +413,39 @@ zinorm <- function(scd, cpu = 4, v = F, file){
   return(scd_norm)
 }
 
+
+#' return order base on the rank FUN in groups
+#' @param scd an scdata object
+#' @param by factor to group on
+#' @param FUN (default: mean) function on apply on factor in each groups
+#' @return return order
+#' @examples
+#' \dontrun{
+#' genes_order = order_TMP(scd$getcounts, scd$get_feature("DEA_cell_type"))
+#' }
+#' @export order_2_groups
+order_TMP <- function(scd, by, FUN=mean, top=scd$getngenes){
+  data <- scd$getcounts
+  by <- factorize(by)
+  by_list <- list()
+  by_keep <- c()
+  top <- top / length(levels(by))
+  for(i in levels(by)){
+    tmp <- data[by==i,]
+    by_list[[i]] <- apply(tmp, 2, FUN=function(x){
+      FUN(x)
+    })
+    by_keep <- unique(c(by_keep,
+                        order(by_list[[i]], decreasing=TRUE)[1:top]))
+  }
+  by_dist <- by_list[[1]]
+  for(i in 2:length(by_list)){
+    by_dist <- by_dist - by_list[[i]]
+  }
+  return(order(by_dist)[by_keep])
+}
+
+
 #' return order base on the rank FUN in groups
 #' @param scd an scdata object
 #' @param by factor to group on
@@ -423,8 +457,9 @@ zinorm <- function(scd, cpu = 4, v = F, file){
 #' }
 #' @export order_2_groups
 order_2_groups <- function(
-  scd, b_cells = NULL, cells = NULL, genes = NULL,
-  by, FUN = function(x){mean(x)}, top = ncol(data), min_cell = 5) {
+  scd, b_cells = NULL, cells = NULL, genes = NULL, by,
+  FUN = function(x){mean(x) / sd(x)},
+  top = ncol(data), min_cell = 5) {
   data <- scd$select(
     genes = genes,
     cells = cells,
@@ -455,4 +490,29 @@ order_2_groups <- function(
   }else{
     return(results)
   }
+}
+
+#' return top and bottom of list for order base on the rank FUN in groups
+#' @param scd an scdata object
+#' @param by factor to group on
+#' @param top number of item to return
+#' @param FUN (default: mean) function on apply on factor in each groups
+#' @return return indice of top and bottom item
+#' @examples
+#' \dontrun{
+#' genes_top = top_by_groups(scd$getcounts, scd$get_feature("DEA_cell_type"), 100)
+#' }
+#' @export order_2_groups
+top_2_groups <- function(
+  scd, b_cells = NULL, top = 100, cells = NULL, genes = NULL, by,
+  FUN = function(x){mean(x[x != 0]) * length(x[x != 0])/length(x) / sd(x[x!=0])}
+) {
+  indices <- order_2_groups(
+    scd = scd, b_cells = b_cells, cells = cells, genes = genes,
+    by = by, FUN = FUN, top = ncol(scd$getcounts), min_cell = 5
+  )
+  top_indice <- 1:round(top/2)
+  bottom_indice <- (length(indices) - round(top/2)):length(indices)
+  gene_indices <- indices[c(top_indice, bottom_indice)]
+  return(scd$getgenes[gene_indices])
 }
