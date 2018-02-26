@@ -198,15 +198,8 @@ corr_scale_and_color <- function(counts, FUN=function(x){x}, quant=FALSE){
                          rev(RColorBrewer::brewer.pal(11, "RdBu")))
     }else{
       counts <- counts * -1
-      colors <- colorRamp2(c(1, 0.5, 0, -0.5, -1),
+      colors <- colorRamp2(c(-1, -0.5, 0, 0.5, 1),
                            c("#09325d", "blue", "white", "red", "#6a000a"))
-      if (min(counts[!is.na(counts)]) < 0){
-        colors <- colorRamp2(seq(from = 1, to = -1, length.out = 11),
-                             (RColorBrewer::brewer.pal(11, "RdBu")))
-      }else{
-        colors <- colorRamp2(seq(from = 0, to = 1, length.out = 11),
-                             (RColorBrewer::brewer.pal(11, "RdBu")))
-      }
     }
   return(list(counts = counts,
               colors = colors))
@@ -954,10 +947,10 @@ heatmap_corr_genes <- function(
   h_data <- h_data[cells_order, ]
   h_data <- ascb(h_data, to_zero = TRUE)
   h_data <- as.matrix(dist(h_data,
-      method = "manhattan",
+      method = "canberra",
     diag = TRUE))
   h_data <- apply(h_data, c(1:2), function(x, x_mean, x_sd){
-      (x - x_mean) / x_sd
+      (x - x_mean) / x_sd * 0.5
     },
     x_mean = mean(as.vector(h_data)),
     x_sd = sd(as.vector(h_data)))
