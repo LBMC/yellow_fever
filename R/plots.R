@@ -198,7 +198,7 @@ corr_scale_and_color <- function(counts, FUN=function(x){x}, quant=FALSE){
                          rev(RColorBrewer::brewer.pal(11, "RdBu")))
     }else{
       counts <- counts * -1
-      colors <- colorRamp2(c(-1, -0.5, 0, 0.5, 1),
+      colors <- colorRamp2(c(-1, -0.2, 0, 0.2, 1),
                            c("#09325d", "blue", "white", "red", "#6a000a"))
     }
   return(list(counts = counts,
