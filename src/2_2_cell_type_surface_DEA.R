@@ -25,49 +25,27 @@ system("~/scripts/sms.sh \"DEA done\"")
 table(is.na(mbatch_day_surface_cell_type_weighted_DEA$padj))
 table(mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05)
 
-load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
-system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_DEA")
-b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
-devtools::load_all("../scRNAtools/", reset = T)
-mbatch_day_surface_cell_type_DEA <- DEA(
-  scd = scd,
-  formula_null = "y ~ (1|batch) + day",
-  formula_full = "y ~ (1|batch) + day + surface_cell_type",
-  b_cells = b_cells,
-  cpus = 16,
-  v = F,
-  folder_name = "results/cell_type/mbatch_day_surface_cell_type_DEA"
-)
-save(
-  mbatch_day_surface_cell_type_DEA,
-  file = "results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata"
-)
-system("~/scripts/sms.sh \"DEA done\"")
-table(is.na(mbatch_day_surface_cell_type_DEA$padj))
-table(mbatch_day_surface_cell_type_DEA$padj < 0.05)
-
-system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_DEA")
 b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
 devtools::load_all("../scRNAtools/", reset = T)
 DEA_paraload_parameters(
-  paraload_file = "results/cell_type/mbatch_day_surface_cell_type_DEA/paraload.csv",
+  paraload_file = "results/cell_type/mbatch_day_surface_cell_type_weighted_DEA/paraload.csv",
   scd = scd,
   job_DEA_number = 5,
   formula_null = "y ~ (1|batch) + day",
   formula_full = "y ~ (1|batch) + day + surface_cell_type",
   b_cells = b_cells,
   cpus = 1,
-  folder_name = "results/cell_type/mbatch_day_surface_cell_type_DEA"
+  folder_name = "results/cell_type/mbatch_day_surface_cell_type_weighted_DEA"
 )
 
 # launch paraload server
 system("
 bin/paraload --server \
 --port 13469 \
---input results/cell_type/mbatch_day_surface_cell_type_DEA/paraload.csv \
---output results/cell_type/mbatch_day_surface_cell_type_DEA/paraload_run.txt \
---log results/cell_type/mbatch_day_surface_cell_type_DEA/paraload.log \
---report results/cell_type/mbatch_day_surface_cell_type_DEA/paraload_report.txt \
+--input results/cell_type/mbatch_day_surface_cell_type_weighted_DEA/paraload.csv \
+--output results/cell_type/mbatch_day_surface_cell_type_weighted_DEA/paraload_run.txt \
+--log results/cell_type/mbatch_day_surface_cell_type_weighted_DEA/paraload.log \
+--report results/cell_type/mbatch_day_surface_cell_type_weighted_DEA/paraload_report.txt \
 --conf src/pbs/DEA/DEA.conf
 ")
 
@@ -89,16 +67,12 @@ done
 done
 ")
 
-load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
-load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
+load("results/cell_type/CB_counts_QC_surface_cell_type_weighted.Rdata")
+load("results/cell_type/mbatch_day_surface_cell_type_weighted_DEA.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
-table(scd$getgenes %in% expressed(scd$select(b_cells = b_cells)))
-table(is.na(mbatch_day_surface_cell_type_DEA$padj))
-table(mbatch_day_surface_cell_type_DEA$padj < 0.05)
-
-b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
-  mbatch_day_surface_cell_type_DEA$padj < 0.05
-DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
+b_genes <- !is.na(mbatch_day_surface_cell_type_weighted_DEA$padj) &
+  mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05
+DEA_genes <- mbatch_day_surface_cell_type_weighted_DEA$gene[b_genes]
 
 system("mkdir -p results/cell_type/pca")
 scRNAtools::pca_plot(
@@ -148,17 +122,8 @@ for (day in c("D15", "D136", "D593")) {
   ))
 }
 
-
-load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
-load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
-b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
-b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
-  mbatch_day_surface_cell_type_DEA$padj < 0.05
-DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
-
 system("mkdir -p results/cell_type/heatmap/")
 surface_cell_type_palette <- cell_type_palette
-devtools::load_all("../scRNAtools/", reset = T)
 hm <- heatmap_genes(
   scd = scd$select(b_cells = b_cells, genes = DEA_genes),
   features = c("surface_cell_type", "day", "psurface_cell_type"),

@@ -81,11 +81,11 @@ surface_cell_type_classification <- classification(
   genes = genes_marker,
   ncores = 10,
   algo = "spls_stab",
-  output_file = "results/cell_type/surface_cell_types"
+  output_file = "results/cell_type/surface_cell_types_weighted"
 )
 save(
   surface_cell_type_classification,
-  file = "results/cell_type/surface_cell_types_all_smplscv.Rdata"
+  file = "results/cell_type/surface_cell_types_weighted_all_smplscv.Rdata"
 )
 cell_type_groups <- rep(NA, scd$getncells)
 cell_type_groups[b_cells] <- surface_ll_type_classification$groups
@@ -105,12 +105,15 @@ scd <- scdata$new(
 save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 ```
 
-The sparse logistic PLS selected the following feature for the classification:
+The sparse logistic PLS selected the following features as sufficient to
+classify the two groups:
 
 ```R
 surface_cell_type_classification$classification$fit_spls$fit$selected
 ```
-The surface marker *ccr7* and *il7ra* and the genes *GNLY*, *GZMB*, *GZMH*, *GZMK*, *KLRD1*, *LTB* and *SELL*.
+
+The surface marker *ccr7* and *il7ra* and the genes *GNLY*, *GZMK*, *KLRD1*
+and *SELL*.
 
 \begin{center}
   \begin{figure}
@@ -154,21 +157,21 @@ cells predicted by the first PLS classification.
 
 ```R
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
-system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_DEA")
+system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_weighted_DEA")
 b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
 devtools::load_all("../scRNAtools/", reset = T)
-mbatch_day_surface_cell_type_DEA <- DEA(
+mbatch_day_surface_cell_type_weighted_DEA <- DEA(
   scd = scd,
   formula_null = "y ~ (1|batch) + day",
   formula_full = "y ~ (1|batch) + day + surface_cell_type",
   b_cells = b_cells,
   cpus = 10,
   v = F,
-  folder_name = "results/cell_type/mbatch_day_surface_cell_type_DEA"
+  folder_name = "results/cell_type/mbatch_day_surface_cell_type_weighted_DEA"
 )
 save(
-  mbatch_day_surface_cell_type_DEA,
-  file = "results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata"
+  mbatch_day_surface_cell_type_weighted_DEA,
+  file = "results/cell_type/mbatch_day_surface_cell_type_weighted_DEA.Rdata"
 )
 ```
 
@@ -180,26 +183,34 @@ table(scd$getgenes %in% expressed(scd$select(b_cells = b_cells)))
 ```
 
 We were able to obtain a fit of our model on
+<<<<<<< HEAD
 7471 genes, excluding 1501 additional genes.
+=======
+6507 genes, excluding 2465 additional genes.
+>>>>>>> 1d993f4e0381523f50618b708ef531e5ed2cd425
 
 ```R
-table(is.na(mbatch_day_surface_cell_type_DEA$padj))
+table(is.na(mbatch_day_surface_cell_type_weighted_DEA$padj))
 ```
 
 Our model test differential genes expression between `surface_cell_type`
 predicted by the first PLS classification while accounting for the batch and
 day effects.
 
+<<<<<<< HEAD
 We obtain 221 genes differentially expressed at a FDR level of 0.05.
+=======
+We obtain 235 genes differentially expressed at a FDR level of 0.05.
+>>>>>>> 1d993f4e0381523f50618b708ef531e5ed2cd425
 
 ```R
-table(mbatch_day_surface_cell_type_DEA$padj < 0.05)
+table(mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05)
 ```
 
 \begin{center}
   \begin{figure}
     \includegraphics[width=0.5\textwidth]{../results/cell_type/pca/pca_CB_counts_QC_DEA_surface_cell_type.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/pcmf/pcmf_CB_counts_QC_DEA_surface_cell_type.pdf}
-    \caption{PCA and pCMF plot for cells classification on DE genes and all day)}
+    \caption{PCA and pCMF plot for cells classification on DE genes and all day}
   \end{figure}
 \end{center}
 
@@ -217,40 +228,21 @@ table(mbatch_day_surface_cell_type_DEA$padj < 0.05)
   \end{figure}
 \end{center}
 
-heatmap of the DE genes between `surface_cell_type`.
-
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_surface_cell_type.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_surface_cell_type.pdf}
-    \caption{heatmap and correlation plot for cells classification on DE genes and all day)}
-  \end{figure}
-\end{center}
-
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_surface_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_surface_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_surface_cell_type_D593.pdf}
-    \caption{heatmap for cells classification on DE genes)}
-  \end{figure}
-\end{center}
-
-\begin{center}
-  \begin{figure}
-    \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_surface_cell_type_D15.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_surface_cell_type_D136.pdf} \includegraphics[width=0.3\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_surface_cell_type_D593.pdf}
-    \caption{correlation plot for cells classification on DE genes}
-  \end{figure}
-\end{center}
-
 # PLS classification based the differential expression analysis
 
 To distance ourself from the weight the surface markers play in the first PLS
+<<<<<<< HEAD
 classification, we make a second PLS classification using only the 227
+=======
+classification, we make a second PLS classification using only the 235
+>>>>>>> 1d993f4e0381523f50618b708ef531e5ed2cd425
 differentially expressed genes. In this analysis we force the usage of the genes
 *GNLY*, *GZMH*, *CCL4*, *KLRD1*, *GZMB*, *ZEB2*, *LTB*, *TCF7*, *CCR7*, *GZMK*
 and *SELL* in the classification.
 
 ```R
 load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
-load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
+load("results/cell_type/mbatch_day_surface_cell_type_weighted_DEA.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
 DEA_cell_type_classification <- classification(
@@ -260,14 +252,24 @@ DEA_cell_type_classification <- classification(
   genes = c(genes_marker, DEA_genes),
   ncores = 16,
   algo = "spls_stab",
-  output_file = "results/cell_type/DEA_cell_types_force_full",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force_full",
   force = genes_marker,
 )
 save(
   DEA_cell_type_classification,
-  file = "results/cell_type/DEA_cell_types_force_full_splsstab.Rdata"
+  file = "results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata"
 )
 ```
+
+The sparse logistic PLS selected the following features as sufficient to
+classify the two groups:
+
+```R
+DEA_cell_type_classification$classification$fit_spls$fit$selected
+```
+
+*HMOX2*, *IFITM1*, *MGAT4A*, *PYHIN1*, *RPL12*, *UQCR11*, *GNLY*, *GZMH*,
+*CCL4*, *KLRD1*, *GZMB*, *ZEB2*, *LTB*, *TCF7*, *CCR7*, *GZMK* and *SELL*
 
 \begin{center}
   \begin{figure}
@@ -278,7 +280,70 @@ save(
 
 \begin{center}
   \begin{figure}
-    \includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_DEA_DEA_cell_types_force_full_splsstab.pdf.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_DEA_DEA_cell_types_force_full_splsstab_selected.pdf.pdf}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_DEA_DEA_cell_types_weighted_force_full_splsstab.pdf.pdf}\includegraphics[width=0.5\textwidth]{../results/cell_type/per_genes_barplot_CB_counts_QC_DEA_DEA_cell_types_weighted_force_full_splsstab_selected.pdf.pdf}
     \caption{2nd PLS cell classification}
   \end{figure}
 \end{center}
+
+# Differential expression analysis between the final groups
+
+## day 15
+
+We filtered out the genes with less than 10% of cells with a non-zero expression
+value, representing 10366 genes.
+
+We were able to obtain a fit of our model on
+7697 genes, excluding 1364 additional genes.
+
+Our model test differential genes expression between `DEA_cell_type`
+predicted by the first PLS classification while accounting for the batch at D15.
+
+We obtain 143 genes differentially expressed at a FDR level of 0.05.
+
+<!-- \begin{center}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_D15_DEA_cell_type.pdf} \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEAD15_DEA_cell_type.pdf}
+  \caption{heatmaps on DE genes at D15}
+\end{figure}
+\end{center} -->
+
+
+## day 136
+
+We filtered out the genes with less than 10% of cells with a non-zero expression
+value, representing 11207 genes.
+
+We were able to obtain a fit of our model on
+7407 genes, excluding 838 additional genes.
+
+Our model test differential genes expression between `DEA_cell_type`
+predicted by the first PLS classification while accounting for the batch at D136.
+
+We obtain 151 genes differentially expressed at a FDR level of 0.05.
+
+<!-- \begin{center}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_D136_DEA_cell_type.pdf} \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEAD136_DEA_cell_type.pdf}
+  \caption{heatmaps on DE genes at D136}
+\end{figure}
+\end{center} -->
+
+## day 593
+
+We filtered out the genes with less than 10% of cells with a non-zero expression
+value, representing 10605 genes.
+
+We were able to obtain a fit of our model on
+8511 genes, excluding 649 additional genes.
+
+Our model test differential genes expression between `DEA_cell_type`
+predicted by the first PLS classification while accounting for the batch at D593.
+
+We obtain 164 genes differentially expressed at a FDR level of 0.05.
+
+<!-- \begin{center}
+  \begin{figure}
+    \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_CB_counts_QC_DEA_D593_DEA_cell_type.pdf} \includegraphics[width=0.5\textwidth]{../results/cell_type/heatmap/hm_corr_CB_counts_QC_DEAD593_DEA_cell_type.pdf}
+  \caption{heatmaps on DE genes at D593}
+\end{figure}
+\end{center} -->

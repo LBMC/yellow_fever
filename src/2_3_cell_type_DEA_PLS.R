@@ -73,7 +73,8 @@ save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 
 ################################################################################
-
+load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata")
+load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 PLS_types <- c(
   "DEA_cell_types_weighted_force_full_splsstab"
 )
@@ -109,7 +110,11 @@ for (PLS_type in PLS_types) {
     per_genes_barplot(
       scd = scd$select(b_cells = b_cells),
       genes = genes_list,
+<<<<<<< HEAD:src/2_3_cell_type_DEA_PLS.R
       features = c(features_list, "pDEA_cell_type"),
+=======
+      features = c("ccr7", "pDEA_cell_type"),
+>>>>>>> 1d993f4e0381523f50618b708ef531e5ed2cd425:src/2_cell_type_DEA_PLS.R
       order_by = "pDEA_cell_type",
       color_by = "DEA_cell_type",
       file = paste0(

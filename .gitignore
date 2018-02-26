@@ -3,4 +3,8 @@ bin/*
 results/*
 doc/*.pdf
 *.ipynb*
+<<<<<<< HEAD
 *DS_Store
+=======
+.DS_Store
+>>>>>>> 1d993f4e0381523f50618b708ef531e5ed2cd425
