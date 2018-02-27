@@ -37,9 +37,44 @@ phenotype_surface_marker <- as.factor(as.vector(phenotype_surface_marker))
 scd$setfeature("phenotype_surface_cell_type", phenotype_surface_marker)
 b_cells <- scd$getfeature("QC_good") %in% T
 
-
 ################################################################################
 # classification on surface_marker
+
+surface_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "phenotype_surface_cell_type",
+  features = surface_marker,
+  genes = genes_marker,
+  ncores = 16,
+  algo = "spls_stab",
+  output_file = "results/cell_type/surface_cell_types_weighted"
+)
+save(
+  surface_cell_type_classification,
+  file = "results/cell_type/surface_cell_types_weighted_all_smplscv.Rdata"
+)
+system("~/scripts/sms.sh \"PLS done\"")
+load("results/cell_type/surface_cell_types_weighted_all_smplscv.Rdata")
+
+length(surface_cell_type_classification$groups)
+surface_cell_type_classification$classification$fit_spls$fit$selected
+cell_type_groups <- rep(NA, scd$getncells)
+cell_type_groups[b_cells] <- surface_cell_type_classification$groups
+scd$setfeature("surface_cell_type", cell_type_groups)
+cell_type_pgroups <- rep(NA, scd$getncells)
+cell_type_pgroups[b_cells] <- surface_cell_type_classification$pgroups
+scd$setfeature("psurface_cell_type", cell_type_pgroups)
+
+save(scd, file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+load(file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+scd_norm <- scd
+load("results/QC/cells_counts_QC.Rdata")
+scd <- scdata$new(
+  infos = scd_norm$getfeatures,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
+
 load("results/cell_type/CB_counts_QC_surface_cell_type_weighted.Rdata")
 devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
