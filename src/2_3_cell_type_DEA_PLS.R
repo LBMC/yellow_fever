@@ -34,6 +34,26 @@ b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
+  feature = "phenotype_surface_cell_type",
+  features = c(),
+  genes = c(genes_marker, DEA_genes),
+  ncores = 16,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force",
+  force = genes_marker,
+)
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_weighted_force_splsstab.Rdata"
+)
+
+system("~/scripts/sms.sh \"PLS done\"")
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("surface_cell_type"))
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
   feature = "surface_cell_type",
   features = c(),
   genes = c(genes_marker, DEA_genes),
