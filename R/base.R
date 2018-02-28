@@ -423,7 +423,7 @@ zinorm <- function(scd, cpus = 4, v = F, file){
 #' \dontrun{
 #' genes_order = order_TMP(scd$getcounts, scd$get_feature("DEA_cell_type"))
 #' }
-#' @export order_2_groups
+#' @export order_TMP
 order_TMP <- function(scd, by, FUN=mean, top=scd$getngenes){
   data <- scd$getcounts
   by <- factorize(by)
