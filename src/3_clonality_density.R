@@ -21,7 +21,7 @@ tmp_infos$clonality[!r_select_clone] <- NA
 tmp_infos$clonality <- factor(tmp_infos$clonality,
   levels = clone_list_D15)
 clones_names <- levels(tmp_infos$clonality)
-clones_av_p_MEM <- by(tmp_infos$pDEA_cell_type, tmp_infos$clonality, mean)
+clones_av_p_MEM <- by(tmp_infos$pDEA_cell_type, tmp_infos$clonality, median)
 clones_av_p_MEM <- as.vector(clones_av_p_MEM)
 clones_names <- clones_names[order(clones_av_p_MEM,
   decreasing = TRUE)]
