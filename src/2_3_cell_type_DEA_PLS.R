@@ -69,15 +69,17 @@ save(
 )
 system("~/scripts/sms.sh \"PLS done\"")
 
-load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata")
+load("results/cell_type/DEA_cell_types_weighted_force_splsstab.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
 DEA_cell_type_classification$classification$fit_spls$fit$selected
 cell_type_groups <- rep(NA, scd$getncells)
 cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
-scd$setfeature("DEA_cell_type", cell_type_groups)
 cell_type_pgroups <- rep(NA, scd$getncells)
 cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
+cell_type_groups[cell_type_pgroups > 0.5] <- "MEM"
+cell_type_groups[cell_type_pgroups < 0.5] <- "EFF"
+scd$setfeature("DEA_cell_type", cell_type_groups)
 scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 
 save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
@@ -93,10 +95,10 @@ save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 
 ################################################################################
-load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata")
+load("results/cell_type/DEA_cell_types_weighted_force_splsstab.Rdata")
 load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 PLS_types <- c(
-  "DEA_cell_types_weighted_force_full_splsstab"
+  "DEA_cell_types_weighted_force_splsstab"
 )
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
@@ -108,9 +110,11 @@ for (PLS_type in PLS_types) {
     load(paste0("results/cell_type/", PLS_type[1], ".Rdata"), v = T)
     cell_type_groups <- rep(NA, scd$getncells)
     cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
-    scd$setfeature("DEA_cell_type", cell_type_groups)
     cell_type_pgroups <- rep(NA, scd$getncells)
     cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
+    cell_type_groups[cell_type_pgroups > 0.5] <- "MEM"
+    cell_type_groups[cell_type_pgroups < 0.5] <- "EFF"
+    scd$setfeature("DEA_cell_type", cell_type_groups)
     scd$setfeature("pDEA_cell_type", cell_type_pgroups)
     per_genes_barplot(
       scd = scd$select(b_cells = b_cells),
@@ -130,11 +134,7 @@ for (PLS_type in PLS_types) {
     per_genes_barplot(
       scd = scd$select(b_cells = b_cells),
       genes = genes_list,
-<<<<<<< HEAD:src/2_3_cell_type_DEA_PLS.R
       features = c(features_list, "pDEA_cell_type"),
-=======
-      features = c("ccr7", "pDEA_cell_type"),
->>>>>>> 1d993f4e0381523f50618b708ef531e5ed2cd425:src/2_cell_type_DEA_PLS.R
       order_by = "pDEA_cell_type",
       color_by = "DEA_cell_type",
       file = paste0(
@@ -147,14 +147,6 @@ for (PLS_type in PLS_types) {
 }
 
 ################################################################################
-b_cells <- scd$getfeature("QC_good") %in% T
-str(DEA_cell_type_classification$classification$fit_spls$fit$selected)
-cell_type_groups <- rep(NA, scd$getncells)
-cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
-scd$setfeature("DEA_cell_type", cell_type_groups)
-cell_type_pgroups <- rep(NA, scd$getncells)
-cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
-scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 table(scd$getfeature("surface_cell_type"))
 table(scd$getfeature("DEA_cell_type"))
 table(scd$getfeature("surface_cell_type"), scd$getfeature("DEA_cell_type"))
@@ -178,12 +170,12 @@ ggplot(data = data_gplot, aes(x = ccr7, y = il7ra, color = cell_type)) +
     values = scRNAtools::cell_type_palette(levels(data_gplot$cell_type))
   ) +
   theme_bw()
-ggsave(file = "results/cell_type/counts_QC_DEA_cell_type_weighted_force_full.pdf")
+ggsave(file = "results/cell_type/counts_QC_DEA_cell_type_weighted_force.pdf")
 
 ggplot(data = data_gplot, aes(x = pcell_type)) +
   geom_histogram() +
   theme_bw()
-ggsave(file = "results/cell_type/counts_QC_DEA_cell_type_histogram_full_force.pdf")
+ggsave(file = "results/cell_type/counts_QC_DEA_cell_type_histogram_full.pdf")
 
 system("mkdir -p results/cell_type/pca")
 scRNAtools::pca_plot(
@@ -192,7 +184,7 @@ scRNAtools::pca_plot(
   tmp_file = "results/tmp/pca_CB_counts_QC_good_tmp.Rdata",
   main = "all day"
 )
-ggsave(file = "results/cell_type/pca/pca_counts_QC_DEA_cell_type_weighted_force_full.pdf")
+ggsave(file = "results/cell_type/pca/pca_counts_QC_DEA_cell_type_weighted_force.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pca_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
@@ -347,6 +339,7 @@ for (marker_type in colnames(genes_PLS)) {
 load(file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 scd_PLS <- scd
 load("results/QC/CB_counts_QC_F.Rdata")
+scd$setfeature("phenotype_surface_cell_type", scd_PLS$getfeature("phenotype_surface_cell_type"))
 scd$setfeature("surface_cell_type", scd_PLS$getfeature("surface_cell_type"))
 scd$setfeature("psurface_cell_type", scd_PLS$getfeature("psurface_cell_type"))
 scd$setfeature("DEA_cell_type", scd_PLS$getfeature("DEA_cell_type"))
@@ -355,31 +348,31 @@ scd$setfeature("pDEA_cell_type", scd_PLS$getfeature("pDEA_cell_type"))
 b_cells <- scd$getfeature("QC_good") %in% T
 
 # with M fit
-system("cp results/cell_type/DEA_cell_types_weighted_force_full_training_lsplsstab.Rdata results/cell_type/DEA_cell_types_weighted_force_full_MF_all_training_lsplsstab.Rdata")
-system("cp results/cell_type/DEA_cell_types_weighted_force_full_classification_lplscv.Rdata results/cell_type/DEA_cell_types_weighted_force_full_MF_all_classification_lplscv.Rdata")
-system("rm results/cell_type/DEA_cell_types_weighted_force_full_MF_all_classification_lpls.Rdata")
+system("cp results/cell_type/DEA_cell_types_weighted_force_training_lsplsstab.Rdata results/cell_type/DEA_cell_types_weighted_force_MF_all_training_lsplsstab.Rdata")
+system("cp results/cell_type/DEA_cell_types_weighted_force_classification_lplscv.Rdata results/cell_type/DEA_cell_types_weighted_force_MF_all_classification_lplscv.Rdata")
+system("rm results/cell_type/DEA_cell_types_weighted_force_MF_all_classification_lpls.Rdata")
 
-load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata")
+load("results/cell_type/DEA_cell_types_weighted_force_splsstab.Rdata")
 
 devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T | scd$getfeature("sex") %in% "F"
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
-  feature = "surface_cell_type",
+  feature = "phenotype_surface_cell_type",
   features = c(),
   genes = DEA_cell_type_classification$classification$fit_spls$fit$selected,
   ncores = 10,
   algo = "spls_stab",
-  output_file = "results/cell_type/DEA_cell_types_weighted_force_full_MF_all",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force_MF_all",
   force = DEA_cell_type_classification$classification$fit_spls$fit$selected
 )
 
 save(
   DEA_cell_type_classification,
-  file = "results/cell_type/DEA_cell_types_weighted_force_full_splsstab_MF_all.Rdata"
+  file = "results/cell_type/DEA_cell_types_weighted_force_splsstab_MF_all.Rdata"
 )
 
-load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab_MF_all.Rdata")
+load("results/cell_type/DEA_cell_types_weighted_force_splsstab_MF_all.Rdata")
 
 b_cells_b <- scd$getfeature("QC_good") %in% T | scd$getfeature("sex") %in% "F"
 b_cells_b <- (scd$getfeature("sex") %in% "F")[b_cells_b]
@@ -392,6 +385,7 @@ cell_type_pgroups <- rep(NA, scd$getncells)
 cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups[b_cells_b]
 scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 
+b_cells <- scd$getfeature("sex") %in% "F" & scd$getfeature("QC_good") %in% T
 genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
   "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
   "NELL2", "CCR7")
@@ -452,6 +446,7 @@ for (marker_type in colnames(genes_PLS)) {
 load(file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 scd_PLS <- scd
 load("results/QC/CB_counts_QC_F.Rdata")
+scd$setfeature("phenotype_surface_cell_type", scd_PLS$getfeature("phenotype_surface_cell_type"))
 scd$setfeature("surface_cell_type", scd_PLS$getfeature("surface_cell_type"))
 scd$setfeature("psurface_cell_type", scd_PLS$getfeature("psurface_cell_type"))
 scd$setfeature("DEA_cell_type", scd_PLS$getfeature("DEA_cell_type"))
@@ -459,11 +454,11 @@ scd$setfeature("pDEA_cell_type", scd_PLS$getfeature("pDEA_cell_type"))
 
 b_cells <- scd$getfeature("QC_good") %in% T
 
-system("cp results/cell_type/DEA_cell_types_weighted_force_full_training_lsplsstab.Rdata results/cell_type/DEA_cell_types_weighted_force_full_MF_training_lsplsstab.Rdata")
-system("cp results/cell_type/DEA_cell_types_weighted_force_full_classification_lplscv.Rdata results/cell_type/DEA_cell_types_weighted_force_full_MF_classification_lplscv.Rdata")
-system("rm results/cell_type/DEA_cell_types_weighted_force_full_MF_classification_lpls.Rdata")
+system("cp results/cell_type/DEA_cell_types_weighted_force_training_lsplsstab.Rdata results/cell_type/DEA_cell_types_weighted_force_MF_training_lsplsstab.Rdata")
+system("cp results/cell_type/DEA_cell_types_weighted_force_classification_lplscv.Rdata results/cell_type/DEA_cell_types_weighted_force_MF_classification_lplscv.Rdata")
+system("rm results/cell_type/DEA_cell_types_weighted_force_MF_classification_lpls.Rdata")
 
-load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab.Rdata")
+load("results/cell_type/DEA_cell_types_weighted_force_splsstab.Rdata")
 
 devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
@@ -474,16 +469,16 @@ DEA_cell_type_classification <- classification(
   genes = DEA_cell_type_classification$classification$fit_spls$fit$selected,
   ncores = 10,
   algo = "spls_stab",
-  output_file = "results/cell_type/DEA_cell_types_weighted_force_full_MF",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force_MF",
   force = DEA_cell_type_classification$classification$fit_spls$fit$selected
 )
 
 save(
   DEA_cell_type_classification,
-  file = "results/cell_type/DEA_cell_types_weighted_force_full_splsstab_MF.Rdata"
+  file = "results/cell_type/DEA_cell_types_weighted_force_splsstab_MF.Rdata"
 )
 
-load("results/cell_type/DEA_cell_types_weighted_force_full_splsstab_MF.Rdata")
+load("results/cell_type/DEA_cell_types_weighted_force_splsstab_MF.Rdata")
 
 b_cells_b <- scd$getfeature("QC_good") %in% T
 b_cells_b <- (scd$getfeature("sex") %in% "F")[b_cells_b]
