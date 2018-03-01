@@ -234,16 +234,27 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
   if (!missing(folder_name)) {
     system(paste0("mkdir -p ", folder_name, "/DEA_fit/"))
     tmp_file <- paste0(folder_name, "/DEA_fit/fit_", gene_name, ".Rdata")
+    system(paste0("mkdir -p ", folder_name, "/DEA_LRT/"))
+    tmp_file_LRT <- paste0(folder_name, "/DEA_LRT/LRT_", gene_name, ".Rdata")
+  }
+  formulas <- list(
+    formula_null = formula_null,
+    formula_full = formula_full
+  )
+  models_result <- list()
+  for (formula in names( formulas )) {
+    models_result[[formula]] <- list(residuals = NA)
   }
   if (file.exists(tmp_file)) {
+    if (v) {
+      print(paste0("fit cache found for ", gene_name))
+    }
     load(tmp_file)
-  } else {
-    formulas <- list(
-      formula_null = formula_null,
-      formula_full = formula_full
-    )
-    models_result <- list()
+  }
+  if (!("file" %in% names(models_result))) {
     models_result[["file"]] <- tmp_file
+  }
+  if (!("is_zi" %in% names(models_result))) {
     models_result[["is_zi"]] <- zi_test(
       data = data,
       formula_full = formula_full,
@@ -252,7 +263,9 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       link = link,
       threshold = 0.05,
       v = v)
-    if (formula_null == formula_full) {
+  }
+  if (formula_null == formula_full) {
+    if ( is.na( models_result[["formula_null"]]$residuals[1]) ) {
       models_result[["formula_null"]] <- ziNB_fit(
         data = data,
         formula = formulas[["formula_null"]],
@@ -263,8 +276,13 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
         v = v
       )
       models_result[["formula_full"]] <- models_result[["formula_null"]]
-    } else {
-      for (formula in names(formulas)) {
+      if (file.exists(tmp_file_LRT)) {
+        system(paste0("rm ", tmp_file_LRT))
+      }
+    }
+  } else {
+    for (formula in names(formulas)) {
+      if ( is.na(models_result[[formula]]$residuals[1]) ) {
         models_result[[formula]] <- ziNB_fit(
           data = data,
           formula = formulas[[formula]],
@@ -274,14 +292,17 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
           zi = models_result[["is_zi"]],
           v = v
         )
+        if (file.exists(tmp_file_LRT)) {
+          system(paste0("rm ", tmp_file_LRT))
+        }
       }
     }
-    if (!missing(folder_name)) {
-      save(
-        models_result, gene_name, formulas,
-        file = tmp_file
-      )
-    }
+  }
+  if (!missing(folder_name)) {
+    save(
+      models_result, gene_name, formulas,
+      file = tmp_file
+    )
   }
   return(models_result)
 }
@@ -295,12 +316,15 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
     tmp_file <- paste0(folder_name, "/DEA_LRT/LRT_", gene_name, ".Rdata")
   }
   if (file.exists(tmp_file)) {
+    if (v) {
+      print(paste0("LRT cache found for ", gene_name))
+    }
     load(tmp_file)
   } else {
     LRT_result <- tryCatch({
       anova(
-        models_result[["formula_null"]],
-        models_result[["formula_full"]]
+        models_result[[ "formula_null" ]],
+        models_result[[ "formula_full" ]]
       )
     }, error = function(e){
       if (v) {
