@@ -144,6 +144,30 @@ clonality_EFF_palette <- function(clonality, av_EM){
   return(clonality_EFF_color)
 }
 
+#' @export clonality_MEM_palette
+clonality_MEM_palette <- function(clonality, av_MEM){
+  clonality <- clonality[order(av_MEM)]
+  av_MEM <- as.numeric(as.vector(av_MEM[order(av_MEM)]))
+  r_select <- av_MEM < 0.4
+  clonality_MEM_color <- clonality
+  names(clonality_MEM_color) <- clonality
+  length_less <- length(which(r_select))
+  length_more <- length(which(!r_select))
+  if (length_less > 0){
+    clonality_MEM_color[r_select] <- color_from_range(
+      length_less,
+      "#003298",
+      "#79DCFF")
+  }
+  if (length_more > 0){
+    clonality_MEM_color[!r_select] <- color_from_range(
+      length_more,
+      "#FFB8A5",
+      "#A3080A")
+  }
+  return(clonality_MEM_color)
+}
+
 color_from_range <- function(size, start_col, stop_col){
   color_palette <- colorRampPalette(
     c(start_col, stop_col))(size)
@@ -162,7 +186,7 @@ count_scale_and_color <- function(counts,
   FUN = function(x){x<-ascb(x, to_zero = TRUE); x / max(x)}, quant=FALSE){
   counts <-apply(counts, 2, FUN)
   if (quant){
-    color_ramp <- colorRampPalette(c("blue", "white", "red"),
+    color_ramp <- colorRampPalette(c("#ad40c8", "black", "#dbff00"),
                                         space = "Lab",
                                         interpolate = c("linear"))(50)
     colors <- colorRamp2(quantile(as.matrix(counts),
@@ -171,6 +195,8 @@ count_scale_and_color <- function(counts,
                                       length.out=50),
                                   na.rm = TRUE),
                          color_ramp)
+   colors <- colorRamp2(c(-2, 0, 2),
+                        c("#ad40c8", "black", "#dbff00"))
   }else{
     colors <- colorRamp2(c(0, 0.2, 0.4, 0.6, 0.8, 1),
                          c("white", "#fdd0bb", "#ff9472" ,"#f7553e", "#cc191d",
@@ -861,6 +887,7 @@ save_classic_pdf <- function(obj, file, width = 7, height = 7){
 #' )
 #' }
 #' @importFrom ComplexHeatmap Heatmap
+#' @importFrom grid gpar
 #' @export heatmap_genes
 heatmap_genes <- function(
   scd,
@@ -872,8 +899,10 @@ heatmap_genes <- function(
   title = "",
   file,
   FUN = function(x){
-      x <- ascb(x, to_zero = TRUE) - ascb(mean(x), to_zero = TRUE)
-    }
+    x <- log( x + 1 )
+    x <- (x - mean(x) ) / sd(x)
+  },
+  gene_size = round( scd$getngenes / 12 )
 ) {
   ha <- heatmap_annotation(
     scd = scd,
@@ -897,6 +926,7 @@ heatmap_genes <- function(
     row_names_side = "left",
     show_column_names = FALSE,
     row_title = "genes",
+    row_names_gp = grid::gpar(fontsize = gene_size),
     show_heatmap_legend = TRUE,
     heatmap_legend_param = list(color_bar = "continuous"),
     bottom_annotation = ha
