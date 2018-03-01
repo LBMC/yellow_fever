@@ -362,7 +362,7 @@ order_by_groups <- function(score, by, FUN = mean){
   score_av_list <- as.list(score_av$mean)
   names(score_av_list) <- score_av$by
   score_by <- unlist(score_av_list[as.vector(by)])
-  return(order(score_by))
+  return(order(score_by, score))
 }
 
 #' return scalled counts for zidata
@@ -373,7 +373,7 @@ order_by_groups <- function(score, by, FUN = mean){
 #' scd_norm = zinorm(scd)
 #' }
 #' @export zinorm
-zinorm <- function(scd, cpus = 4, v = F, file){
+zinorm <- function(scd, cpus = 4, v = F, file, zi_scale = TRUE, sd_scale = TRUE){
   if(!missing(file) & file.exists(file)){
     print("cache found...")
     load(file)
@@ -389,18 +389,28 @@ zinorm <- function(scd, cpus = 4, v = F, file){
     weighted_counts <- apply(
       scRNAtools::get_genes(scd, genes),
       1,
-      FUN = function(x, weight) {
-        x / as.numeric(weight$gene_scale)
+      FUN = function(x, weight, sd_scale) {
+        if (sd_scale) {
+          return( x / as.numeric(weight$gene_scale) )
+        } else {
+          return( x )
+        }
       },
-      weight
+      weight,
+      sd_scale
     )
     weighted_counts <- apply(
       t(weighted_counts),
       1,
-      FUN = function(x, weight) {
-        x * as.numeric(weight$gene_weight)
+      FUN = function(x, weight, zi_scale) {
+        if (zi_scale) {
+          return( x * as.numeric(weight$gene_weight) )
+        } else {
+          return( x )
+        }
       },
-      weight
+      weight,
+      zi_scale
     )
     scd_norm <- scdata$new(
       infos = scd$getfeatures,
