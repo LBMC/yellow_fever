@@ -399,6 +399,19 @@ for (day in c("D15", "D136", "D593")) {
 
 
 ################################################################################
+setwd("~/projects/yellow_fever/")
+library(scRNAtools)
+devtools::load_all("../scRNAtools/", reset = T)
+load("results/QC/CB_counts_QC.Rdata")
+
+weird_D15 <- c("P1299_1105", "P1299_1106", "P1299_1111", "P1299_1112", "P1299_1117", "P1299_1129", "P1299_1133", "P1299_1150", "P1299_1151", "P1299_1185", "P1299_1222", "P1299_1263", "P1299_1284", "P1299_1297", "P1299_1299", "P1299_1313", "P1299_1328", "P1299_1336", "P1299_1345", "P1299_1356", "P1299_1364", "P1299_1371", "P1299_1390", "P1299_1397", "P1299_1404", "P1299_1416", "P1299_1429", "P1299_1432", "P1299_1437", "P1299_1445", "P1299_1457", "P1299_1465", "P1299_1466", "P1299_1473", "P1299_1478", "P1299_1770", "P1299_1772", "P1299_1781", "P1299_1795", "P1299_1802", "P1299_1803", "P1299_1810", "P1299_1818", "P1299_1819", "P1299_1826", "P1299_1838", "P1299_1843", "P1299_1847", "P1299_1850", "P1299_1861", "P1299_1881", "P1299_1882", "P1299_1884", "P1299_1908", "P1299_1913", "P1299_1921", "P1299_1922", "P1299_1928", "P1299_1949", "P1299_2012", "P1299_2017", "P1299_2035", "P1299_2052", "P1299_2054", "P1299_2056")
+
+table(weird_D15 %in% scd$getcells)
+scd$setfeature("is_weird", scd$getcells %in% weird_D15)
+b_cells <- scd$getfeature("QC_good") %in% T
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "is_weird", color_name = "antigen",
+  tmp_file = "results/tmp/pca_norm_counts_QC_tmp.Rdata")
 
 system("rm results/tmp/pca_norm_counts_QC_tmp.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T
@@ -409,6 +422,10 @@ scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   tmp_file = "results/tmp/pca_norm_counts_QC_tmp.Rdata")
 
+
+scRNAtools::pCMF_plot(
+  scd$select(b_cells = b_cells), color = "is_weird", color_name = "antigen",
+  tmp_file = "results/tmp/pCMF_norm_counts_QC_tmp.Rdata")
 devtools::load_all("../scRNAtools/", reset = T)
 scRNAtools::pCMF_plot(
   scd$select(b_cells = b_cells), color = "day", color_name = "day",
