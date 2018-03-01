@@ -83,9 +83,17 @@ scRNAtools::pca_plot(
 )
 ggsave(file = "results/cell_type/pca/pca_CB_counts_QC_DEA_surface_cell_type.pdf")
 for (day in c("D15", "D136", "D593")) {
+  scd_norm <- zinorm(
+    scd = scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes = DEA_genes
+    ),
+    cpus = 10,
+    file = paste0("results/tmp/zi_norm_cells_counts_surface_DEA_cell_type_",
+      day, ".RData")
+  )
   scRNAtools::pca_plot(
-    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day,
-      genes = DEA_genes),
+    scd_norm,
     color = "surface_cell_type", color_name = "cell_type",
     tmp_file = paste0("results/tmp/pca_CB_counts_", day,
       "QC_DEA_surface_cell_type_tmp.Rdata"),
@@ -108,9 +116,17 @@ ggsave(
   file = "results/cell_type/pcmf/pcmf_CB_counts_QC_DEA_surface_cell_type.pdf"
 )
 for (day in c("D15", "D136", "D593")) {
+  scd_norm <- zinorm(
+    scd = scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes = DEA_genes
+    ),
+    cpus = 10,
+    file = paste0("results/tmp/zi_norm_cells_counts_surface_DEA_cell_type_",
+      day, ".RData")
+  )
   scRNAtools::pCMF_plot(
-    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day,
-      genes = DEA_genes),
+    scd_norm,
     color = "surface_cell_type", color_name = "cell_type",
     tmp_file = paste0("results/tmp/pCMF_CB_counts_", day,
       "QC_DEA_surface_cell_type_tmp.Rdata"),
