@@ -1,6 +1,7 @@
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+# options(warn=2)
 
 for (day in c("D15", "D136", "D593")) {
   system(
@@ -15,7 +16,7 @@ for (day in c("D15", "D136", "D593")) {
     formula_full = "y ~ (1|batch) + DEA_cell_type",
     b_cells = b_cells,
     cpus = 16,
-    v = F,
+    v = T,
     folder_name = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA")
   )
   save(
@@ -26,6 +27,31 @@ for (day in c("D15", "D136", "D593")) {
   print(day)
   print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
   print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
+}
+
+devtools::load_all("../scRNAtools/", reset = T)
+day <- "D15"
+interest_genes <- c( "GNLY", "GZMB", "GZMH", "ARL8B")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("day") %in% day
+mbatch_DEA_cell_type_DEA <- DEA(
+  scd = scd$select(genes = interest_genes),
+  formula_null = "y ~ ( 1|batch )",
+  formula_full = "y ~ ( 1|batch ) + DEA_cell_type",
+  b_cells = b_cells,
+  cpus = 1,
+  v = T,
+  folder_name = paste0("results/cell_type/mbatch_", day, "DEA_cell_type_DEA")
+)
+mbatch_DEA_cell_type_DEA[mbatch_DEA_cell_type_DEA$gene %in% interest_genes, ]
+
+for (day in c("D15", "D136", "D593")) {
+  load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
+  write.csv(
+    mbatch_DEA_cell_type_DEA,
+    file = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.csv")
+  )
 }
 
 system("mkdir -p results/cell_type/heatmap/")
@@ -40,10 +66,10 @@ for (day in c("D15", "D136", "D593")) {
     mbatch_DEA_cell_type_DEA$padj < 0.05
   print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
   print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
+  DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
   print("GNLY" %in% DEA_genes)
   print("GZMB" %in% DEA_genes)
   print("GZMH" %in% DEA_genes)
-  DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
   DEA_gene <- c( DEA_gene, "GNLY", "GZMB", "GZMH")
   DEA_genes_M <- unique(c(DEA_genes, DEA_genes_M))
   DEA_genes_thresholded <- expressed(
@@ -132,7 +158,7 @@ for (day in c("D15", "D136", "D593")) {
       b_cells = b_cells & scd$getfeature("day") %in% day,
       genes = DEA_genes
     ),
-    cpus = 10,
+    cpus = 11,
     file = paste0("results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
       day, ".RData")
   )
