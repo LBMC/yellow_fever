@@ -148,22 +148,22 @@ clonality_EFF_palette <- function(clonality, av_EM){
 clonality_MEM_palette <- function(clonality, av_MEM){
   clonality <- clonality[order(av_MEM)]
   av_MEM <- as.numeric(as.vector(av_MEM[order(av_MEM)]))
-  r_select <- av_MEM < 0.4
+  r_select <- av_MEM < 0.5
   clonality_MEM_color <- clonality
   names(clonality_MEM_color) <- clonality
-  length_less <- length(which(r_select))
-  length_more <- length(which(!r_select))
+  length_less <- length(which(!r_select))
+  length_more <- length(which(r_select))
   if (length_less > 0){
-    clonality_MEM_color[r_select] <- color_from_range(
+    clonality_MEM_color[!r_select] <- color_from_range(
       length_less,
-      "#003298",
-      "#79DCFF")
+      "#79DCFF",
+      "#003298")
   }
   if (length_more > 0){
-    clonality_MEM_color[!r_select] <- color_from_range(
+    clonality_MEM_color[r_select] <- color_from_range(
       length_more,
-      "#FFB8A5",
-      "#A3080A")
+      "#A3080A",
+      "#FFB8A5")
   }
   return(clonality_MEM_color)
 }
