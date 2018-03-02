@@ -131,6 +131,15 @@ DEA_pbs <- function(Args = commandArgs()) {
 }
 
 unlist_results <- function(results){
+  expected_size <- max( unlist(lapply(results, FUN = length)) )
+  results <- lapply(results, FUN = function(x, expected_size) {
+    x_size <- length(x)
+    if (expected_size > x_size) {
+      x <- c(x, rep(NA, expected_size - x_size))
+    }
+    return(x)
+  },
+  expected_size)
   results_unlisted <- as.data.frame(do.call(rbind, results))
   results_unlisted$gene <- names(results)
   passed <- !is.na(results_unlisted$pval) & results_unlisted$pval != ""
@@ -140,7 +149,7 @@ unlist_results <- function(results){
   results_unlisted$pvalue <- as.vector(results_unlisted$pvalue)
   results_unlisted$padj <- NA
   results_unlisted$padj[passed] <- stats::p.adjust(
-    results_unlisted$pvalue[passed],
+    as.numeric(results_unlisted$pvalue[passed]),
     method = "BH"
   )
   return(results_unlisted)
@@ -360,15 +369,15 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
 DEA_format <- function(LRT_result, models_result, v) {
   results <- tryCatch({
     LRT <- data.frame(
-      null_loglik = LRT_result[["LRT"]][["LogLik"]][1],
-      full_loglik = LRT_result[["LRT"]][["LogLik"]][2],
-      null_Deviance = LRT_result[["LRT"]][["Deviance"]][1],
-      full_Deviance = LRT_result[["LRT"]][["Deviance"]][2],
-      null_df = LRT_result[["LRT"]][["Df"]][1],
-      full_df = LRT_result[["LRT"]][["Df"]][2],
-      null_npar = LRT_result[["LRT"]][["NoPar"]][1],
-      full_npar = LRT_result[["LRT"]][["NoPar"]][2],
-      pvalue = LRT_result[["LRT"]][["Pr(>Chi)"]][2],
+      null_loglik = LRT_result[["LRT"]][1, 2],
+      full_loglik = LRT_result[["LRT"]][2, 2],
+      null_Deviance = LRT_result[["LRT"]][1, 4],
+      full_Deviance = LRT_result[["LRT"]][2, 4],
+      null_df = LRT_result[["LRT"]][1, 3],
+      full_df = LRT_result[["LRT"]][2, 3],
+      null_npar = LRT_result[["LRT"]][1, 1],
+      full_npar = LRT_result[["LRT"]][2, 1],
+      pvalue = LRT_result[["LRT"]][2, 5],
       stringsAsFactors = FALSE
     )
     model_null <- DEA_format_ziNB(
@@ -458,6 +467,7 @@ ziNB_fit <- function(data, formula, gene_name,
       impSamp = 1000,
       maxfn = 10000,
       imaxf = 10000,
+      shess = T
     )
     glmmADMB::glmmadmb(
       as.formula(formula),

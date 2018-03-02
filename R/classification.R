@@ -139,13 +139,17 @@ weight_regression <- function( gene, scd, v) {
     v = v
   )
   zi_weight <- 1
-  if (is_zi) {
+  if (is_zi & !is.na(models_result$residuals[1])) {
     zi_weight <- 1 - models_result$pz
+  }
+  gene_scale <- 1
+  if (!is.na(models_result$residuals[1])) {
+    gene_scale <- exp(models_result$b) * models_result$alpha
   }
   return(list(
     gene = gene,
     gene_weight = zi_weight,
-    gene_scale = exp(models_result$b) * models_result$alpha
+    gene_scale = gene_scale
   ))
 }
 
