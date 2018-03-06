@@ -128,6 +128,23 @@ for (PLS_type in PLS_types) {
         ".pdf"),
       main = paste0("DEA DEA_cell_type ", PLS_type)
     )
+
+    hm <- heatmap_genes(
+      scd = scd$select(b_cells = b_cells, genes = genes_list),
+      features = c("antigen", "day", "pDEA_cell_type"),
+      cells_order = order(
+        as.numeric(as.vector(
+          scd$select(b_cells = b_cells)$getfeature("pDEA_cell_type")
+        ))
+      ),
+      title = "PLS genes for DEA_cell_type",
+      factor = c(T, T, F),
+      file = paste0(
+        "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_",
+        PLS_type,
+        "_hm.pdf")
+    )
+
     genes_list <- DEA_cell_type_classification$classification$fit_spls$fit$selected
     features_list <- names(scd$getfeatures)[names(scd$getfeatures) %in% genes_list]
     genes_list <- scd$getgenes[scd$getgenes %in% genes_list]
