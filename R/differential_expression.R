@@ -464,10 +464,9 @@ ziNB_fit <- function(data, formula, gene_name,
   }
   model <- tryCatch({
     glmmADMB::admbControl(
-      impSamp = 1000,
       maxfn = 10000,
       imaxf = 10000,
-      shess = T
+      maxph = 10
     )
     glmmADMB::glmmadmb(
       as.formula(formula),
