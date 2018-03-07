@@ -168,6 +168,31 @@ vectorize <- function(x, columns) {
   }
 }
 
+#' compute pca loading
+#'
+#' @param x vector data.frame to vectorize
+#' @param cells (default=FALSE) shall the cells loading be returned
+#' @return return a matrix of cells (or genes) coordinates or a list including
+#' this matrix
+#' @examples
+#' \dontrun{
+#' x = pca_loading(scd)
+#' }
+#' @importFrom ade4 dudi.pca
+#' @export pca_loading
+pca_loading <- function(scd, cells = FALSE, ncomp = 5){
+  pca_out <- ade4::dudi.pca(
+    ascb(scd$getcounts, to_zero = TRUE),
+    scan = F,
+    nf = ncomp
+  )
+  if (cells) {
+    return(pca_out$l1)
+  }
+  return(pca_out$c1)
+}
+
+
 #' compute bca loading
 #'
 #' @param x vector data.frame to vectorize
