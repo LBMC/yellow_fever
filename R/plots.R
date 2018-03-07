@@ -958,6 +958,7 @@ heatmap_genes <- function(
 #' factor
 #' @param show_legend (default: TRUE) should the legend be displayed
 #' @param title title of the heatmap
+#' @param ncomp (default = 5) number of metagene to compute (PCA)
 #' @param file name of the pdf to save the heatmap
 #' @return return a heatmap object
 #' @examples
@@ -978,6 +979,9 @@ heatmap_corr_genes <- function(
   factor = rep(TRUE, length(features)),
   show_legend = TRUE,
   title = "",
+  pca = FALSE,
+  ncomp = 4,
+  dist_name = "manhattan",
   file
 ) {
   ha <- scRNAtools::heatmap_annotation(
@@ -987,14 +991,17 @@ heatmap_corr_genes <- function(
     show_legend = show_legend,
     cells_order = cells_order
   )
-  h_data <- scd$getcounts
+  if (pca) {
+    h_data <- pca_loading(scd, cells = TRUE, ncomp = ncomp)
+  } else {
+    h_data <- ascb(scd$getcounts, to_zero = TRUE)
+  }
   h_data <- h_data[cells_order, ]
-  h_data <- ascb(h_data, to_zero = TRUE)
-  h_data <- as.matrix(dist(h_data,
-      method = "canberra",
+  h_data <- h_data <- as.matrix(dist(h_data,
+    method = dist_name,
     diag = TRUE))
   h_data <- apply(h_data, c(1:2), function(x, x_mean, x_sd){
-      (x - x_mean) / x_sd * 0.5
+      (x - x_mean) / x_sd
     },
     x_mean = mean(as.vector(h_data)),
     x_sd = sd(as.vector(h_data)))
