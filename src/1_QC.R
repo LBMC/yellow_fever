@@ -477,25 +477,26 @@ library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/counts_QC.Rdata")
 
+F_QC_score <- ifelse(scd$getfeature("sex") %in% "F",
+  0.5,
+  scd$getfeature("QC_score")
+)
+F_to_QC <- ifelse(scd$getfeature("sex") %in% "F",
+  TRUE,
+  scd$getfeature("to_QC")
+)
+
 scd$setfeature("QC_score",
-  ifelse(scd$getfeature("sex") %in% "F",
-    0.5,
-    scd$getfeature("QC_score")
-  )
+  F_QC_score
 )
 scd$setfeature("to_QC",
-  ifelse(scd$getfeature("sex") %in% "F",
-    TRUE,
-    scd$getfeature("to_QC")
-  )
+  F_to_QC
 )
 scRNAtools::QC_classification(
   scd = scd,
-  is_blank = scd$getfeature("QC_score") <= 0.5
+  is_blank = scd$getfeature("QC_score") < 0.5
 )
 save(scd, file = "results/QC/counts_QC_F.Rdata")
-
-load(file = "results/QC/counts_QC_F.Rdata")
 
 b_cells = scd$getfeature('sex') %in% "F"
 summary(scd$select(b_cells = b_cells)$getfeature("QC_good"))
@@ -535,7 +536,7 @@ save(scd, file = "results/QC/cells_counts_QC_F.Rdata")
 
 load("results/QC/cells_counts_QC_F.Rdata")
 for (day in c("D15", "D90")) {
-    scd <- normalize(
+  scd <- normalize(
     scd = scd,
     b_cells = b_cells & scd$getfeature("day") %in% day,
     method = "ComBat",
@@ -544,3 +545,4 @@ for (day in c("D15", "D90")) {
   )
 }
 save(scd, file = "results/QC/CB_counts_QC_F.Rdata")
+
