@@ -216,19 +216,33 @@ count_scale_and_color <- function(counts,
 corr_scale_and_color <- function(counts, FUN=function(x){x}, quant=FALSE){
   counts <- apply(counts, 2, FUN)
   if (quant){
-    colors <- colorRamp2(quantile(as.matrix(counts),
-                                  seq(from=0,
-                                      to=1,
-                                      length.out=11),
-                                  na.rm = TRUE),
-                         rev(RColorBrewer::brewer.pal(11, "RdBu")))
+    colors <- colorRamp2(
+      quantile(
+        as.matrix(counts),
+        seq(from=0, to=1, length.out=11),
+        na.rm = TRUE
+      ),
+      rev(RColorBrewer::brewer.pal(11, "RdBu"))
+    )
+  }else{
+    counts <- counts * -1
+    colors <- colorRamp2(
+      c(1, 0.5, 0, -0.5, -1),
+      c("#09325d", "red", "white", "blue", "#6a000a")
+    )
+    if(min(counts[!is.na(counts)]) < 0){
+      colors <- colorRamp2(
+        seq(from=1, to=-1, length.out=11),
+        (RColorBrewer::brewer.pal(11, "RdBu"))
+      )
     }else{
-      counts <- counts * -1
-      colors <- colorRamp2(c(-1, -0.2, 0, 0.2, 1),
-                           c("#09325d", "blue", "white", "red", "#6a000a"))
+      colors <- colorRamp2(
+        seq(from=0, to=1, length.out=11),
+        (RColorBrewer::brewer.pal(11, "RdBu"))
+      )
     }
-  return(list(counts = counts,
-              colors = colors))
+  }
+  return(list(counts = counts, colors = colors))
 }
 
 
