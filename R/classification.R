@@ -728,3 +728,51 @@ logistic_pls_cv_classification <- function(
   }
   return(list(fit = fit, model = model))
 }
+
+
+#' classification for scRNASeq data
+#'
+#' @param scd is a scRNASeq data object
+#' @param gene gene_name to find
+#' @param cpus (default:4) number of cpus to use
+#' @return a vector with the name of the genes selected
+#' @examples
+#' \dontrun {
+#' gene_list <- gene_cov(scd, "LTS")
+#' }
+#' @import plsgenomics
+#' @export gene_cov
+gene_cov <- function(scd, gene, cpus = 4, tmp_file){
+  if (!(gene %in% scd$getgenes)) {
+    return(c())
+  }
+  b_genes <- which(scd$getgenes %in% gene)
+  scd_norm <- zinorm(
+    scd = scd,
+    cpus = cpus,
+    file = tmp_file
+  )
+  gene_exp <- scd_norm$getgene(gene)
+  data_exp <- as.matrix(scd_norm$getcounts[, !b_genes])
+
+  v1 <- spls.adapt.tune(
+    X = data_exp,
+    Y = gene_exp,
+    lambda.l1.range = seq(0.05, 0.95, by=0.3),
+    ncomp.range = 1:2,
+    weight.mat = NULL, adapt = TRUE, center.X = TRUE,
+    center.Y = FALSE, scale.X = FALSE, scale.Y = FALSE,
+    weighted.center = FALSE,
+    return.grid = TRUE, ncores = ncores, nfolds = 10)
+  model1 <- spls.adapt(
+    Xtrain = data_exp,
+    Ytrain = data[, c_select],
+    lambda.l1 = cv1$lambda.l1.opt, ncomp=cv1$ncomp.opt,
+    weight.mat = NULL,
+    Xtest = data_exp,
+    adapt = TRUE, center.X = FALSE, center.Y = FALSE, scale.X = FALSE,
+    scale.Y = FALSE, weighted.center = FALSE
+  )
+  genes_names <- colnames(scd$getcounts[, !b_genes])[model1$A]
+  return(genes_names)
+}
