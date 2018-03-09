@@ -40,6 +40,7 @@ for (day in c("D15", "D136", "D593")) {
   )
 }
 
+load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 system("mkdir -p results/cell_type/heatmap/")
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("DEA_cell_type")) &
@@ -57,6 +58,9 @@ DEA_genes_M <- c()
 for (day in c("D15", "D136", "D593")) {
   for (restrict in c("all", "40perc")) {
     load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
+    system(paste0("rm results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
+        day, "_", restrict, ".Rdata")
+)
     b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
       mbatch_DEA_cell_type_DEA$padj < 0.05
     print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
@@ -215,19 +219,15 @@ for (day in c("D15", "D136", "D593")) {
 ## DEA for the F donor
 
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
-scd_M <- scd
+b_cells <- scd$getfeature("QC_good") %in% T
 infos_M <- scd$getfeatures
 load("results/cell_type/cells_counts_QC_DEA_cell_type_F.Rdata")
-b_cells_F <- scd$getfeature("QC_good") %in% T &
-  scd$getfeature("sex") %in% "F"
+b_cells_F <- scd$getfeature("sex") %in% "F"
 infos_M[b_cells_F, ] <- scd$select(b_cells = b_cells_F)$getfeatures
 scd <- scdata$new(
   infos = infos_M,
   counts = scd$getcounts
 )
-
-infos_M$pDEA_cell_type[b_cells_F]
-infos_M$QC_good[b_cells_F]
 
 write.csv(
   infos_M,
@@ -270,24 +270,6 @@ for (day in c("D15", "D90")) {
 }
 
 system("mkdir -p results/cell_type/heatmap/")
-b_cells <- scd$getfeature("QC_good") %in% T &
-
-system("mkdir -p results/cell_type/heatmap/")
-b_cells <- scd$getfeature("QC_good") %in% T &
-infos_M <- scd$getfeatures
-load("results/cell_type/cells_counts_QC_DEA_cell_type_F.Rdata")
-b_cells_F <- scd$getfeature("QC_good") %in% T &
-  scd$getfeature("sex") %in% "F"
-infos_M[b_cells_F, ] <- scd$select(b_cells = b_cells_F)$getfeatures
-scd <- scdata$new(
-  infos = infos_M,
-  counts = scd$getcounts
-)
-
-write.csv(
-  infos_M,
-  file = paste0("results/cell_type/cell_type_infos.csv")
-)
 
 for (day in c("D15", "D90")) {
   system(
@@ -323,6 +305,17 @@ for (day in c("D15", "D90")) {
     file = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F.csv")
   )
 }
+
+load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T
+infos_M <- scd$getfeatures
+load("results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
+b_cells_F <- scd$getfeature("sex") %in% "F"
+infos_M[b_cells_F, ] <- scd$select(b_cells = b_cells_F)$getfeatures
+scd <- scdata$new(
+  infos = infos_M,
+  counts = scd$getcounts
+)
 
 system("mkdir -p results/cell_type/heatmap/")
 b_cells <- scd$getfeature("QC_good") %in% T &
