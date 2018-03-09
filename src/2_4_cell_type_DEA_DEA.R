@@ -57,9 +57,6 @@ DEA_genes_M <- c()
 for (day in c("D15", "D136", "D593")) {
   for (restrict in c("all", "40perc")) {
     load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
-    system(paste0("rm results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
-        day, "_", restrict, ".Rdata")
-)
     b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
       mbatch_DEA_cell_type_DEA$padj < 0.05
     print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
@@ -97,6 +94,7 @@ for (day in c("D15", "D136", "D593")) {
       file = paste0("results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
         day, "_", restrict, ".Rdata")
     )
+
     hm <- heatmap_genes(
       scd = scd_norm,
       features = c("antigen", "pDEA_cell_type"),
@@ -137,15 +135,19 @@ for (day in c("D15", "D136", "D593")) {
     )
     print(hm_corr)
   }
+
   hm_corr <- heatmap_corr_genes(
     scd = scd$select(
-        b_cells = b_cells & scd$getfeature("day") %in% day,
-        genes = DEA_genes_inter[["D136"]]
-      ),
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes = DEA_genes_inter[["D593"]]
+    ),
     features = c("antigen", "pDEA_cell_type"),
     cells_order = order(
       as.numeric(as.vector(
-        scd_norm$getfeature("pDEA_cell_type")
+        scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes = DEA_genes_inter[["D593"]]
+  )$getfeature("pDEA_cell_type")
       ))
     ),
     title = paste0("DE genes between DEA_cell_type ", day),
@@ -153,10 +155,15 @@ for (day in c("D15", "D136", "D593")) {
     file = paste0(
       "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
       day, "_inter.pdf"
-    )
+    ),
+    dist_name = "euclidian",
+    pca = F,
+    ncomp = 4
   )
   print(hm_corr)
+
 }
+
 
 system("mkdir -p results/cell_type/pca")
 system("mkdir -p results/cell_type/pcmf")
@@ -499,7 +506,7 @@ for (day in c("D15", "D136")) {
     scd = scd$select(
       b_cells = b_cells &
         scd$getfeature("day") %in% ifelse(day %in% "D136", "D90", day),
-      genes = DEA_genes_inter[["D136"]]
+      genes = DEA_genes_inter[["D593"]]
     ),
     features = c("antigen", "pDEA_cell_type"),
     cells_order = order(
