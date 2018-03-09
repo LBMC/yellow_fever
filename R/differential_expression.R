@@ -132,14 +132,24 @@ DEA_pbs <- function(Args = commandArgs()) {
 
 unlist_results <- function(results){
   expected_size <- max( unlist(lapply(results, FUN = length)) )
-  results <- lapply(results, FUN = function(x, expected_size) {
-    x_size <- length(x)
-    if (expected_size > x_size) {
-      x <- c(x, rep(NA, expected_size - x_size))
+  results_expected <- lapply(results, FUN = function(x, expected_size) {
+    if (length(x) == expected_size) {
+      return(x)
     }
-    return(x)
   },
-  expected_size)
+  expected_size)[[1]] 
+  results_expected[names(results_expected)] <- NA
+  results <- lapply(results, FUN = function(x, expected_size, expected_res) {
+      x_size <- length(x)
+      if (expected_size > x_size) {
+        expected_res[names(x)] <- x
+        x <- expected_res
+      }
+      return(x)
+    },
+    expected_size,
+    expected_res = results_expected
+  )
   results_unlisted <- as.data.frame(do.call(rbind, results))
   results_unlisted$gene <- names(results)
   passed <- !is.na(results_unlisted$pval) & results_unlisted$pval != ""
