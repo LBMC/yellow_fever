@@ -276,45 +276,55 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
   if (!("is_zi" %in% names(models_result))) {
     models_result[["is_zi"]] <- zi_test(
       data = data,
-      formula_full = formula_full,
       gene_name = gene_name,
       family = family,
       link = link,
       threshold = 0.05,
       v = v)
   }
-  if (formula_null == formula_full) {
-    if ( is.na( models_result[["formula_null"]]$residuals[1]) ) {
-      models_result[["formula_null"]] <- ziNB_fit(
-        data = data,
-        formula = formulas[["formula_null"]],
-        gene_name = gene_name,
-        family = family,
-        link = link,
-        zi = models_result[["is_zi"]],
-        v = v
-      )
-      models_result[["formula_full"]] <- models_result[["formula_null"]]
-      if (file.exists(tmp_file_LRT)) {
-        system(paste0("rm ", tmp_file_LRT))
-      }
-    }
-  } else {
-    for (formula in names(formulas)) {
-      if ( is.na(models_result[[formula]]$residuals[1]) ) {
-        models_result[[formula]] <- ziNB_fit(
+  try_left <- 1
+  while(try_left > 0) {
+    if (formula_null == formula_full) {
+      if ( is.na( models_result[["formula_null"]]$residuals[1]) ) {
+        models_result[["formula_null"]] <- ziNB_fit(
           data = data,
-          formula = formulas[[formula]],
+          formula = formulas[["formula_null"]],
           gene_name = gene_name,
           family = family,
           link = link,
           zi = models_result[["is_zi"]],
           v = v
         )
-        if (file.exists(tmp_file_LRT)) {
-          system(paste0("rm ", tmp_file_LRT))
+      }
+      models_result[["formula_full"]] <- models_result[["formula_null"]]
+    } else {
+      for (formula in names(formulas)) {
+        if ( is.na(models_result[[formula]]$residuals[1]) ) {
+          models_result[[formula]] <- ziNB_fit(
+            data = data,
+            formula = formulas[[formula]],
+            gene_name = gene_name,
+            family = family,
+            link = link,
+            zi = models_result[["is_zi"]],
+            v = v
+          )
+          if (file.exists(tmp_file_LRT)) {
+            system(paste0("rm ", tmp_file_LRT))
+          }
         }
       }
+    }
+    try_left <- 0
+    if (is.na( models_result[["formula_null"]]$residuals[1]) |
+        is.na( models_result[["formula_full"]]$residuals[1])) {
+      if (v) {
+        print(paste0("error: in gene ", gene_name, "simplifying formula..."))
+      }
+      formulas <- simplify_formula(formulas)
+      models_result[["formula_null"]]$residuals[1] <- NA
+      models_result[["formula_full"]]$residuals[1] <- NA
+      try_left <- 1
     }
   }
   if (!missing(folder_name)) {
@@ -484,7 +494,7 @@ ziNB_fit <- function(data, formula, gene_name,
       zeroInflation = zi,
       family = family,
       link = link,
-      mcmc = FALSE
+      mcmc = FALSE 
     )
   }, error = function(e){
     if (v) {
@@ -525,7 +535,7 @@ formula_to_features <- function(scd, formula_full){
 
 #' @importFrom MASS glm.nb
 #' @importFrom pscl zeroinfl
-zi_test <- function(data, formula_full, gene_name,
+zi_test <- function(data, formula = y ~ 1, gene_name,
     family = "nbinom1", link = "log", threshold = 0.05, v = F){
   if (v) {
     print(paste0(
@@ -602,6 +612,15 @@ zi_test <- function(data, formula_full, gene_name,
     print(paste0("zi test: no zeroinfl detected for ", gene_name, " (vuong test)"))
   }
   return(FALSE)
+}
+
+simplify_formula <- function (formulas, v = F){
+  for (formula in names(formulas)) {
+    formulas[[formula]] <- gsub(
+      "\\(1\\|(.*)\\)", "\\1", formulas[[formula]], perl = T
+    )
+  }
+  return(formulas)
 }
 
 #' importFrom pscl predprob
