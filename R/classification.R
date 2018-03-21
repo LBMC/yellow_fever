@@ -123,7 +123,7 @@ weight_regression <- function( gene, scd, v) {
   data <- data.frame(y = round(scd$getgene(gene)))
   is_zi <- zi_test(
     data = data,
-    formula_full = "y ~ 1",
+    formula = "y ~ 1",
     gene_name = gene,
     family = "nbinom1",
     link = "log",
