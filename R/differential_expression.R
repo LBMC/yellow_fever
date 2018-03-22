@@ -413,7 +413,7 @@ DEA_format <- function(LRT_result, models_result, v) {
       "full_",
       names(model_full)
     )
-    c(model_null, model_full, unlist(LRT))
+    return( c(model_null, model_full, unlist(LRT)) )
   }, error = function(e){
     if (v) {
       print("error: DEA_format")
@@ -440,33 +440,33 @@ DEA_format_ziNB <- function(model, zi) {
       alpha = model$alpha
     ))
   }, error = function(e){
-    return(NA)
+    return(c(NA, NA))
   })
-  results_b <- tryCatch({
-    if ("b" %in% names(model)) {
-      b_estimate <- as.data.frame(model[["b"]])
-      b_estimate <- unlist(t(model[["b"]]))
-      names(b_estimate) <- paste0(
-        "fixed_", names(model$b))
-      return(b_estimate)
-    }
-    return(unlist(data.frame(fixed = NA)))
-  }, error = function(e){
-    return(NA)
-  })
-  results_S <- tryCatch({
-    if ("S" %in% names(model)) {
-      S_estimate <- as.data.frame(model[["S"]])
-      S_estimate <- unlist(S_estimate)
-      names(S_estimate) <- paste0(
-        "mixed_", names(model$S))
-      return(S_estimate)
-    }
-    return(unlist(data.frame(mixed = NA)))
-  }, error = function(e){
-    return(NA)
-  })
-  result <- c(result, results_b, results_S)
+  # results_b <- tryCatch({
+  #   if ("b" %in% names(model)) {
+  #     b_estimate <- as.data.frame(model[["b"]])
+  #     b_estimate <- unlist(t(model[["b"]]))
+  #     names(b_estimate) <- paste0(
+  #       "fixed_", names(model$b))
+  #     return(b_estimate)
+  #   }
+  #   return(unlist(data.frame(fixed = NA)))
+  # }, error = function(e){
+  #   return(NA)
+  # })
+  # results_S <- tryCatch({
+  #   if ("S" %in% names(model)) {
+  #     S_estimate <- as.data.frame(model[["S"]])
+  #     S_estimate <- unlist(S_estimate)
+  #     names(S_estimate) <- paste0(
+  #       "mixed_", names(model$S))
+  #     return(S_estimate)
+  #   }
+  #   return(unlist(data.frame(mixed = NA)))
+  # }, error = function(e){
+  #   return(NA)
+  # })
+  # result <- c(result, results_b, results_S)
   return(result)
 }
 
