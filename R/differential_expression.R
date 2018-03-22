@@ -152,14 +152,9 @@ unlist_results <- function(results){
   )
   results_unlisted <- as.data.frame(do.call(rbind, results))
   results_unlisted$gene <- names(results)
-  passed <- !is.na(results_unlisted$pval) & results_unlisted$pval != ""
-  results_unlisted[
-    !passed, -c(1:3, ncol(results_unlisted))
-    ] <- NA
-  results_unlisted$pvalue <- as.vector(results_unlisted$pvalue)
-  results_unlisted$padj <- NA
-  results_unlisted$padj[passed] <- stats::p.adjust(
-    as.numeric(results_unlisted$pvalue[passed]),
+  results_unlisted$pvalue <- as.numeric(as.vector(results_unlisted$pvalue))
+  results_unlisted$padj <- stats::p.adjust(
+    results_unlisted$pvalue,
     method = "BH"
   )
   return(results_unlisted)
@@ -283,6 +278,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       v = v)
   }
   try_left <- 1
+  simplified <- FALSE
   while(try_left > 0) {
     if (formula_null == formula_full) {
       if ( is.na( models_result[["formula_null"]]$residuals[1]) ) {
@@ -316,8 +312,10 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       }
     }
     try_left <- 0
-    if (is.na( models_result[["formula_null"]]$residuals[1]) |
-        is.na( models_result[["formula_full"]]$residuals[1])) {
+    if ((is.na( models_result[["formula_null"]]$residuals[1]) |
+        is.na( models_result[["formula_full"]]$residuals[1])) &
+        !simplified)
+    {
       if (v) {
         print(paste0("error: in gene ", gene_name, "simplifying formula..."))
       }
@@ -325,6 +323,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       models_result[["formula_null"]]$residuals[1] <- NA
       models_result[["formula_full"]]$residuals[1] <- NA
       try_left <- 1
+      simplified <- TRUE
     }
   }
   if (!missing(folder_name)) {
