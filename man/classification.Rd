@@ -5,7 +5,8 @@
 \title{classification for scRNASeq data}
 \usage{
 classification(scd, feature, ncores = 4, features, genes, algo = "spls_pls",
-  selection = "stab", output_file = "", force = c(), v = F)
+  selection = "stab", output_file = "", force = c(), weight = TRUE,
+  v = F)
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}

@@ -5,7 +5,9 @@
 \title{correlation heatmap of cells}
 \usage{
 heatmap_corr_genes(scd, features, cells_order, factor = rep(TRUE,
-  length(features)), show_legend = TRUE, title = "", file)
+  length(features)), show_legend = TRUE, title = "", pca = FALSE,
+  simlr = FALSE, simlr_clust = 2, ncomp = 4, dist_name = "manhattan",
+  file)
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}
@@ -20,6 +22,8 @@ factor}
 \item{show_legend}{(default: TRUE) should the legend be displayed}
 
 \item{title}{title of the heatmap}
+
+\item{ncomp}{(default = 5) number of metagene to compute (PCA)}
 
 \item{file}{name of the pdf to save the heatmap}
 }
