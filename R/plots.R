@@ -997,7 +997,7 @@ heatmap_corr_genes <- function(
     h_data <- ascb(scd$getcounts, to_zero = TRUE)
   }
   h_data <- h_data[cells_order, ]
-  h_data <- h_data <- as.matrix(dist(h_data,
+  h_data <- as.matrix(dist(h_data,
     method = dist_name,
     diag = TRUE))
   h_data <- apply(h_data, c(1:2), function(x, x_mean, x_sd){
