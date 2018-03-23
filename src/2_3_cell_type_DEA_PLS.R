@@ -30,6 +30,7 @@ for (marker_type in colnames(genes_PLS)) {
   }
 }
 
+system("file_handle.py -f results/cell_type/DEA_cell_types_weighted_force*")
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
 DEA_cell_type_classification <- classification(
@@ -41,6 +42,7 @@ DEA_cell_type_classification <- classification(
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_cell_types_weighted_force",
   force = genes_marker,
+  v = T
 )
 
 save(
@@ -70,9 +72,17 @@ save(
 system("~/scripts/sms.sh \"PLS done\"")
 
 load("results/cell_type/DEA_cell_types_weighted_force_splsstab.Rdata")
+str(DEA_cell_type_classification)
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
-DEA_cell_type_classification$classification$fit_spls$fit$selected
+factor_weight <- data.frame(
+  factor = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  weight = DEA_cell_type_classification$classification$model$X.weight)
+factor_weight
+write.csv(
+  factor_weight,
+  file = "results/cell_type/DEA_cell_types_weighted_force_factor_weight.csv"
+)
 cell_type_groups <- rep(NA, scd$getncells)
 cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
 cell_type_pgroups <- rep(NA, scd$getncells)
@@ -192,7 +202,7 @@ ggsave(file = "results/cell_type/counts_QC_DEA_cell_type_weighted_force.pdf")
 ggplot(data = data_gplot, aes(x = pcell_type)) +
   geom_histogram() +
   theme_bw()
-ggsave(file = "results/cell_type/counts_QC_DEA_cell_type_histogram_full.pdf")
+ggsave(file = "results/cell_type/counts_QC_DEA_cell_type_histogram_force")
 
 system("mkdir -p results/cell_type/pca")
 scRNAtools::pca_plot(
@@ -210,7 +220,7 @@ for (day in c("D15", "D136", "D593")) {
     main = day
   )
   ggsave(file = paste0(
-    "results/cell_type/pca/pca_counts_QC_DEA_cell_type_", day, "_full_force.pdf"
+    "results/cell_type/pca/pca_counts_QC_DEA_cell_type_", day, "_force.pdf"
   ))
 }
 
@@ -222,7 +232,7 @@ scRNAtools::pCMF_plot(
   main = "all day",,
   ncores = 11
 )
-ggsave(file = "results/cell_type/pcmf/pcmf_counts_QC_DEA_cell_type_weighted_force_full.pdf")
+ggsave(file = "results/cell_type/pcmf/pcmf_counts_QC_DEA_cell_type_weighted_force.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pCMF_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
@@ -232,7 +242,7 @@ for (day in c("D15", "D136", "D593")) {
     ncores = 11
   )
   ggsave(file = paste0(
-    "results/cell_type/pcmf/pcmf_counts_QC_DEA_cell_type_", day, "_full_force.pdf"
+    "results/cell_type/pcmf/pcmf_counts_QC_DEA_cell_type_", day, "_force.pdf"
   ))
 }
 
@@ -256,7 +266,7 @@ hm <- heatmap_genes(
   ),
   title = "DE genes between DEA_cell_type",
   factor = c(T, T, F),
-  file = "results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_weighted_force_full.pdf"
+  file = "results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_weighted_force.pdf"
 )
 print(hm)
 hm_corr <- heatmap_corr_genes(
@@ -270,7 +280,7 @@ hm_corr <- heatmap_corr_genes(
   ),
   title = "corr DE genes between DEA_cell_type",
   factor = c(T, T, F),
-  file = "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_weighted_force_full.pdf"
+  file = "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_weighted_force.pdf"
 )
 print(hm_corr)
 
@@ -298,7 +308,7 @@ for (day in c("D15", "D136", "D593")) {
     factor = c(T, T, F),
     file = paste0(
       "results/cell_type/heatmap/hm_CB_counts_QC_DEA_DEA_cell_type_",
-      day, "_full_force.pdf"
+      day, "_force.pdf"
     )
   )
   print(hm)
@@ -318,7 +328,7 @@ for (day in c("D15", "D136", "D593")) {
     factor = c(T, T, F),
     file = paste0(
       "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_DEA_cell_type_",
-      day, "_full_force.pdf"
+      day, "_force.pdf"
     )
   )
   print(hm_corr)

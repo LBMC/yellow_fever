@@ -13,7 +13,7 @@ mbatch_day_surface_cell_type_weighted_DEA <- DEA(
   formula_null = "y ~ (1|batch) + day",
   formula_full = "y ~ (1|batch) + day + surface_cell_type",
   b_cells = b_cells,
-  cpus = 16,
+  cpus = 10,
   v = F,
   folder_name = "results/cell_type/mbatch_day_surface_cell_type_weighted_DEA"
 )

@@ -15,7 +15,7 @@ for (day in c("D15", "D136", "D593")) {
     formula_null = "y ~ (1|batch)",
     formula_full = "y ~ (1|batch) + DEA_cell_type",
     b_cells = b_cells,
-    cpus = 10,
+    cpus = 16,
     v = T,
     folder_name = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA")
   )
@@ -26,14 +26,14 @@ for (day in c("D15", "D136", "D593")) {
   system("~/scripts/sms.sh \"DEA done\"")
   print(day)
   print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
-  print(table(mbatch_DEA_cell_type_DEA$padj < 0.1))
+  print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
 }
 
 for (day in c("D15", "D136", "D593")) {
   load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
   print(day)
   print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
-  print(table(mbatch_DEA_cell_type_DEA$padj < 0.1))
+  print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
   write.csv(
     mbatch_DEA_cell_type_DEA,
     file = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.csv")
@@ -54,23 +54,19 @@ for (day in c("D15", "D136", "D593")) {
   DEA_genes_inter[[day]] <- mbatch_DEA_cell_type_DEA$gene[b_genes]
 }
 
-intersect(intersect(DEA_genes_inter[["D15"]], DEA_genes_inter[["D136"]]), DEA_genes_inter[["D593"]])
-intersect(DEA_genes_inter[["D593"]], DEA_genes_inter[["D136"]])
-"CCR7" %in% DEA_genes_inter[["D15"]]
-"CCR7" %in% DEA_genes_inter[["D136"]]
-"CCR7" %in% DEA_genes_inter[["D593"]]
+intersect_3 <- intersect(intersect(DEA_genes_inter[["D15"]], DEA_genes_inter[["D136"]]), DEA_genes_inter[["D593"]])
+intersect_2 <- intersect(DEA_genes_inter[["D593"]], DEA_genes_inter[["D136"]])
 
 DEA_genes_M <- c()
 for (day in c("D15", "D136", "D593")) {
   for (restrict in c("all", "40perc")) {
     load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
-    system(paste0("rm results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
-        day, "_", restrict, ".Rdata")
-)
+    # system(paste0("rm results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
+    #     day, "_", restrict, ".Rdata"))
     b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
-      mbatch_DEA_cell_type_DEA$padj < 0.1
+      mbatch_DEA_cell_type_DEA$padj < 0.05
     print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
-    print(table(mbatch_DEA_cell_type_DEA$padj < 0.1))
+    print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
     DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
     print("GNLY" %in% DEA_genes)
     print("GZMB" %in% DEA_genes)
@@ -125,6 +121,7 @@ for (day in c("D15", "D136", "D593")) {
       )
     )
     print(hm)
+
     hm_corr <- heatmap_corr_genes(
       scd = scd$select(
         b_cells = b_cells & scd$getfeature("day") %in% day,
@@ -144,12 +141,13 @@ for (day in c("D15", "D136", "D593")) {
       )
     )
     print(hm_corr)
+
   }
 
   hm_corr <- heatmap_corr_genes(
     scd = scd$select(
       b_cells = b_cells & scd$getfeature("day") %in% day,
-      genes = DEA_genes_inter[["D593"]]
+      genes = intersect_3
     ),
     features = c("antigen", "pDEA_cell_type"),
     cells_order = order(
@@ -168,7 +166,7 @@ for (day in c("D15", "D136", "D593")) {
     ),
     dist_name = "euclidian",
     pca = F,
-    ncomp = 4
+    ncomp = 5
   )
   print(hm_corr)
 
@@ -189,7 +187,7 @@ for (day in c("D15", "D136", "D593")) {
   system(paste0("rm results/tmp/pCMF_CB_counts_QC_DEA_cell_type_", day, ".Rdata"))
   system(paste0("rm results/tmp/pca_zi_norm_counts_QC_DEA_cell_type_", day, ".Rdata"))
   b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
-    mbatch_DEA_cell_type_DEA$padj < 0.1
+    mbatch_DEA_cell_type_DEA$padj < 0.05
   DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
   scd_norm <- zinorm(
     scd = scd$select(
@@ -254,7 +252,7 @@ for (day in c("D15", "D90")) {
     formula_full = "y ~ (1|batch) + DEA_cell_type",
     b_cells = b_cells,
     cpus = 16,
-    v = F,
+    v = T,
     folder_name = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F")
   )
   save(
@@ -264,11 +262,14 @@ for (day in c("D15", "D90")) {
   system("~/scripts/sms.sh \"DEA done\"")
   print(day)
   print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
-  print(table(mbatch_DEA_cell_type_DEA$padj < 0.1))
+  print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
 }
 
 for (day in c("D15", "D90")) {
+  day <- "D15"
   load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F.Rdata"))
+  print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
+  print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
   write.csv(
     mbatch_DEA_cell_type_DEA,
     file = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F.csv")
@@ -276,41 +277,6 @@ for (day in c("D15", "D90")) {
 }
 
 system("mkdir -p results/cell_type/heatmap/")
-
-for (day in c("D15", "D90")) {
-  system(
-    paste0("mkdir -p results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F")
-  )
-  b_cells <- scd$getfeature("QC_good") %in% T &
-    scd$getfeature("sex") %in% "F" &
-    !is.na(scd$getfeature("DEA_cell_type")) &
-    scd$getfeature("day") %in% day
-  mbatch_DEA_cell_type_DEA <- DEA(
-    scd = scd,
-    formula_null = "y ~ (1|batch)",
-    formula_full = "y ~ (1|batch) + DEA_cell_type",
-    b_cells = b_cells,
-    cpus = 10,
-    v = F,
-    folder_name = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F")
-  )
-  save(
-    mbatch_DEA_cell_type_DEA,
-    file = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F.Rdata")
-  )
-  system("~/scripts/sms.sh \"DEA done\"")
-  print(day)
-  print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
-  print(table(mbatch_DEA_cell_type_DEA$padj < 0.1))
-}
-
-for (day in c("D15", "D90")) {
-  load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F.Rdata"))
-  write.csv(
-    mbatch_DEA_cell_type_DEA,
-    file = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F.csv")
-  )
-}
 
 load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T
@@ -335,9 +301,9 @@ for (day in c("D15", "D90")) {
     system(paste0("rm results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
         day, "_thresholded_", restrict, "_F.RData"))
     b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
-      mbatch_DEA_cell_type_DEA$padj < 0.1
+      mbatch_DEA_cell_type_DEA$padj < 0.05
     print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
-    print(table(mbatch_DEA_cell_type_DEA$padj < 0.1))
+    print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
     DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
     DEA_genes_F <- unique(c(DEA_genes, DEA_genes_F))
     DEA_genes_thresholded <- expressed(
@@ -411,7 +377,7 @@ DEA_genes_inter <- list()
 for (day in c("D15", "D136", "D593")) {
   load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
   b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
-    mbatch_DEA_cell_type_DEA$padj < 0.1
+    mbatch_DEA_cell_type_DEA$padj < 0.05
   DEA_genes_inter[[day]] <- mbatch_DEA_cell_type_DEA$gene[b_genes]
 }
 
@@ -425,9 +391,9 @@ for (day in c("D15", "D136")) {
   for (restrict in c("all", "40perc")) {
     load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
     b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
-      mbatch_DEA_cell_type_DEA$padj < 0.1
+      mbatch_DEA_cell_type_DEA$padj < 0.05
     print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
-    print(table(mbatch_DEA_cell_type_DEA$padj < 0.1))
+    print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
     DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
     DEA_genes_thresholded <- expressed(
       scd = scd$select(
@@ -449,7 +415,6 @@ for (day in c("D15", "D136")) {
       DEA_genes_thresholded <- DEA_genes
     }
     table(b_cells & scd$getfeature("day") %in% day)
-    system(paste0("rm results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
         day, "_thresholded_", restrict, "_M_genes_F.RData"))
     scd_norm <- zinorm(
       scd = scd$select(
@@ -505,7 +470,7 @@ for (day in c("D15", "D136")) {
     scd = scd$select(
       b_cells = b_cells &
         scd$getfeature("day") %in% ifelse(day %in% "D136", "D90", day),
-      genes = DEA_genes_inter[["D593"]]
+      genes = intersect_3
     ),
     features = c("antigen", "pDEA_cell_type"),
     cells_order = order(
