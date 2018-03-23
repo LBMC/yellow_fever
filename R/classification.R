@@ -293,7 +293,7 @@ pls_type <- function(by){
 ################################################################################
 # multinomial functions
 
-#' @importFrom plsgenomics multinomial.spls.stab
+#' @importFrom plsgenomics multinom.spls.stab
 multinomial_spls_stab_training <- function(by, data, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_msplsstab.Rdata"))) {
     print(paste0(file, "_msplsstab.Rdata found. skipping training step..."))
@@ -322,7 +322,7 @@ multinomial_spls_stab_training <- function(by, data, ncores, file, force) {
   return(list(fit = fit))
 }
 
-#' @importFrom plsgenomics multinomial.spls.stab
+#' @importFrom plsgenomics multinom.spls.stab
 multinomial_spls_cv_training <- function(by, data, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_msplscv.Rdata"))) {
     print(paste0(file, "_msplscv.Rdata found. skipping training step..."))
@@ -381,7 +381,7 @@ multinomial_spls_stab_classification <- function(
   ))
 }
 
-#' @importFrom plsgenomics multinomial.spls
+#' @importFrom plsgenomics multinom.spls
 multinomial_spls_classification <- function(
     fit, data, data_train, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_mspls.Rdata"))) {
@@ -508,7 +508,7 @@ multinomial_pls_cv_classification <- function(
 ################################################################################
 # logistic functions
 
-#' @importFrom plsgenomics logistic.spls.stab
+#' @importFrom plsgenomics logit.spls.stab
 logistic_spls_stab_training <- function(by, data, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_lsplsstab.Rdata"))) {
     print(paste0(file, "_lsplsstab.Rdata found. skipping training step..."))
@@ -537,7 +537,7 @@ logistic_spls_stab_training <- function(by, data, ncores, file, force) {
   return(list(fit = fit))
 }
 
-#' @importFrom plsgenomics logistic.spls.stab
+#' @importFrom plsgenomics logit.spls.stab
 logistic_spls_cv_training <- function(by, data, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_lsplscv.Rdata"))) {
     print(paste0(file, "_lsplscv.Rdata found. skipping training step..."))
@@ -602,7 +602,7 @@ logistic_spls_stab_classification <- function(
   ))
 }
 
-#' @importFrom plsgenomics logistic.spls
+#' @importFrom plsgenomics logit.spls
 logistic_spls_classification <- function(
     fit, data, data_train, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_lspls.Rdata"))) {
