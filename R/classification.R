@@ -759,13 +759,10 @@ gene_cov <- function(scd, gene, score, cpus = 4, tmp_file){
     gene_exp <- score
     b_genes <- rep(F, scd_norm$getngenes)
   }
-  print(table(b_genes))
   data_exp <- as.matrix(scd_norm$getcounts[, !b_genes])
-  print(dim(data_exp))
   if (!missing(tmp_file) & file.exists(paste0(tmp_file, "fit.Rdata"))) {
     print(paste0(tmp_file, "fit.Rdata, found, loading..."))
     load(paste0(tmp_file, "fit.Rdata"))
-    print(str(fit))
   } else {
     fit <- spls.cv(
       X = data_exp,
@@ -783,7 +780,6 @@ gene_cov <- function(scd, gene, score, cpus = 4, tmp_file){
   if (!missing(tmp_file) & file.exists(paste0(tmp_file, "predict.Rdata"))) {
     print(paste0(tmp_file, "predict.Rdata, found, loading..."))
     load(paste0(tmp_file, "predict.Rdata"))
-    print(str(predict))
   } else {
     predict <- spls(
       Xtrain = data_exp,
