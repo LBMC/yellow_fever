@@ -219,6 +219,46 @@ for (day in c("D15", "D136", "D593")) {
   ))
 }
 
+devtools::load_all("../scRNAtools/", reset = T)
+load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+system("mkdir -p results/cell_type/heatmap/")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "M"
+pMEM_genes <- list()
+system("rm results/tmp/gene_cov_pDEA_cell_type_D15_Mpredict.Rdata")
+for (day in c("D15", "D136", "D593")) {
+  load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
+  b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
+    mbatch_DEA_cell_type_DEA$padj < 0.05
+  DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
+  pMEM_genes[[day]] <- gene_cov(
+    scd = scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes = DEA_genes),
+   score = scd$select(b_cells = b_cells & scd$getfeature("day") %in% day)$getfeature("pDEA_cell_type"),
+   cpus = 10,
+   tmp_file = paste0("results/tmp/gene_cov_pDEA_cell_type_", day, "_M")
+ )
+}
+pMEM_genes
+
+for (day in c("D15", "D136", "D593")) {
+  per_genes_barplot(
+    scd = scd$select(b_cells = b_cells),
+    genes = pMEM_genes[[day]],
+    features = c("ccr7", "pDEA_cell_type"),
+    order_by = "pDEA_cell_type",
+    color_by = "DEA_cell_type",
+    file = paste0(
+      "results/cell_type/cov_genes_M_",
+      day,
+      ".pdf"),
+    main = paste0("pMEM cov genes", day)
+  )
+}
+
+
 ################################################################################
 ## DEA for the F donor
 
