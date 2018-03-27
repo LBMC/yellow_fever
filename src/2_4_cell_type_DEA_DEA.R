@@ -219,45 +219,48 @@ for (day in c("D15", "D136", "D593")) {
   ))
 }
 
-devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
-system("mkdir -p results/cell_type/heatmap/")
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("DEA_cell_type")) &
   scd$getfeature("sex") %in% "M"
-pMEM_genes <- list()
-system("rm results/tmp/gene_cov_pDEA_cell_type_D15_Mpredict.Rdata")
 for (day in c("D15", "D136", "D593")) {
+  system(paste0(
+      "rm results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
+      day, "_inter.pdf_pCMF.Rdata"
+    ))
   load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
   b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
     mbatch_DEA_cell_type_DEA$padj < 0.05
   DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
-  pMEM_genes[[day]] <- gene_cov(
+  hm_corr <- heatmap_corr_genes(
     scd = scd$select(
       b_cells = b_cells & scd$getfeature("day") %in% day,
-      genes = DEA_genes),
-   score = scd$select(b_cells = b_cells & scd$getfeature("day") %in% day)$getfeature("pDEA_cell_type"),
-   cpus = 10,
-   tmp_file = paste0("results/tmp/gene_cov_pDEA_cell_type_", day, "_M")
- )
-}
-pMEM_genes
-
-for (day in c("D15", "D136", "D593")) {
-  per_genes_barplot(
-    scd = scd$select(b_cells = b_cells),
-    genes = pMEM_genes[[day]],
-    features = c("ccr7", "pDEA_cell_type"),
-    order_by = "pDEA_cell_type",
-    color_by = "DEA_cell_type",
+      genes =c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+      "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+      "NELL2", "CCR7")
+    ),
+    features = c("antigen", "pDEA_cell_type"),
+    cells_order = order(
+      as.numeric(as.vector(
+        scd$select(
+          b_cells = b_cells & scd$getfeature("day") %in% day
+        )$getfeature("pDEA_cell_type")
+      ))
+    ),
+    title = paste0("DE genes between DEA_cell_type ", day),
+    factor = c(T, F),
     file = paste0(
-      "results/cell_type/cov_genes_M_",
-      day,
-      ".pdf"),
-    main = paste0("pMEM cov genes", day)
+      "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
+      day, "_selected_manhattan.pdf"
+    ),
+    dist_name = "manhattan",
+    pca = F,
+    pCMF = F,
+    ncomp = 5,
+    cpus = 10
   )
+  print(hm_corr)
 }
-
 
 ################################################################################
 ## DEA for the F donor
@@ -528,6 +531,42 @@ for (day in c("D15", "D136")) {
   print(hm_corr)
 }
 
+devtools::load_all("../scRNAtools/", reset = T)
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "F"
+for (day in c("D15", "D90")) {
+  hm_corr <- heatmap_corr_genes(
+    scd = scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes =c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+      "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+      "NELL2", "CCR7")
+    ),
+    features = c("antigen", "pDEA_cell_type"),
+    cells_order = order(
+      as.numeric(as.vector(
+        scd$select(
+          b_cells = b_cells & scd$getfeature("day") %in% day
+        )$getfeature("pDEA_cell_type")
+      ))
+    ),
+    title = paste0("DE genes between DEA_cell_type ", day),
+    factor = c(T, F),
+    file = paste0(
+      "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
+      day, "_F_selected_manhattan.pdf"
+    ),
+    dist_name = "canberra",
+    pca = F,
+    pCMF = F,
+    ncomp = 5,
+    cpus = 10
+  )
+  print(hm_corr)
+}
+
+
 
 load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 b_cells <- scd$getfeature("sex") %in% "M" & 
@@ -552,3 +591,4 @@ write.csv(
   normalized_counts,
   file = paste0("results/cell_type/cell_type_CB_counts.csv")
 )
+
