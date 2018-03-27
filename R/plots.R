@@ -980,7 +980,9 @@ heatmap_corr_genes <- function(
   show_legend = TRUE,
   title = "",
   pca = FALSE,
+  pCMF = FALSE
   ncomp = 4,
+  cpus = 4,
   dist_name = "manhattan",
   file
 ) {
@@ -991,10 +993,18 @@ heatmap_corr_genes <- function(
     show_legend = show_legend,
     cells_order = cells_order
   )
+  h_data <- ascb(scd$getcounts, to_zero = TRUE)
   if (pca) {
     h_data <- pca_loading(scd, cells = TRUE, ncomp = ncomp)
-  } else {
-    h_data <- ascb(scd$getcounts, to_zero = TRUE)
+  }
+  if (pCMF) {
+    h_data <- pCMF_loading(
+      scd = scd,
+      cells = TRUE,
+      ncomp = ncomp,
+      cpus = cpus, 
+      tmp_file = paste0(file, "_pCMF.Rdata")
+    )
   }
   h_data <- h_data[cells_order, ]
   h_data <- as.matrix(dist(h_data,
