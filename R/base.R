@@ -192,6 +192,44 @@ pca_loading <- function(scd, cells = FALSE, ncomp = 5){
   return(pca_out$c1)
 }
 
+#' compute pCMF loading
+#'
+#' @param x vector data.frame to vectorize
+#' @param cells (default=FALSE) shall the cells loading be returned
+#' @return return a matrix of cells (or genes) coordinates or a list including
+#' this matrix
+#' @examples
+#' \dontrun{
+#' x = pCMF_loading(scd)
+#' }
+#' @importFrom ade4 dudi.pca
+#' @export pca_loading
+pCMF_loading <- function(scd, cells = FALSE, ncomp = 5, cpus = 4, tmp_file){
+  if (!missing(tmp_file) & file.exists(tmp_file)) {
+    print("tmp file found skipping pCMF...")
+    load(tmp_file)
+  } else {
+    pCMF_out <- pCMF(
+      X = scd$getcounts,
+      K = ncomp,
+      iterMax = 500,
+      iterMin = 100,
+      epsilon = 1e-3,
+      verbose = TRUE,
+      sparse = TRUE,
+      ZI = TRUE,
+      ncores = cpus
+    )
+    if (!missing(tmp_file)){
+      save(pCMF_out, file = tmp_file)
+    }
+  }
+  if (cells) {
+    return(pCMF$stats$ElogU)
+  }
+  return(pCMF$stats$ElogV)
+}
+
 
 #' compute bca loading
 #'
