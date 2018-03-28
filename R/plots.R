@@ -980,7 +980,7 @@ heatmap_corr_genes <- function(
   show_legend = TRUE,
   title = "",
   pca = FALSE,
-  pCMF = FALSE
+  pCMF = FALSE,
   ncomp = 4,
   cpus = 4,
   dist_name = "manhattan",

@@ -225,9 +225,9 @@ pCMF_loading <- function(scd, cells = FALSE, ncomp = 5, cpus = 4, tmp_file){
     }
   }
   if (cells) {
-    return(pCMF$stats$ElogU)
+    return(pCMF_out$stats$ElogU)
   }
-  return(pCMF$stats$ElogV)
+  return(pCMF_out$stats$ElogV)
 }
 
 
@@ -426,6 +426,39 @@ order_by_groups <- function(score, by, FUN = mean){
   names(score_av_list) <- score_av$by
   score_by <- unlist(score_av_list[as.vector(by)])
   return(order(score_by, score))
+}
+
+#' return order of genes by a covariate
+#' @param score covariate to order on
+#' @param scd scdata with genes to order
+#' @return return order
+#' @examples
+#' \dontrun{
+#' genes_order = order_by_factor(scd$get_feature("pDEA_cell_type"), scd)
+#' }
+#' @export order_by_groups
+order_by_factor <- function(score, scd, tmp_file, top = FALSE){
+  score_cov <- gene_cov(
+    scd = scd, 
+    score = score,
+    sparse = F,
+    ncomp = 1,
+    tmp_file = tmp_file)
+  la_score <- log(abs(score_cov$B))
+  if (top) {
+    la_score_100 <- seq(
+      from = min(la_score),
+      to = max(la_score),
+      length.out = 100
+    )
+    la_score_cdf <- ecdf(la_score)
+    la_score_cdf <- la_score_cdf(la_score_100)
+    dd_score_cdf <- diff(diff(la_score_cdf))
+    score_min <- la_score_100[which(dd_score_cdf == min(dd_score_cdf))]
+    return(order(la_score)[order(la_score) %in% which(la_score > score_min)])
+  } else {
+    return(order(score_cov$B))
+  }
 }
 
 #' return scalled counts for zidata
