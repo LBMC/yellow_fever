@@ -743,7 +743,8 @@ logistic_pls_cv_classification <- function(
 #' }
 #' @import plsgenomics
 #' @export gene_cov
-gene_cov <- function(scd, gene, score, cpus = 4, tmp_file){
+gene_cov <- function(
+    scd, gene, score, cpus = 4, tmp_file, sparse = T, ncomp = 3){
   if (missing(gene) & missing(score)) {
     return(c())
   }
@@ -760,40 +761,49 @@ gene_cov <- function(scd, gene, score, cpus = 4, tmp_file){
     b_genes <- rep(F, scd_norm$getngenes)
   }
   data_exp <- as.matrix(scd_norm$getcounts[, !b_genes])
-  if (!missing(tmp_file) & file.exists(paste0(tmp_file, "fit.Rdata"))) {
-    print(paste0(tmp_file, "fit.Rdata, found, loading..."))
-    load(paste0(tmp_file, "fit.Rdata"))
+  if (sparse) {
+    if (!missing(tmp_file) & file.exists(paste0(tmp_file, "fit.Rdata"))) {
+      print(paste0(tmp_file, "fit.Rdata, found, loading..."))
+      load(paste0(tmp_file, "fit.Rdata"))
+    } else {
+      fit <- spls.cv(
+        X = data_exp,
+        Y = gene_exp,
+        lambda.l1.range = seq(0.05, 0.95, by=0.3),
+        ncomp.range = 1:2,
+        weight.mat = NULL, adapt = TRUE, center.X = FALSE,
+        center.Y = FALSE, scale.X = FALSE, scale.Y = FALSE,
+        weighted.center = FALSE,
+        return.grid = TRUE, ncores = cpus, nfolds = 10)
+    }
+    if (!missing(tmp_file)) {
+      save(fit, file = paste0(tmp_file, "fit.Rdata"))
+    }
+    if (!missing(tmp_file) & file.exists(paste0(tmp_file, "predict.Rdata"))) {
+      print(paste0(tmp_file, "predict.Rdata, found, loading..."))
+      load(paste0(tmp_file, "predict.Rdata"))
+    } else {
+      predict <- spls(
+        Xtrain = data_exp,
+        Ytrain = gene_exp,
+        lambda.l1 = fit$lambda.l1.opt, ncomp=fit$ncomp.opt,
+        weight.mat = NULL,
+        Xtest = data_exp,
+        adapt = TRUE, center.X = FALSE, center.Y = FALSE, scale.X = FALSE,
+        scale.Y = FALSE, weighted.center = FALSE
+      )
+    }
+    if (!missing(tmp_file)) {
+      save(predict, file = paste0(tmp_file, "predict.Rdata"))
+    }
+    genes_names <- colnames(scd$getcounts[, !b_genes])[predict$A]
+    return(genes_names)
   } else {
-    fit <- spls.cv(
-      X = data_exp,
-      Y = gene_exp,
-      lambda.l1.range = seq(0.05, 0.95, by=0.3),
-      ncomp.range = 1:2,
-      weight.mat = NULL, adapt = TRUE, center.X = FALSE,
-      center.Y = FALSE, scale.X = FALSE, scale.Y = FALSE,
-      weighted.center = FALSE,
-      return.grid = TRUE, ncores = cpus, nfolds = 10)
-  }
-  if (!missing(tmp_file)) {
-    save(fit, file = paste0(tmp_file, "fit.Rdata"))
-  }
-  if (!missing(tmp_file) & file.exists(paste0(tmp_file, "predict.Rdata"))) {
-    print(paste0(tmp_file, "predict.Rdata, found, loading..."))
-    load(paste0(tmp_file, "predict.Rdata"))
-  } else {
-    predict <- spls(
+    fit <- pls.regression(
       Xtrain = data_exp,
       Ytrain = gene_exp,
-      lambda.l1 = fit$lambda.l1.opt, ncomp=fit$ncomp.opt,
-      weight.mat = NULL,
-      Xtest = data_exp,
-      adapt = TRUE, center.X = FALSE, center.Y = FALSE, scale.X = FALSE,
-      scale.Y = FALSE, weighted.center = FALSE
+      ncomp = ncomp
     )
+    return(fit)
   }
-  if (!missing(tmp_file)) {
-    save(predict, file = paste0(tmp_file, "predict.Rdata"))
-  }
-  genes_names <- colnames(scd$getcounts[, !b_genes])[predict$A]
-  return(genes_names)
 }
