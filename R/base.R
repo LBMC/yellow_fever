@@ -398,6 +398,8 @@ TPM <- function(counts, len) {
 #' return genes expressed with the following criteria
 #' @param scd scdata object
 #' @param zi_threshold persentage of cells == 0
+#' @param alt (default: lesser) should genes with lesser or greater number of
+#' zeros be returned
 #' @return return list of genes names
 #' @examples
 #' \dontrun{
