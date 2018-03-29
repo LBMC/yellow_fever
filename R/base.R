@@ -404,9 +404,13 @@ TPM <- function(counts, len) {
 #' expressed_genes = expressed(scd, 0.90)
 #' }
 #' @export expressed
-expressed <- function(scd, zi_threshold = 0.90){
+expressed <- function(scd, zi_threshold = 0.90, alt = "lesser"){
   zi_rate <- colSums(round(scd$getcounts) == 0) / scd$getncells
-  return(scd$getgenes[zi_rate <= zi_threshold])
+  if (alt == "lesser") {
+    return(scd$getgenes[zi_rate <= zi_threshold])
+  } else {
+    return(scd$getgenes[zi_rate >= zi_threshold])
+  }
 }
 
 #' return order base on the rank FUN in groups
