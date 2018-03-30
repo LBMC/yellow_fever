@@ -744,7 +744,11 @@ logistic_pls_cv_classification <- function(
 #' @import plsgenomics
 #' @export gene_cov
 gene_cov <- function(
-    scd, gene, score, cpus = 4, tmp_file, sparse = T, ncomp = 3){
+    scd, gene, score, cpus = 4, tmp_file, sparse = T, ncomp = 3,
+    FUN = function(x){
+      x <- log( x + 1 )
+      x <- (x - mean(x) ) / sd(x)
+    }){
   if (missing(gene) & missing(score)) {
     return(c())
   }
@@ -760,7 +764,7 @@ gene_cov <- function(
     gene_exp <- score
     b_genes <- rep(F, scd_norm$getngenes)
   }
-  data_exp <- as.matrix(scd_norm$getcounts[, !b_genes])
+  data_exp <- FUN(as.matrix(scd_norm$getcounts[, !b_genes]))
   if (sparse) {
     if (!missing(tmp_file) & file.exists(paste0(tmp_file, "fit.Rdata"))) {
       print(paste0(tmp_file, "fit.Rdata, found, loading..."))
