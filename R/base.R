@@ -450,11 +450,13 @@ order_by_factor <- function(score, scd, tmp_file, top = FALSE, quant = 0.75){
     sparse = F,
     ncomp = 1,
     tmp_file = tmp_file)
-  if (top %in% TRUE | is.numeric(top)) {
+  if (( top %in% TRUE | is.numeric(top) ) & top + 1 < scd$getngenes) {
     la_score <- log(abs(score_cov$B))
     if (is.numeric(top)) {
+      print(paste0("selecting ", top, " genes"))
       score_min <- la_score[order(la_score, decreasing = TRUE)][top+1]
     } else {
+      print(paste0("selecting the ", quant, " quantile top genes"))
       score_min <- quantile(la_score, quant)
     }
     la_score_select <- la_score[la_score > score_min]
