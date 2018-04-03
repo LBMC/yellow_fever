@@ -54,51 +54,89 @@ for (day in c("D15", "D136", "D593")) {
   DEA_genes_inter[[day]] <- mbatch_DEA_cell_type_DEA$gene[b_genes]
 }
 
-intersect_3 <- intersect(intersect(DEA_genes_inter[["D15"]], DEA_genes_inter[["D136"]]), DEA_genes_inter[["D593"]])
-intersect_2 <- intersect(DEA_genes_inter[["D593"]], DEA_genes_inter[["D136"]])
+devtools::load_all("../scRNAtools/", reset = T)
+load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "M"
+for (day in c("D15", "D136", "D593")) {
+  scd_norm <- scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes =c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+      "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+      "NELL2", "CCR7")
+    )
+  hm_corr <- heatmap_corr_genes(
+    scd = scd_norm,
+    features = c("antigen", "pDEA_cell_type"),
+    cells_order = order(
+      as.numeric(as.vector(
+        scd_norm$getfeature("pDEA_cell_type")
+      ))
+    ),
+    title = paste0("selected genes between cell-type ", day),
+    factor = c(T, F),
+    file = paste0(
+      "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
+      day, "_selected_manhattan.pdf"
+    ),
+    dist_name = "manhattan",
+    pca = F,
+    pCMF = F,
+    ncomp = 5,
+    cpus = 10
+  )
+  print(hm_corr)
+}
 
 DEA_genes_M <- c()
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "M"
 for (day in c("D15", "D136", "D593")) {
-  for (restrict in c("all", "40perc")) {
+  for (alt in c("lesser", "greater")) {
     load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
-    # system(paste0("rm results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
-    #     day, "_", restrict, ".Rdata"))
     b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
       mbatch_DEA_cell_type_DEA$padj < 0.05
-    print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
-    print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
     DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
-    print("GNLY" %in% DEA_genes)
-    print("GZMB" %in% DEA_genes)
-    print("GZMH" %in% DEA_genes)
     DEA_genes_M <- unique(c(DEA_genes, DEA_genes_M))
-    DEA_genes_thresholded <- expressed(
-      scd = scd$select(
-        b_cells = b_cells & scd$getfeature("day") %in% day &
-          scd$getfeature("DEA_cell_type") %in% "EFF",
-        genes = DEA_genes
-      ),
-      zi_threshold = 0.40
-    )
-    DEA_genes_thresholded <- unique(c(DEA_genes_thresholded, expressed(
-      scd = scd$select(
-        b_cells = b_cells & scd$getfeature("day") %in% day &
-          scd$getfeature("DEA_cell_type") %in% "MEM",
-        genes = DEA_genes
-      ),
-      zi_threshold = 0.40
-    )))
-    if (restrict %in% "all") {
-      DEA_genes_thresholded <- DEA_genes
-    }
-    scd_norm <- zinorm(
+    DEA_genes_exp <- expressed(
       scd = scd$select(
         b_cells = b_cells & scd$getfeature("day") %in% day,
-        genes = DEA_genes_thresholded
+        genes = DEA_genes
       ),
-      cpus = 10,
-      file = paste0("results/tmp/zi_norm_cells_counts_QC_DEA_cell_type_",
-        day, "_", restrict, ".Rdata")
+      zi_threshold = 0.50,
+      alt = alt
+    )
+    scd_norm <- scd$select(
+        b_cells = b_cells & scd$getfeature("day") %in% day,
+        genes = DEA_genes_exp
+      )
+    hm_title <- paste0("top ", length(DEA_genes_exp),
+      "DE genes between cell-type 
+      ", day, "(zi <= 0.5)")
+    if (alt == "greater") {
+      hm_title <- paste0("top ", length(DEA_genes_exp),
+        "DE genes between cell-type 
+        ", day, "(zi >= 0.5)")
+    }
+    system(paste0("rm results/cell_type/gene_cov_",
+      day, "_zi0.5_", alt, ".Rdata_norm.Rdata"))
+    gene_order <- order_by_factor(
+      scd = scd_norm, 
+      score = scd_norm$getfeature("pDEA_cell_type"),
+      tmp_file = paste0("results/cell_type/gene_cov_",
+        day, "_zi0.5_", alt, ".Rdata"),
+      top = min(100, length(DEA_genes_exp))
+    )
+    system(paste0("rm results/cell_type/gene_cov_",
+        day, "_zi0.5_", alt, "_top100.Rdata_norm.Rdata"))
+    gene_order <- order_by_factor(
+      scd = scd_norm, 
+      score = scd_norm$getfeature("pDEA_cell_type"),
+      tmp_file = paste0("results/cell_type/gene_cov_",
+        day, "_zi0.5_", alt, "_top100.Rdata"),
+      top = min(100, length(DEA_genes_exp))
     )
 
     hm <- heatmap_genes(
@@ -109,69 +147,39 @@ for (day in c("D15", "D136", "D593")) {
           scd_norm$getfeature("pDEA_cell_type")
         ))
       ),
-      genes_order = order_2_groups(
-        scd = scd_norm,
-        by = scd_norm$getfeature("DEA_cell_type")
-      ),
-      title = paste0("DE genes between DEA_cell_type ", day),
+      genes_order = gene_order,
+      title = hm_title,
       factor = c(T, F),
       file = paste0(
         "results/cell_type/heatmap/hm_CB_counts_QC_DEA_cell_type_",
-        day, "_", restrict, ".pdf"
+        day, "_zi0.5_", alt, "_cov.pdf"
       )
     )
     print(hm)
 
     hm_corr <- heatmap_corr_genes(
-      scd = scd$select(
-        b_cells = b_cells & scd$getfeature("day") %in% day,
-        genes = DEA_genes_thresholded
-      ),
+      scd = scd_norm,
       features = c("antigen", "pDEA_cell_type"),
       cells_order = order(
         as.numeric(as.vector(
           scd_norm$getfeature("pDEA_cell_type")
         ))
       ),
-      title = paste0("DE genes between DEA_cell_type ", day),
+      title = hm_title,
       factor = c(T, F),
       file = paste0(
         "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
-        day, "_", restrict, ".pdf"
-      )
+        day, "_zi0.5_", alt, "_cov_manhattan.pdf"
+      ),
+      dist_name = "manhattan",
+      pca = F,
+      pCMF = F,
+      ncomp = 5,
+      cpus = 10
     )
     print(hm_corr)
-
   }
-
-  hm_corr <- heatmap_corr_genes(
-    scd = scd$select(
-      b_cells = b_cells & scd$getfeature("day") %in% day,
-      genes = intersect_3
-    ),
-    features = c("antigen", "pDEA_cell_type"),
-    cells_order = order(
-      as.numeric(as.vector(
-        scd$select(
-      b_cells = b_cells & scd$getfeature("day") %in% day,
-      genes = DEA_genes_inter[["D593"]]
-  )$getfeature("pDEA_cell_type")
-      ))
-    ),
-    title = paste0("DE genes between DEA_cell_type ", day),
-    factor = c(T, F),
-    file = paste0(
-      "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
-      day, "_inter.pdf"
-    ),
-    dist_name = "euclidian",
-    pca = F,
-    ncomp = 5
-  )
-  print(hm_corr)
-
 }
-
 
 system("mkdir -p results/cell_type/pca")
 system("mkdir -p results/cell_type/pcmf")
@@ -219,48 +227,7 @@ for (day in c("D15", "D136", "D593")) {
   ))
 }
 
-load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
-b_cells <- scd$getfeature("QC_good") %in% T &
-  !is.na(scd$getfeature("DEA_cell_type")) &
-  scd$getfeature("sex") %in% "M"
-for (day in c("D15", "D136", "D593")) {
-  system(paste0(
-      "rm results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
-      day, "_inter.pdf_pCMF.Rdata"
-    ))
-  load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
-  b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
-    mbatch_DEA_cell_type_DEA$padj < 0.05
-  DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
-  hm_corr <- heatmap_corr_genes(
-    scd = scd$select(
-      b_cells = b_cells & scd$getfeature("day") %in% day,
-      genes =c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
-      "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
-      "NELL2", "CCR7")
-    ),
-    features = c("antigen", "pDEA_cell_type"),
-    cells_order = order(
-      as.numeric(as.vector(
-        scd$select(
-          b_cells = b_cells & scd$getfeature("day") %in% day
-        )$getfeature("pDEA_cell_type")
-      ))
-    ),
-    title = paste0("DE genes between DEA_cell_type ", day),
-    factor = c(T, F),
-    file = paste0(
-      "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
-      day, "_selected_manhattan.pdf"
-    ),
-    dist_name = "manhattan",
-    pca = F,
-    pCMF = F,
-    ncomp = 5,
-    cpus = 10
-  )
-  print(hm_corr)
-}
+
 
 ################################################################################
 ## DEA for the F donor
