@@ -1,14 +1,17 @@
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T
+infos_M <- scd$getfeatures
+load("results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
+b_cells_F <- scd$getfeature("sex") %in% "F"
+infos_M[b_cells_F, ] <- scd$select(b_cells = b_cells_F)$getfeatures
+scd <- scdata$new(
+  infos = infos_M,
+  counts = scd$getcounts
+)
 
 system("mkdir -p results/cycling/")
-
-b_cells <- scd$getfeature("QC_good") %in% T &
-  !is.na(scd$getfeature("DEA_cell_type")) &
-  scd$getfeature("day") %in% "D15" &
-  scd$getfeature("sex") %in% "M"
-
 
 # we try to refine the regev cell-cycle genes list
 regev_genes <- c("MCM5", "HMGB2", "PCNA", "CDK1", "TYMS", "NUSAP1", "FEN1",
@@ -23,7 +26,109 @@ regev_genes <- c("MCM5", "HMGB2", "PCNA", "CDK1", "TYMS", "NUSAP1", "FEN1",
   "USP1", "DLGAP5", "CLSPN", "CDCA2", "POLA1", "CDCA8", "CHAF1B", "ECT2",
   "BRIP1", "KIF23", "E2F8", "HMMR", "AURKA", "PSRC1", "ANLN", "LBR",
   "CKAP5", "CENPE", "CTCF", "NEK2", "G2E3", "GAS2L3", "CBX5", "CENPA")
-save(regev_genes, file=paste0(outdir, "cycling/regev_genes.RData"))
+save(regev_genes, file="results/cycling/regev_genes.RData")
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "M"
+
+genes_cycling <- expressed(
+  scd = scd$select(
+    b_cells = b_cells &
+      scd$getfeature("day") %in% c("D136", "D593"),
+    genes = regev_genes[-c(38,50,60,66,68,85,98)]
+  ),
+  zi_threshold = 0.90,
+)
+table(genes_cycling %in% regev_genes)
+cycling <- rep(0, scd$getncells)
+cycling[b_cells = b_cells &
+      scd$getfeature("day") %in% "D15"] <- pca_loading(
+  scd = scd$select(
+    b_cells = b_cells &
+      scd$getfeature("day") %in% "D15",
+    genes = genes_cycling
+  ),
+  cells = TRUE
+)[, 1]
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "F"
+cycling[b_cells = b_cells &
+      scd$getfeature("day") %in% "D15"] <- pca_loading(
+  scd = scd$select(
+    b_cells = b_cells &
+      scd$getfeature("day") %in% "D15",
+    genes = genes_cycling
+  ),
+  cells = TRUE
+)[, 1]
+
+scd$setfeature("cycling", as.vector(cycling))
+
+save(scd, file = "results/cycling/CB_counts_QC_cycling.Rdata")
+infos <- scd$getfeatures
+
+load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+scd <- scdata$new(
+  infos = infos,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cycling/cells_counts_QC_cycling.Rdata")
+
+write.csv(
+  infos,
+  file = paste0("results/cycling/cell_type_infos.csv")
+)
+
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "M"
+
+system("rm results/tmp/pca_zi_norm_counts_QC_all_day.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% c("D15", "D136", "D593")),
+  color = "cycling", 
+  color_name = "cycling_score",
+  shape = "day",
+  tmp_file = "results/tmp/pca_zi_norm_counts_QC_all_day.Rdata",
+  main = "all day cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_zi_norm_counts_QC_cycling_pca_all_day.pdf"
+)
+
+system("rm results/tmp/pca_zi_norm_counts_QC_D15.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% "D15"),
+  color = "cycling", 
+  color_name = "cycling_score",
+  tmp_file = "results/tmp/pca_zi_norm_counts_QC_D15.Rdata",
+  main = "D15 cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_zi_norm_counts_QC_cycling_pca_D15.pdf"
+)
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "F"
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% "D15"),
+  color = "cycling", 
+  color_name = "cycling_score",
+  tmp_file = "results/tmp/pca_zi_norm_counts_QC_D15_F.Rdata",
+  main = "D15 cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_zi_norm_counts_QC_cycling_pca_D15_F.pdf"
+)
 
 # we find all the genes that covariate with the regev genes
 load("results/cycling/regev_genes.RData")
