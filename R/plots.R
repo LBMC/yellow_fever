@@ -321,12 +321,12 @@ check_gene <- function(scd, gene, condition, file, transform=TRUE){
 pca_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
   wrap=NULL, file, main = "", axes, res=FALSE, rainbow=FALSE, heatcolor=FALSE,
   is_contour, label=NULL, genes_list, arrow=FALSE, color_name="day",
-  return_data = FALSE, color_scale = NULL, tmp_file) {
+  return_data = FALSE, color_scale = NULL, tmp_file, FUN = function(x){log(x+1)}) {
   if (!missing(tmp_file) & file.exists(tmp_file)) {
     print("tmp file found skipping pca...")
     load(tmp_file)
   } else {
-    pca_out <- ade4::dudi.pca(scd$getcounts,
+    pca_out <- ade4::dudi.pca(FUN(scd$getcounts),
                         scan = F,
                         nf = scd$getncells - 1,
                         scale = TRUE,
@@ -459,7 +459,11 @@ plot_2_axes <- function(scd, x, y, color = NULL, shape = NULL, size = NULL,
   aes_str <- "x=x, y=y"
   for (opt in c("color", "size", "alpha", "shape", "wrap", "label")){
     if (!is.null(get(opt))){
-      data[[opt]] <- as.factor(scd$getfeature(get(opt)))
+      if (opt %in% "color" & color_name %in% c("cycling_score")) {
+        data[[opt]] <- scd$getfeature(get(opt))
+      } else {
+        data[[opt]] <- as.factor(scd$getfeature(get(opt)))
+      }
       if (opt != "wrap"){
         if (opt != "shape" | !is.numeric(shape)){
           aes_str <- paste0(aes_str, ", ", opt, "=", opt)
@@ -520,7 +524,7 @@ plot_2_axes <- function(scd, x, y, color = NULL, shape = NULL, size = NULL,
         values = day_palette(levels(as.factor(as.vector(data$color))))
       )
   }
-  if (color_name == "p_EM"){
+  if (color_name == "pMEM"){
     g <- g +
       scale_fill_manual(
         values = cell_type_palette(levels(as.factor(as.vector(data$color))))
@@ -560,12 +564,16 @@ plot_2_axes <- function(scd, x, y, color = NULL, shape = NULL, size = NULL,
         values = sex_palette(levels(as.factor(as.vector(data$color))))
       )
   }
-  if (is.numeric(color)){
+  if (is.numeric(data$color)){
     if (color_name == "cytotoxic_score"){
       g <- g + scale_colour_gradient(low = "#00ac00", high = "#ff0090")
       g <- g + scale_fill_gradient(low = "#00ac00", high = "#ff0090")
     }
-    if (color_name == "p_EM"){
+    if (color_name == "cycling_score"){
+      g <- g + scale_colour_gradient(low = "#D1D1D1", high = "#000000")
+      g <- g + scale_fill_gradient(low = "#D1D1D1", high = "#000000")
+    }
+    if (color_name == "pMEM"){
         g <- g +
           scale_colour_gradient2(low = "blue", mid = "gray", high = "red",
             midpoint = 0.5)
