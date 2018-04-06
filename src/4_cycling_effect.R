@@ -28,10 +28,10 @@ regev_genes <- c("MCM5", "HMGB2", "PCNA", "CDK1", "TYMS", "NUSAP1", "FEN1",
   "CKAP5", "CENPE", "CTCF", "NEK2", "G2E3", "GAS2L3", "CBX5", "CENPA")
 save(regev_genes, file="results/cycling/regev_genes.RData")
 
+cycling <- rep(0, scd$getncells)
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("DEA_cell_type")) &
   scd$getfeature("sex") %in% "M"
-
 genes_cycling <- expressed(
   scd = scd$select(
     b_cells = b_cells &
@@ -42,103 +42,207 @@ genes_cycling <- expressed(
 )
 table(genes_cycling %in% regev_genes)
 genes_cycling <- regev_genes
-cycling <- rep(0, scd$getncells)
-cycling[b_cells = b_cells &
-      scd$getfeature("day") %in% "D15"] <- pca_loading(
-  scd = scd$select(
-    b_cells = b_cells &
-      scd$getfeature("day") %in% "D15",
-    genes = genes_cycling
-  ),
-  cells = TRUE
-)[, 1]
+for (sex in c("M", "F")) {
+  b_cells <- scd$getfeature("QC_good") %in% T &
+    !is.na(scd$getfeature("DEA_cell_type")) &
+    scd$getfeature("sex") %in% sex
+  cycling[b_cells = b_cells &
+        scd$getfeature("day") %in% "D15"] <- pca_loading(
+    scd = scd$select(
+      b_cells = b_cells &
+        scd$getfeature("day") %in% "D15",
+      genes = genes_cycling
+    ),
+    cells = TRUE
+  )[, 1]
+}
+scd$setfeature("cycling", as.vector(cycling))
 
+# cycling phase with cyclone
+cycling_phase <- rep(NA, scd$getncells)
+cycling_G1_score <- rep(NA, scd$getncells)
+cycling_G2M_score <- rep(NA, scd$getncells)
+cycling_S_score <- rep(NA, scd$getncells)
 hs.pairs <- readRDS(system.file("exdata", "human_cycle_markers.rds", package="scran"))
 library('biomaRt')
 mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
-hs_pairs <- list()
-for (phase in names(hs.pairs)) {
-  hs_pairs[[phase]] <- hs.pairs[[phase]]
-  for (pairs in names(hs.pairs[[phase]])) {
-    conversion <- getBM(
-      filters= "ensembl_gene_id",
-      attributes= c("ensembl_gene_id", "hgnc_symbol"),
-      values = hs.pairs[[phase]][[pairs]],
-      mart = mart
-    )
-    rosette <- list()
-    for (ensembl_gene_id in conversion$ensembl_gene_id) {
-      rosette[[ensembl_gene_id]] <- conversion$hgnc_symbol[
-        conversion$ensembl_gene_id %in% ensembl_gene_id
-      ]
-    } 
-    ensembl_gene_ids <- hs_pairs[[phase]][[pairs]] 
-    hs_pairs[[phase]][[pairs]] <- unlist(rosette[ ensembl_gene_ids ])
+for (sex in c("M", "F")) {
+  b_cells <- scd$getfeature("QC_good") %in% T &
+    !is.na(scd$getfeature("DEA_cell_type")) & 
+    scd$getfeature("day") %in% "D15" &
+    scd$getfeature("sex") %in% sex
+  hs_pairs <- list()
+  for (phase in names(hs.pairs)) {
+    hs_pairs[[phase]] <- hs.pairs[[phase]]
+    for (pairs in names(hs.pairs[[phase]])) {
+      conversion <- getBM(
+        filters= "ensembl_gene_id",
+        attributes= c("ensembl_gene_id", "hgnc_symbol"),
+        values = hs.pairs[[phase]][[pairs]],
+        mart = mart
+      )
+      rosette <- list()
+      for (ensembl_gene_id in conversion$ensembl_gene_id) {
+        rosette[[ensembl_gene_id]] <- conversion$hgnc_symbol[
+          conversion$ensembl_gene_id %in% ensembl_gene_id
+        ]
+      } 
+      ensembl_gene_ids <- hs_pairs[[phase]][[pairs]] 
+      hs_pairs[[phase]][[pairs]] <- unlist(rosette[ ensembl_gene_ids ])
+    }
   }
+  cycling_infos <- scran::cyclone(
+    x = t(scd$select(
+      b_cells = b_cells)$getcounts),
+    pairs = hs_pairs,
+    verbose = T
+  )
+  cycling_phase[b_cells] <- cycling_infos$phases
+  cycling_G1_score[b_cells] <- cycling_infos$normalized.scores$G1
+  cycling_G2M_score[b_cells] <- cycling_infos$normalized.scores$G2M
+  cycling_S_score[b_cells] <- cycling_infos$normalized.scores$S
 }
-
-cycling <- scran::cyclone(
-  x = t(scd$select(
-    b_cells = b_cells & scd$getfeature("day") %in% "D15")$getcounts),
-  pairs = hs_pairs,
-  verbose = T
-)
-print(cycling$phases)
-
-
-b_cells <- scd$getfeature("QC_good") %in% T &
-  !is.na(scd$getfeature("DEA_cell_type")) &
-  scd$getfeature("sex") %in% "F"
-cycling[b_cells = b_cells &
-      scd$getfeature("day") %in% "D15"] <- pca_loading(
-  scd = scd$select(
-    b_cells = b_cells &
-      scd$getfeature("day") %in% "D15",
-    genes = genes_cycling
-  ),
-  cells = TRUE
-)[, 1]
-
-scd$setfeature("cycling", as.vector(cycling))
+scd$setfeature("cycling_phase", cycling_phase)
+scd$setfeature("cycling_G1_score", cycling_G1_score)
+scd$setfeature("cycling_G2M_score", cycling_G2M_score)
+scd$setfeature("cycling_S_score", cycling_S_score)
+summary(scd$getfeature("cycling_phase"))
 
 save(scd, file = "results/cycling/CB_counts_QC_cycling.Rdata")
 infos <- scd$getfeatures
-
 write.csv(
   infos,
   file = paste0("results/cycling/cell_type_infos.csv")
 )
 
-
+# plots
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("DEA_cell_type")) &
   scd$getfeature("sex") %in% "M"
 
-system("rm results/tmp/pca_zi_norm_counts_QC_all_day.Rdata")
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells &
     scd$getfeature("day") %in% c("D15", "D136", "D593")),
   color = "cycling", 
   color_name = "cycling_score",
   shape = "day",
-  tmp_file = "results/tmp/pca_zi_norm_counts_QC_all_day.Rdata",
+  tmp_file = "results/tmp/pca_CB_counts_QC_all_day.Rdata",
   main = "all day cycling"
 )
 ggsave(file = 
-  "results/cycling/pca_zi_norm_counts_QC_cycling_pca_all_day.pdf"
+  "results/cycling/pca_CB_counts_QC_cycling_pca_all_day.pdf"
 )
 
-system("rm results/tmp/pca_zi_norm_counts_QC_D15.Rdata")
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% c("D15", "D136", "D593")),
+  color = "cycling_S_score", 
+  color_name = "cycling_score",
+  shape = "day",
+  tmp_file = "results/tmp/pca_CB_counts_QC_all_day.Rdata",
+  main = "all day cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_CB_counts_QC_cycling_S_pca_all_day.pdf"
+)
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% c("D15", "D136", "D593")),
+  color = "cycling_G1_score", 
+  color_name = "cycling_score",
+  shape = "day",
+  tmp_file = "results/tmp/pca_CB_counts_QC_all_day.Rdata",
+  main = "all day cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_CB_counts_QC_cycling_G1_pca_all_day.pdf"
+)
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% c("D15", "D136", "D593")),
+  color = "cycling_G2M_score", 
+  color_name = "cycling_score",
+  shape = "day",
+  tmp_file = "results/tmp/pca_CB_counts_QC_all_day.Rdata",
+  main = "all day cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_CB_counts_QC_cycling_G2M_pca_all_day.pdf"
+)
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% c("D15", "D136", "D593")),
+  color = "cycling_phase", 
+  color_name = "clonality",
+  shape = "day",
+  tmp_file = "results/tmp/pca_CB_counts_QC_all_day.Rdata",
+  main = "all day cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_CB_counts_QC_phase_pca_all_day.pdf"
+)
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% "D15"),
+  color = "cycling_S_score", 
+  color_name = "cycling_score",
+  tmp_file = "results/tmp/pca_CB_counts_QC_D15.Rdata",
+  main = "D15 cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_CB_counts_QC_S_pca_D15.pdf"
+)
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% "D15"),
+  color = "cycling_G1_score", 
+  color_name = "cycling_score",
+  tmp_file = "results/tmp/pca_CB_counts_QC_D15.Rdata",
+  main = "D15 cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_CB_counts_QC_G1_pca_D15.pdf"
+)
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% "D15"),
+  color = "cycling_G2M_score", 
+  color_name = "cycling_score",
+  tmp_file = "results/tmp/pca_CB_counts_QC_D15.Rdata",
+  main = "D15 cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_CB_counts_QC_G2M_pca_D15.pdf"
+)
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells &
+    scd$getfeature("day") %in% "D15"),
+  color = "cycling_phase", 
+  color_name = "clonality",
+  tmp_file = "results/tmp/pca_CB_counts_QC_D15.Rdata",
+  main = "D15 cycling"
+)
+ggsave(file = 
+  "results/cycling/pca_CB_counts_QC_phase_pca_D15.pdf"
+)
+
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells &
     scd$getfeature("day") %in% "D15"),
   color = "cycling", 
   color_name = "cycling_score",
-  tmp_file = "results/tmp/pca_zi_norm_counts_QC_D15.Rdata",
+  tmp_file = "results/tmp/pca_CB_counts_QC_D15.Rdata",
   main = "D15 cycling"
 )
 ggsave(file = 
-  "results/cycling/pca_zi_norm_counts_QC_cycling_pca_D15.pdf"
+  "results/cycling/pca_CB_counts_QC_cycling_pca_D15.pdf"
 )
 
 b_cells <- scd$getfeature("QC_good") %in% T &
