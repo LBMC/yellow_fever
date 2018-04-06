@@ -41,6 +41,7 @@ genes_cycling <- expressed(
   zi_threshold = 0.90,
 )
 table(genes_cycling %in% regev_genes)
+genes_cycling <- regev_genes
 cycling <- rep(0, scd$getncells)
 cycling[b_cells = b_cells &
       scd$getfeature("day") %in% "D15"] <- pca_loading(
@@ -51,6 +52,39 @@ cycling[b_cells = b_cells &
   ),
   cells = TRUE
 )[, 1]
+
+hs.pairs <- readRDS(system.file("exdata", "human_cycle_markers.rds", package="scran"))
+library('biomaRt')
+mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
+hs_pairs <- list()
+for (phase in names(hs.pairs)) {
+  hs_pairs[[phase]] <- hs.pairs[[phase]]
+  for (pairs in names(hs.pairs[[phase]])) {
+    conversion <- getBM(
+      filters= "ensembl_gene_id",
+      attributes= c("ensembl_gene_id", "hgnc_symbol"),
+      values = hs.pairs[[phase]][[pairs]],
+      mart = mart
+    )
+    rosette <- list()
+    for (ensembl_gene_id in conversion$ensembl_gene_id) {
+      rosette[[ensembl_gene_id]] <- conversion$hgnc_symbol[
+        conversion$ensembl_gene_id %in% ensembl_gene_id
+      ]
+    } 
+    ensembl_gene_ids <- hs_pairs[[phase]][[pairs]] 
+    hs_pairs[[phase]][[pairs]] <- unlist(rosette[ ensembl_gene_ids ])
+  }
+}
+
+cycling <- scran::cyclone(
+  x = t(scd$select(
+    b_cells = b_cells & scd$getfeature("day") %in% "D15")$getcounts),
+  pairs = hs_pairs,
+  verbose = T
+)
+print(cycling$phases)
+
 
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("DEA_cell_type")) &
@@ -69,13 +103,6 @@ scd$setfeature("cycling", as.vector(cycling))
 
 save(scd, file = "results/cycling/CB_counts_QC_cycling.Rdata")
 infos <- scd$getfeatures
-
-load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
-scd <- scdata$new(
-  infos = infos,
-  counts = scd$getcounts
-)
-save(scd, file = "results/cycling/cells_counts_QC_cycling.Rdata")
 
 write.csv(
   infos,
@@ -129,6 +156,14 @@ scRNAtools::pca_plot(
 ggsave(file = 
   "results/cycling/pca_zi_norm_counts_QC_cycling_pca_D15_F.pdf"
 )
+
+load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+scd <- scdata$new(
+  infos = infos,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cycling/cells_counts_QC_cycling.Rdata")
+
 
 # we find all the genes that covariate with the regev genes
 load("results/cycling/regev_genes.RData")
