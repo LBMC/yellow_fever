@@ -70,55 +70,6 @@ scd$setfeature("cycling", cycling)
 scd$setfeature("pcycling", as.vector(pcycling))
 scd$setfeature("cycling_score", as.vector(cycling_score))
 
-# cycling phase with cyclone
-cycling_phase <- rep(NA, scd$getncells)
-cycling_G1_score <- rep(NA, scd$getncells)
-cycling_G2M_score <- rep(NA, scd$getncells)
-cycling_S_score <- rep(NA, scd$getncells)
-hs.pairs <- readRDS(system.file("exdata", "human_cycle_markers.rds", package="scran"))
-library('biomaRt')
-mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
-for (sex in c("M", "F")) {
-  b_cells <- scd$getfeature("QC_good") %in% T &
-    !is.na(scd$getfeature("DEA_cell_type")) & 
-    scd$getfeature("day") %in% "D15" &
-    scd$getfeature("sex") %in% sex
-  hs_pairs <- list()
-  for (phase in names(hs.pairs)) {
-    hs_pairs[[phase]] <- hs.pairs[[phase]]
-    for (pairs in names(hs.pairs[[phase]])) {
-      conversion <- getBM(
-        filters= "ensembl_gene_id",
-        attributes= c("ensembl_gene_id", "hgnc_symbol"),
-        values = hs.pairs[[phase]][[pairs]],
-        mart = mart
-      )
-      rosette <- list()
-      for (ensembl_gene_id in conversion$ensembl_gene_id) {
-        rosette[[ensembl_gene_id]] <- conversion$hgnc_symbol[
-          conversion$ensembl_gene_id %in% ensembl_gene_id
-        ]
-      } 
-      ensembl_gene_ids <- hs_pairs[[phase]][[pairs]] 
-      hs_pairs[[phase]][[pairs]] <- unlist(rosette[ ensembl_gene_ids ])
-    }
-  }
-  cycling_infos <- scran::cyclone(
-    x = t(scd$select(
-      b_cells = b_cells)$getcounts),
-    pairs = hs_pairs,
-    verbose = T
-  )
-  cycling_phase[b_cells] <- cycling_infos$phases
-  cycling_G1_score[b_cells] <- cycling_infos$normalized.scores$G1
-  cycling_G2M_score[b_cells] <- cycling_infos$normalized.scores$G2M
-  cycling_S_score[b_cells] <- cycling_infos$normalized.scores$S
-}
-scd$setfeature("cycling_phase", cycling_phase)
-scd$setfeature("cycling_G1_score", cycling_G1_score)
-scd$setfeature("cycling_G2M_score", cycling_G2M_score)
-scd$setfeature("cycling_S_score", cycling_S_score)
-
 save(scd, file = "results/cycling/CB_counts_QC_cycling.Rdata")
 infos <- scd$getfeatures
 write.csv(
