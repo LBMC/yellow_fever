@@ -627,3 +627,55 @@ top_2_groups <- function(
   gene_indices <- indices[c(top_indice, bottom_indice)]
   return(scd$getgenes[gene_indices])
 }
+
+#' compute cycling score from genes list
+#' @param scd an scdata object
+#' @param genes (defaut: regev genes list) list of genes name
+#' @return return scdata object with "cycling", "cycling_score" and
+#' pcycling" features
+#' @examples
+#' \dontrun{
+#' scd = cycling_status(scd$getcounts)
+#' }
+#' @importFrom mixtools normalmixEM
+#' @export cycling_status
+cycling_status <- function(
+  scd,
+  genes = c("MCM5", "HMGB2", "PCNA", "CDK1", "TYMS", "NUSAP1", "FEN1",
+  "UBE2C", "MCM2", "BIRC5", "MCM4", "TPX2", "RRM1", "TOP2A", "UNG", "NDC80",
+  "GINS2", "CKS2", "MCM6", "NUF2", "CDCA7", "CKS1B", "DTL", "MKI67", "PRIM1",
+  "TMPO", "UHRF1", "CENPF", "MLF1IP", "TACC3", "HELLS", "FAM64A", "RFC2",
+  "SMC4", "RPA2", "CCNB2", "NASP", "CKAP2L", "RAD51AP1", "CKAP2", "GMNN",
+  "AURKB", "WDR76", "BUB1", "SLBP", "KIF11", "CCNE2", "ANP32E", "UBR7",
+  "TUBB4B", "POLD3", "GTSE1", "MSH2", "KIF20B", "ATAD2", "HJURP", "RAD51",
+  "HJURP", "RRM2", "CDCA3", "CDC45", "HN1", "CDC6", "CDC20", "EXO1", "TTK",
+  "TIPIN", "CDC25C", "DSCC1", "KIF2C", "BLM", "RANGAP1", "CASP8AP2", "NCAPD2",
+  "USP1", "DLGAP5", "CLSPN", "CDCA2", "POLA1", "CDCA8", "CHAF1B", "ECT2",
+  "BRIP1", "KIF23", "E2F8", "HMMR", "AURKA", "PSRC1", "ANLN", "LBR",
+  "CKAP5", "CENPE", "CTCF", "NEK2", "G2E3", "GAS2L3", "CBX5", "CENPA")
+){
+  cycling_score <- rep(0, scd$getncells)
+  cycling <- rep("SLC", scd$getncells)
+  pcycling <- rep(0, scd$getncells)
+  genes_cycling <- regev_genes
+  cycling_score <- pca_loading(
+    scd = scd$select(
+      genes = genes
+    ),
+    cells = TRUE
+  )[, 1]
+  cycling_score <- log(abs(
+    cycling_score - max(cycling_score)
+  ) + 1)
+  model <- mixtools::normalmixEM(
+    cycling_score,
+    lambda = .5,
+    mu = c(0, 2), sigma = c(1,2)
+  )
+  cycling <- ifelse(model$posterior[,2]>0.5, "cycling", "SLC")
+  pcycling <- model$posterior[,2]
+  scd$setfeature("cycling", cycling)
+  scd$setfeature("pcycling", as.vector(pcycling))
+  scd$setfeature("cycling_score", as.vector(cycling_score))
+return(scd)
+}
