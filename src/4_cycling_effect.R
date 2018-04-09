@@ -34,10 +34,13 @@ pcycling <- rep(0, scd$getncells)
 genes_cycling <- regev_genes
 require("mixtools")
 for (sex in c("M", "F")) {
+  time_range <- c("D15", "D136", "D593")
+  if (sex %in% "F") {
+    time_range <- c("D15", "D90")
+  }
   b_cells <- scd$getfeature("QC_good") %in% T &
     !is.na(scd$getfeature("DEA_cell_type")) & 
-    scd$getfeature("day") %in% ifelse(sex == "M",
-     c("D15", "D136", "D593"), c("D15", "D90")) &
+    scd$getfeature("day") %in% time_range &
     scd$getfeature("sex") %in% sex
   cycling_score[b_cells] <- pca_loading(
     scd = scd$select(
@@ -46,6 +49,10 @@ for (sex in c("M", "F")) {
     ),
     cells = TRUE
   )[, 1]
+  cycling_score[b_cells] <- log(abs(
+    cycling_score[b_cells] - max(cycling_score[b_cells])
+  ) + 1)
+  print(summary(cycling_score[b_cells & scd$getfeature("day") %in% "D136"]))
   model <- normalmixEM(
     log(abs(cycling_score[b_cells])+1),
     lambda = .5,
@@ -65,6 +72,12 @@ write.csv(
   file = paste0("results/cycling/cell_type_infos.csv")
 )
 
+load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+scd <- scdata$new(
+  infos = infos,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cycling/cells_counts_QC_cycling.Rdata")
 
 load(file = "results/cycling/CB_counts_QC_cycling.Rdata")
 
@@ -74,24 +87,31 @@ for (sex in c("M", "F")) {
   b_cells <- scd$getfeature("QC_good") %in% T &
     !is.na(scd$getfeature("DEA_cell_type")) &
     scd$getfeature("sex") %in% sex
-  for (time_range in list(c("D15", "D136", "D593"))) {
-    if (sex == "F" & length(time_range) == 3) {
-      time_range <- c("D15", "D90")
-    }
-    for (score_type in c("cycling", "pcycling")) {
-      g <- ggplot(
-        data = scd$select(
-          b_cells = b_cells & scd$getfeature("day") %in% time_range
-          )$getfeatures,
-        aes(x = cycling_score,
-            y = pDEA_cell_type,
-            color = day)
-        ) +
-        geom_point() +
-        theme_bw()
-      print(g)
-    }
+  time_range <- c("D15", "D136", "D593")
+  if (sex == "F") {
+    time_range <- c("D15", "D90")
   }
+  g <- ggplot(
+    data = scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% time_range
+      )$getfeatures,
+    aes(x = cycling_score,
+        y = pDEA_cell_type,
+        color = day)
+    ) +
+    geom_point() +
+    theme_bw() +
+    scale_color_manual(values = day_palette(levels(as.factor(as.vector(
+      scd$select(
+        b_cells = b_cells & scd$getfeature("day") %in% time_range
+      )$getfeature("day")
+    ))))) +
+    labs(title = paste0("cycling score vs Memory probability ", sex),
+      x = "cycling score", y = "Memory probability", color = "day")
+  print(g)
+  ggsave(
+    file = paste0("results/cycling/CB_counts_QC_DEA_cell_type_vs_cycling_score_", sex, ".pdf")
+  )
 }
 
 for (sex in c("M", "F")) {
@@ -102,6 +122,10 @@ for (sex in c("M", "F")) {
     if (sex == "F" & length(time_range) == 3) {
       time_range <- c("D15", "D90")
     }
+    system(ifelse(time_range[1] == "D15",
+      paste0("rm results/tmp/pca_CB_counts_QC_D15_", sex, ".Rdata"),
+      paste0("rm results/tmp/pca_CB_counts_QC_all_day_", sex, ".Rdata")
+    ))
     for (score_type in c("cycling", "pcycling")) {
       scRNAtools::pca_plot(
         scd$select(b_cells = b_cells &
@@ -118,8 +142,8 @@ for (sex in c("M", "F")) {
         main = score_type
       )
       ggsave(file = ifelse(time_range[1] == "D15",
-          paste0("results/tmp/pca_CB_counts_QC_", score_type, "_D15_", sex, ".pdf"),
-          paste0("results/tmp/pca_CB_counts_QC_", score_type, "_all_day_", sex, ".pdf")
+          paste0("results/cycling/pca_CB_counts_QC_", score_type, "_D15_", sex, ".pdf"),
+          paste0("results/cycling/pca_CB_counts_QC_", score_type, "_all_day_", sex, ".pdf")
         )
       )
     }
