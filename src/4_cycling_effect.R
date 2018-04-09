@@ -47,9 +47,10 @@ genes_cycling <- regev_genes
 require("mixtools")
 for (sex in c("M", "F")) {
   b_cells <- scd$getfeature("QC_good") %in% T &
-    !is.na(scd$getfeature("DEA_cell_type")) &
-    scd$getfeature("sex") %in% sex &
-    scd$getfeature("day") %in% "D15"
+    !is.na(scd$getfeature("DEA_cell_type")) & 
+    scd$getfeature("day") %in% ifelse(sex == "M",
+     c("D15", "D136", "D593"), c("D15", "D90")) &
+    scd$getfeature("sex") %in% sex
   cycling_score[b_cells] <- pca_loading(
     scd = scd$select(
       b_cells = b_cells,
@@ -157,6 +158,30 @@ for (sex in c("M", "F")) {
           paste0("results/tmp/pca_CB_counts_QC_", score_type, "_all_day_", sex, ".pdf")
         )
       )
+    }
+  }
+}
+
+for (sex in c("M", "F")) {
+  b_cells <- scd$getfeature("QC_good") %in% T &
+    !is.na(scd$getfeature("DEA_cell_type")) &
+    scd$getfeature("sex") %in% sex
+  for (time_range in list(c("D15"), c("D15", "D136", "D593"))) {
+    if (sex == "F" & length(time_range) == 3) {
+      time_range <- c("D15", "D90")
+    }
+    for (score_type in c("cycling", "pcycling")) {
+      g <- ggplot(
+        data = scd$select(
+          b_cells = b_cells & scd$getfeature("day") %in% time_range
+          )$getfeatures,
+        aes(x = cycling_score,
+            y = pDEA_cell_type,
+            color = day)
+        ) +
+        geom_point() +
+        theme_bw()
+      print(g)
     }
   }
 }
