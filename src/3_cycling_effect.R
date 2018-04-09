@@ -54,7 +54,7 @@ for (sex in c("M", "F")) {
   ) + 1)
   print(summary(cycling_score[b_cells & scd$getfeature("day") %in% "D136"]))
   model <- normalmixEM(
-    log(abs(cycling_score[b_cells])+1),
+    cycling_score[b_cells],
     lambda = .5,
     mu = c(0, 2), sigma = c(1,2)
   )
