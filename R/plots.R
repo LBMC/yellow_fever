@@ -514,54 +514,16 @@ plot_2_axes <- function(scd, x, y, color = NULL, shape = NULL, size = NULL,
     g <- g +
       scale_color_manual(values = color_scale)
   }
-  if (color_name == "day"){
+  if (color_name %in% c("day", "pMEM", "clonality", "cell_type", "sex",
+    "cycling")) {
+    color_name_palette <- get(paste0(color_name, "_palette"))
     g <- g +
       scale_fill_manual(
-        values = day_palette(levels(as.factor(as.vector(data$color))))
+        values = color_name_palette(levels(as.factor(as.vector(data$color))))
       )
     g <- g +
       scale_color_manual(
-        values = day_palette(levels(as.factor(as.vector(data$color))))
-      )
-  }
-  if (color_name == "pMEM"){
-    g <- g +
-      scale_fill_manual(
-        values = cell_type_palette(levels(as.factor(as.vector(data$color))))
-      )
-    g <- g +
-      scale_color_manual(
-        values = cell_type_palette(levels(as.factor(as.vector(data$color))))
-      )
-  }
-  if (color_name == "clonality"){
-    g <- g +
-      scale_fill_manual(
-        values = clonality_palette(levels(as.factor(as.vector(data$color))))
-      )
-    g <- g +
-    scale_color_manual(
-      values = clonality_palette(levels(as.factor(as.vector(data$color))))
-    )
-  }
-  if (color_name == "cell_type"){
-    g <- g +
-      scale_fill_manual(
-        values = cell_type_palette(levels(as.factor(as.vector(data$color))))
-      )
-    g <- g +
-    scale_color_manual(
-      values = cell_type_palette(levels(as.factor(as.vector(data$color))))
-    )
-  }
-  if (color_name == "sex"){
-    g <- g +
-      scale_fill_manual(
-        values = sex_palette(levels(as.factor(as.vector(data$color))))
-      )
-    g <- g +
-      scale_color_manual(
-        values = sex_palette(levels(as.factor(as.vector(data$color))))
+        values = color_name_palette(levels(as.factor(as.vector(data$color))))
       )
   }
   if (is.numeric(data$color)){
@@ -1137,6 +1099,116 @@ per_genes_barplot <- function(
   ) + labs(x = "cells",
      y =  "genes",
      title = main)
+  print(g)
+  if(!missing(file)){
+    ggsave(height = 9.75, width = 10, file = paste0(file,".pdf"))
+  }
+}
+
+#' genes expression dotplot graph
+#'
+#' @param scd is a scRNASeq data object
+#' @param title the title of the plot
+#' @param clones_order vector of clone name to keep and to order by
+#' @param genes_order vector of genes names to keep and to order by
+#' @param rank_by name of the feature to order by
+#' @param file path to save the plot (.pdf or .png)
+#' @examples
+#' \dontrun{
+#' dotplot(
+#'   scd = scd,
+#'   title = "cell type dotplot"
+#' )
+#' }
+#' @import ggplot2
+#' @importFrom reshape2 melt
+#' @export per_genes_barplot
+dotplot <- function(
+  scd,
+  title,
+  clones_order,
+  genes_order,
+  rank_by = "pDEA_cell_type",
+  file
+  ){
+  scd <- scd$select(b_cells = scd$getfeature("clonality") %in% clones_order,
+    genes = genes_order
+  )
+  clonality <- factor(scd$getfeature("clonality"),
+    levels = clones_order
+  )
+  clones_names <- levels(clonality)
+  clones_av_p_EM <- by(
+    scd$getfeature(rank_by),
+    clonality,
+    median
+  )
+  clones_av_p_EM <- as.vector(clones_av_p_EM)
+  clones_names <- clones_names[
+    order(
+      clones_av_p_EM,
+      decreasing = FALSE
+    )
+  ]
+  data_exp <- apply(scd$getcounts, 2, function(x, clonality){
+    y <- rep(NA, length(x))
+    for (clone in clonality){
+      r_select <- which(clonality %in% clone)
+      y[r_select] <- length(which(x[r_select] > 10)) / length(r_select)
+    }
+    return(y)
+  },
+  clonality = clonality)
+  # we compute the average expression of genes normalized between 0 and 1
+  data_av <- apply(ascb(scd$getcounts, to_zero = TRUE), 2,
+    function(x, clonality){
+      y <- rep(NA, length(x))
+      for (clone in clonality){
+        r_select <- which(clonality %in% clone)
+        y[r_select] <- mean(x[r_select])
+      }
+      y <- y / max(y)
+      return(y)
+    },
+    clonality = clonality)
+  data_exp <- melt(cbind(scd$getfeatures, data_exp),
+    id.vars = colnames(scd$getfeatures))
+  data_av <- melt(cbind(scd$getfeatures, data_av),
+    id.vars = colnames(scd$getfeatures))
+  colnames(data_av) <- paste0(colnames(data_av), "_av")
+  data_tmp <- cbind(data_exp, data_av)
+  c_select <- which(colnames(genes_list) %in% gene_type)
+  data_tmp$variable <- factor(data_tmp$variable,
+    levels = genes_order)
+  clones_names <- levels(data_tmp$clonality)
+  clones_av_p_EM <- by(data_tmp[[rank_by]], data_tmp$clonality, median)
+  clones_av_p_EM <- as.vector(clones_av_p_EM)
+  clones_names <- clones_names[order(clones_av_p_EM, decreasing = FALSE)]
+    data_tmp$clonality <- factor(data_tmp$clonality,
+    levels = clones_names)
+  g <- ggplot(data_tmp,
+    aes(x = variable,
+      y = clonality,
+      size = value,
+      color = value_av)) +
+    geom_point() +
+    scale_color_gradientn(
+      colours = c("#BBBCBF",
+      "#CE9DD5",
+      "#FF68D4",
+      "#91129A",
+      "#400F33"),
+      values = c(0, 0.25, 0.5, 0.75, 1),
+      breaks = c(0, 0.25, 0.5, 0.75, 1),
+      rescaler = function(x, ...) x,
+      oob = identity) +
+    theme_bw() +
+    labs(title = title,
+      y = "clone",
+      x = "genes",
+      color = "average count",
+      size = "percentage of cells") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
   print(g)
   if(!missing(file)){
     ggsave(height = 9.75, width = 10, file = paste0(file,".pdf"))
