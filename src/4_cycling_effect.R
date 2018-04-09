@@ -29,7 +29,7 @@ regev_genes <- c("MCM5", "HMGB2", "PCNA", "CDK1", "TYMS", "NUSAP1", "FEN1",
 save(regev_genes, file="results/cycling/regev_genes.RData")
 
 cycling_score <- rep(0, scd$getncells)
-cycling <- rep(FALSE, scd$getncells)
+cycling <- rep("SLC", scd$getncells)
 pcycling <- rep(0, scd$getncells)
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("DEA_cell_type")) &
@@ -62,12 +62,12 @@ for (sex in c("M", "F")) {
     lambda = .5,
     mu = c(0, 2), sigma = c(1,2)
   )
-  cycling[b_cells] <- model$posterior[,2]>0.5
+  cycling[b_cells] <- ifelse(model$posterior[,2]>0.5, "cycling", "SLC")
   pcycling[b_cells] <- model$posterior[,2]
 }
 scd$setfeature("cycling", cycling)
-scd$setfeature("pcycling", as.vector(cycling))
-scd$setfeature("cycling_score", as.vector(cycling))
+scd$setfeature("pcycling", as.vector(pcycling))
+scd$setfeature("cycling_score", as.vector(cycling_score))
 
 # cycling phase with cyclone
 cycling_phase <- rep(NA, scd$getncells)
@@ -131,6 +131,13 @@ for (sex in c("M", "F")) {
     !is.na(scd$getfeature("DEA_cell_type")) &
     scd$getfeature("sex") %in% sex
   for (time_range in list(c("D15"), c("D15", "D136", "D593"))) {
+    system(ifelse(time_range[1] == "D15",
+          paste0("rm results/tmp/pca_CB_counts_QC_D15_", sex, ".Rdata"),
+          paste0("rm results/tmp/pca_CB_counts_QC_all_day_", sex, ".Rdata")
+        ))
+    if (sex == "F" & length(time_range) == 3) {
+      time_range <- c("D15", "D90")
+    }
     for (score_type in c("cycling", "pcycling")) {
       scRNAtools::pca_plot(
         scd$select(b_cells = b_cells &
@@ -144,7 +151,7 @@ for (sex in c("M", "F")) {
           paste0("results/tmp/pca_CB_counts_QC_D15_", sex, ".Rdata"),
           paste0("results/tmp/pca_CB_counts_QC_all_day_", sex, ".Rdata")
         ),
-        main = paste0(score_type, " cycling")
+        main = score_type
       )
       ggsave(file = ifelse(time_range[1] == "D15",
           paste0("results/tmp/pca_CB_counts_QC_", score_type, "_D15_", sex, ".pdf"),
