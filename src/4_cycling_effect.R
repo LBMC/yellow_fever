@@ -31,18 +31,6 @@ save(regev_genes, file="results/cycling/regev_genes.RData")
 cycling_score <- rep(0, scd$getncells)
 cycling <- rep("SLC", scd$getncells)
 pcycling <- rep(0, scd$getncells)
-b_cells <- scd$getfeature("QC_good") %in% T &
-  !is.na(scd$getfeature("DEA_cell_type")) &
-  scd$getfeature("sex") %in% "M"
-genes_cycling <- expressed(
-  scd = scd$select(
-    b_cells = b_cells &
-      scd$getfeature("day") %in% c("D136", "D593"),
-    genes = regev_genes[-c(38,50,60,66,68,85,98)]
-  ),
-  zi_threshold = 0.90,
-)
-table(genes_cycling %in% regev_genes)
 genes_cycling <- regev_genes
 require("mixtools")
 for (sex in c("M", "F")) {
@@ -81,6 +69,31 @@ write.csv(
 load(file = "results/cycling/CB_counts_QC_cycling.Rdata")
 
 # plots
+
+for (sex in c("M", "F")) {
+  b_cells <- scd$getfeature("QC_good") %in% T &
+    !is.na(scd$getfeature("DEA_cell_type")) &
+    scd$getfeature("sex") %in% sex
+  for (time_range in list(c("D15", "D136", "D593"))) {
+    if (sex == "F" & length(time_range) == 3) {
+      time_range <- c("D15", "D90")
+    }
+    for (score_type in c("cycling", "pcycling")) {
+      g <- ggplot(
+        data = scd$select(
+          b_cells = b_cells & scd$getfeature("day") %in% time_range
+          )$getfeatures,
+        aes(x = cycling_score,
+            y = pDEA_cell_type,
+            color = day)
+        ) +
+        geom_point() +
+        theme_bw()
+      print(g)
+    }
+  }
+}
+
 for (sex in c("M", "F")) {
   b_cells <- scd$getfeature("QC_good") %in% T &
     !is.na(scd$getfeature("DEA_cell_type")) &
@@ -109,30 +122,6 @@ for (sex in c("M", "F")) {
           paste0("results/tmp/pca_CB_counts_QC_", score_type, "_all_day_", sex, ".pdf")
         )
       )
-    }
-  }
-}
-
-for (sex in c("M", "F")) {
-  b_cells <- scd$getfeature("QC_good") %in% T &
-    !is.na(scd$getfeature("DEA_cell_type")) &
-    scd$getfeature("sex") %in% sex
-  for (time_range in list(c("D15"), c("D15", "D136", "D593"))) {
-    if (sex == "F" & length(time_range) == 3) {
-      time_range <- c("D15", "D90")
-    }
-    for (score_type in c("cycling", "pcycling")) {
-      g <- ggplot(
-        data = scd$select(
-          b_cells = b_cells & scd$getfeature("day") %in% time_range
-          )$getfeatures,
-        aes(x = cycling_score,
-            y = pDEA_cell_type,
-            color = day)
-        ) +
-        geom_point() +
-        theme_bw()
-      print(g)
     }
   }
 }
