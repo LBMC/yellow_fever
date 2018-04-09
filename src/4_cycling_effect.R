@@ -125,16 +125,15 @@ write.csv(
   file = paste0("results/cycling/cell_type_infos.csv")
 )
 
+
+load(file = "results/cycling/CB_counts_QC_cycling.Rdata")
+
 # plots
 for (sex in c("M", "F")) {
   b_cells <- scd$getfeature("QC_good") %in% T &
     !is.na(scd$getfeature("DEA_cell_type")) &
     scd$getfeature("sex") %in% sex
   for (time_range in list(c("D15"), c("D15", "D136", "D593"))) {
-    system(ifelse(time_range[1] == "D15",
-          paste0("rm results/tmp/pca_CB_counts_QC_D15_", sex, ".Rdata"),
-          paste0("rm results/tmp/pca_CB_counts_QC_all_day_", sex, ".Rdata")
-        ))
     if (sex == "F" & length(time_range) == 3) {
       time_range <- c("D15", "D90")
     }
@@ -142,7 +141,7 @@ for (sex in c("M", "F")) {
       scRNAtools::pca_plot(
         scd$select(b_cells = b_cells &
           scd$getfeature("day") %in% time_range,
-          genes = ERCC(scd, minus = T)
+          genes = genes_cycling 
         ),
         color = score_type, 
         color_name = ifelse(score_type == "cycling",
