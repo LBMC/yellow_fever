@@ -6,8 +6,7 @@
 \usage{
 heatmap_corr_genes(scd, features, cells_order, factor = rep(TRUE,
   length(features)), show_legend = TRUE, title = "", pca = FALSE,
-  simlr = FALSE, simlr_clust = 2, ncomp = 4, dist_name = "manhattan",
-  file)
+  pCMF = FALSE, ncomp = 4, cpus = 4, dist_name = "manhattan", file)
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}

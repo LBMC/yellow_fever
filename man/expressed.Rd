@@ -4,12 +4,15 @@
 \alias{expressed}
 \title{return genes expressed with the following criteria}
 \usage{
-expressed(scd, zi_threshold = 0.9)
+expressed(scd, zi_threshold = 0.9, alt = "lesser")
 }
 \arguments{
 \item{scd}{scdata object}
 
 \item{zi_threshold}{persentage of cells == 0}
+
+\item{alt}{(default: lesser) should genes with lesser or greater number of
+zeros be returned}
 }
 \value{
 return list of genes names

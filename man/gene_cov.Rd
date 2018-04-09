@@ -4,12 +4,15 @@
 \alias{gene_cov}
 \title{classification for scRNASeq data}
 \usage{
-gene_cov(scd, gene, cpus = 4, tmp_file)
+gene_cov(scd, gene, score, cpus = 4, tmp_file, sparse = T, ncomp = 3,
+  FUN = function(x) {     x <- log(x + 1)     x <- (x - mean(x))/sd(x) })
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}
 
-\item{gene}{gene_name to find}
+\item{gene}{gene_name to find other correlated genes}
+
+\item{score}{factor to find other correlated genes}
 
 \item{cpus}{(default:4) number of cpus to use}
 }
