@@ -1,5 +1,47 @@
 #' scRNASeq data object
 #'
+#' @examples
+#' \dontrun{
+#' # create scdata object infos.csv must contain an 'id' column which is
+#' # also the rownames of counts.csv
+#' scd <- scdata$new(
+#'   infos = read.csv('data/infos.csv'),
+#'   counts = read.csv('data/counts.csv')
+#' )
+#' scd$getgenes # return the genes names
+#' scd$getcells # return the cells names
+#' scd$getncells # return the number of cells
+#' scd$getngenes # return the number of genes
+#' scd$getnfeatures # return the number of features
+#' scd$getcounts # return the genes counts matrix
+#' scd$getfeatures # return the info data.frame
+#'
+#' # add data to the scd object
+#' scd$add(
+#'   infos = read.csv('data/infos_bis.csv'),
+#'   counts = read.csv('data/counts_bis.csv')
+#' )
+#'
+#' scd$addfeature("feature") # add new feature
+#' scd$setfeature("feature", x) # add new feature and set it to equal x
+#' scd$getfeature("feature") # get x
+#' # make a copy of scd with only the cells for which x == TRUE
+#' scd_bis <- scd$select(b_cells = x)
+#'
+#' # make a copy of scd with only the cells whose name are in x
+#' scd_bis <- scd$select(cells = x)
+#'
+#' # make a copy of scd with only the genes whose name are in x
+#' scd_bis <- scd$select(genes = x)
+#'
+#' # get feature of cells for which x = TRUE
+#' scd$select(b_cells = x)$getfeature("feature")
+#'
+#' # get counts of cells for which x = TRUE and genes in y
+#' scd$select(b_cells = x, genes = y)$getcounts
+#'
+#'
+#' }
 #' @docType class
 #' @importFrom R6 R6Class
 #' @export scdata
