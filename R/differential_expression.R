@@ -7,7 +7,20 @@
 #' @return a list() with the result of the DEA
 #' @examples
 #' \dontrun {
-#' classif <- classification(scd, 500000)
+#'
+#'   b_cells <- scd$getfeature("QC_good") %in% T &
+#'     !is.na(scd$getfeature("DEA_cell_type")) &
+#'     scd$getfeature("day") %in% day
+#'   mbatch_DEA_cell_type_DEA <- DEA(
+#'     scd = scd,
+#'     formula_null = "y ~ (1|batch)",
+#'     formula_full = "y ~ (1|batch) + DEA_cell_type",
+#'     b_cells = b_cells,
+#'     cpus = 16,
+#'     v = T,
+#'     folder_name = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA")
+#'   )
+#'
 #' }
 #' @export DEA
 DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
@@ -137,7 +150,7 @@ unlist_results <- function(results){
       return(x)
     }
   },
-  expected_size)[[1]] 
+  expected_size)[[1]]
   results_expected[names(results_expected)] <- NA
   results <- lapply(results, FUN = function(x, expected_size, expected_res) {
       x_size <- length(x)
@@ -493,7 +506,7 @@ ziNB_fit <- function(data, formula, gene_name,
       zeroInflation = zi,
       family = family,
       link = link,
-      mcmc = FALSE 
+      mcmc = FALSE
     )
   }, error = function(e){
     if (v) {

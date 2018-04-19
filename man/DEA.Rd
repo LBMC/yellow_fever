@@ -24,6 +24,19 @@ DEA for scRNASeq data
 }
 \examples{
 \dontrun {
-classif <- classification(scd, 500000)
+
+  b_cells <- scd$getfeature("QC_good") \%in\% T &
+    !is.na(scd$getfeature("DEA_cell_type")) &
+    scd$getfeature("day") \%in\% day
+  mbatch_DEA_cell_type_DEA <- DEA(
+    scd = scd,
+    formula_null = "y ~ (1|batch)",
+    formula_full = "y ~ (1|batch) + DEA_cell_type",
+    b_cells = b_cells,
+    cpus = 16,
+    v = T,
+    folder_name = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA")
+  )
+
 }
 }
