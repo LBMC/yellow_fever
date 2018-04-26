@@ -39,7 +39,7 @@ for (sex in c("M", "F")) {
     time_range <- c("D15", "D90")
   }
   b_cells <- scd$getfeature("QC_good") %in% T &
-    !is.na(scd$getfeature("DEA_cell_type")) & 
+    !is.na(scd$getfeature("DEA_cell_type")) &
     scd$getfeature("day") %in% time_range &
     scd$getfeature("sex") %in% sex
   cycling_score[b_cells] <- pca_loading(
@@ -130,9 +130,9 @@ for (sex in c("M", "F")) {
       scRNAtools::pca_plot(
         scd$select(b_cells = b_cells &
           scd$getfeature("day") %in% time_range,
-          genes = genes_cycling 
+          genes = genes_cycling
         ),
-        color = score_type, 
+        color = score_type,
         color_name = ifelse(score_type == "cycling",
           "cycling", "cycling_score"),
         tmp_file = ifelse(time_range[1] == "D15",
@@ -164,9 +164,9 @@ load(paste0(outdir, "regev_genes_cov.RData"))
 regev_genes_cov <- unique(c(regev_genes, unlist(regev_genes_cov)))
 r_select <- scell_QC_M(data_infos, T) & data_infos$day %in% c("D136", "D908") & !(data_infos$batch %in% c(1,6:8))
 c_select <- which(colnames(data_genes) %in% unique(regev_genes_cov))
-regev_genes_cov_expressed <- colnames(del_zero(data_genes[r_select, c_select], 
-                                               n_cell = 0.05, 
-                                               min_count = 10, 
+regev_genes_cov_expressed <- colnames(del_zero(data_genes[r_select, c_select],
+                                               n_cell = 0.05,
+                                               min_count = 10,
                                                percentage = TRUE,
                                                conditions = data_infos$day[r_select]))
 cell_cycle_genes <- regev_genes_cov[!(regev_genes_cov %in% regev_genes_cov_expressed)]
