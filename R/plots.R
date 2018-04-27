@@ -818,9 +818,12 @@ heatmap_annotation <- function(
   }
   for (feature in features){
     if (factor[feature_number]) {
-      df[[feature]] <- as.factor(as.vector(scd$getfeature(feature)))
+      df[[feature]] <- scd$getfeature(feature)
+      if(!is.factor(df[[feature]])) {
+        df[[feature]] <- as.factor(as.vector(df[[feature]]))
+      }
       fun_palette <- get(paste0(names(features)[feature_number], "_palette"))
-      color[[feature]] <- fun_palette(levels(df[[feature]]))
+      color[[feature]] <- fun_palette(df[[feature]])
     } else {
       df[[feature]] <- as.numeric(as.vector(scd$getfeature(feature)))
       color[[feature]] <- circlize::colorRamp2(
@@ -972,7 +975,7 @@ heatmap_corr_genes <- function(
       scd = scd,
       cells = TRUE,
       ncomp = ncomp,
-      cpus = cpus, 
+      cpus = cpus,
       tmp_file = paste0(file, "_pCMF.Rdata")
     )
   }
