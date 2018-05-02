@@ -3,7 +3,7 @@
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 
-load("results/cycling/CB_counts_QC_cycling_invitro_P1902.Rdata")
+load("results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata")
 load("results/cell_type/mbatch_day_surface_cell_type_weighted_DEA.Rdata")
 b_genes <- !is.na(mbatch_day_surface_cell_type_weighted_DEA$padj) &
   mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05
@@ -54,6 +54,24 @@ save(
 )
 
 load("results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P1902.Rdata")
+
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "founder_phenotype",
+  features = c(),
+  genes = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force_invitro_P1902_denovo",
+  force = DEA_cell_type_classification$classification$fit_spls$fit$selected
+)
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P1902_denovo.Rdata"
+)
+
+load("results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P1902_denovo.Rdata")
 
 day <- "InVitro"
 experiment <- "P1902"
@@ -189,7 +207,6 @@ for (alt in c("lesser", "greater")) {
   )
   scd_norm$setfeature("clone", clonality)
 
-  devtools::load_all("../scRNAtools/", reset = T)
   clone_palette <- function(clonality, other_set = TRUE){
     clonality_color <- RColorBrewer::brewer.pal(
       10, "RdYlBu"
@@ -240,7 +257,7 @@ for (alt in c("lesser", "greater")) {
 
   hm_corr <- heatmap_corr_genes(
     scd = scd_norm,
-    features = c("clonality", "pDEA_cell_type"),
+    features = c("clone", "pDEA_cell_type"),
     cells_order = order(
       as.numeric(as.vector(
         scd_norm$getfeature("pDEA_cell_type")
@@ -266,7 +283,7 @@ for (alt in c("lesser", "greater")) {
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 
-load("results/cycling/CB_counts_QC_cycling_invitro_P1902.Rdata")
+load("results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata")
 load("results/cell_type/mbatch_day_surface_cell_type_weighted_DEA.Rdata")
 b_genes <- !is.na(mbatch_day_surface_cell_type_weighted_DEA$padj) &
   mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05
@@ -301,9 +318,11 @@ system("rm results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_classif
 load("results/cell_type/DEA_cell_types_weighted_force_splsstab.Rdata")
 
 founder_phenotype <- scd$getfeature("founder_phenotype")
+summary(as.factor(founder_phenotype[b_cells]))
 founder_phenotype[
   b_cells & founder_phenotype %in% "UNK"] <- NA
 scd$setfeature("founder_phenotype", founder_phenotype)
+
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "founder_phenotype",
@@ -337,6 +356,7 @@ cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
 scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
 
+load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
 genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
   "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
   "NELL2", "CCR7")
@@ -353,9 +373,6 @@ per_genes_barplot(
 
 tmp_infos <- scd$select(b_cells = b_cells)$getfeatures
 tmp_infos$clonality <- as.factor( as.vector(tmp_infos$clonality) )
-tmp_infos$clonality <- factor(
-  tmp_infos$clonality,
-  levels = c("A7", "A8", "G6", "G8", "H9", "F3", "E4", "H2", "B4"))
 tmp_infos$pDEA_clone_cell_type <- unlist(as.list(by(
   tmp_infos$pDEA_cell_type, tmp_infos$clonality, median
 ))[tmp_infos$clonality])
@@ -428,6 +445,10 @@ write.csv(
 )
 
 
+load(
+  paste0("results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA.Rdata")
+)
+
 for (alt in c("lesser", "greater")) {
   b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
     mbatch_DEA_cell_type_DEA$padj < 0.05
@@ -445,26 +466,14 @@ for (alt in c("lesser", "greater")) {
       genes = DEA_genes_exp
     )
   clonality <- scd_norm$getfeature("clonality")
-  clonality <- factor(
-    clonality,
-    levels = c("A7", "A8", "G6", "G8", "H9", "F3", "E4", "H2", "B4")
-  )
+  clonality <- as.factor(as.vector(clonality))
   scd_norm$setfeature("clonality", clonality)
 
-  clonality_palette <- function(clonality, other_set = TRUE){
-    clonality_color <- RColorBrewer::brewer.pal(length(levels(clonality)), "Set1")
+  clone_palette <- function(clonality, other_set = TRUE){
+    clonality_color <- RColorBrewer::brewer.pal(
+      length(levels(clonality)) + 1, "Set1"
+    )[-(round(length(levels(clonality))/2) +1)]
     names(clonality_color) <- levels(clonality)
-    clonality_color <- lapply(
-      as.list(clonality),
-      FUN = function(x, clonality_color){
-        if (x %in% c("all", "other")){
-          return("gray")
-        }
-        return(clonality_color[[x]])
-      },
-      clonality_color = clonality_color)
-    clonality_color <- unlist(clonality_color)
-    names(clonality_color) <- clonality
     return(clonality_color)
   }
 
@@ -511,7 +520,7 @@ for (alt in c("lesser", "greater")) {
 
   hm_corr <- heatmap_corr_genes(
     scd = scd_norm,
-    features = c("antigen", "pDEA_cell_type"),
+    features = c("clonality", "pDEA_cell_type"),
     cells_order = order(
       as.numeric(as.vector(
         scd_norm$getfeature("pDEA_cell_type")
