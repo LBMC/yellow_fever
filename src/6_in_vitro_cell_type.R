@@ -55,15 +55,20 @@ save(
 
 load("results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P1902.Rdata")
 
+founder_phenotype <- scd$getfeature("founder_phenotype")
+founder_phenotype[b_cells & scd$getfeature("clonality") %in% "A7"] <- NA
+scd$setfeature("founder_phenotype", founder_phenotype)
+
+system("rm results/cell_type/DEA_cell_types_weighted_force_invitro_P1902_denovo*")
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "founder_phenotype",
   features = c(),
-  genes = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  genes = c(DEA_genes, genes_marker, "KLRD1", "SELL"),
   ncores = 10,
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_cell_types_weighted_force_invitro_P1902_denovo",
-  force = DEA_cell_type_classification$classification$fit_spls$fit$selected
+  force = unique(c(genes_marker, "KLRD1", "SELL"))
 )
 
 save(
@@ -88,6 +93,7 @@ cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
 scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 
+x11()
 load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
   "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
