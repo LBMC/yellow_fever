@@ -162,6 +162,9 @@ b_cells <- scd$getfeature("day") %in% day &
 
 load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 system(
+  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA")
+)
+system(
   paste0("mkdir -p results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA")
 )
 mbatch_DEA_cell_type_DEA <- DEA(
@@ -169,7 +172,7 @@ mbatch_DEA_cell_type_DEA <- DEA(
   formula_null = "y ~ (1|batch)",
   formula_full = "y ~ (1|batch) + DEA_cell_type",
   b_cells = b_cells,
-  cpus = 16,
+  cpus = 10,
   v = T,
   folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA")
 )
