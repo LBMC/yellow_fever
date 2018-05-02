@@ -16,7 +16,6 @@ length(DEA_genes)
 
 # load selection off genes and makers to classify on
 genes_PLS <- read.csv("data/genes_PLS.csv")
-genes_PLS <- read.csv("~/data/yellow_fever/2017_11_28_List_Laurent_Genes_PLS.csv")
 surface_marker <- c()
 genes_marker <- c()
 for (marker_type in colnames(genes_PLS)) {
