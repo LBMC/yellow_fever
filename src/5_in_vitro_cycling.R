@@ -60,15 +60,15 @@ scd$setfeature("cycling", cycling)
 scd$setfeature("pcycling", as.vector(pcycling))
 scd$setfeature("cycling_score", as.vector(cycling_score))
 
-save(scd, file = "results/cycling/CB_counts_QC_cycling_invitro_P1902.Rdata")
+save(scd, file = "results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata")
 infos <- scd$getfeatures
 write.csv(
   infos,
-  file = paste0("results/cycling/cell_type_infos_invitro_P1902.csv")
+  file = paste0("results/cycling/cell_type_infos_invitro_P1902_P3128.csv")
 )
 
 
-load("results/cycling/CB_counts_QC_cycling_invitro_P1902.Rdata")
+load("results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata")
 day <- "InVitro"
 for (experiment in c("P1902", "P3128")) {
   b_cells <- scd$getfeature("day") %in% day &
@@ -77,11 +77,12 @@ for (experiment in c("P1902", "P3128")) {
 
   tmp_infos <- scd$select(b_cells = b_cells)$getfeatures
   tmp_infos$clonality <- as.factor( as.vector(tmp_infos$clonality) )
-  if (experiment %in% "P1902") {
-    tmp_infos$clonality <- factor(
-      tmp_infos$clonality,
-      levels = c("A7", "A8", "G6", "G8", "H9", "F3", "E4", "H2", "B4"))
-  }
+  clone_cycling <- by(
+    tmp_infos$cycling_score, tmp_infos$clonality, mean
+  )
+  tmp_infos$clonality <- factor(
+    tmp_infos$clonality,
+    levels = names(clone_cycling)[order(clone_cycling)])
   g <- ggplot(tmp_infos,
     aes(x = clonality,
         y = cycling_score,
