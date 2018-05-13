@@ -38,14 +38,12 @@ for (experiment in c("P1902", "P3128")) {
   print(summary(scd$select(b_cells = b_cells)$getfeature("QC_good")))
   print(table(scd$getfeature('sex'), scd$getfeature("QC_good")))
 
-  x11()
   scRNAtools::pca_plot(
     scd$select(b_cells = b_cells), color = "QC_good", color_name = "antigen",
     tmp_file = paste0("results/tmp/pca_counts_", experiment, "_tmp.Rdata"),
     main = "all day"
   )
 
-  x11()
   scRNAtools::pca_plot(
     scd$select(b_cells = b_cells & scd$getfeature("QC_good") %in% T),
     color = "batch", color_name = "clonality",
@@ -58,8 +56,44 @@ save(scd, file = "results/QC/counts_QC_in_vitro_P1902_P3128.Rdata")
 
 # cells effect normalization
 load("results/QC/counts_QC_in_vitro_P1902_P3128.Rdata")
+devtools::load_all("../scRNAtools/", reset = T)
+
 day <- "InVitro"
 for (experiment in c("P1902", "P3128")) {
+  b_cells <- scd$getfeature("day") %in% day &
+    scd$getfeature("experiment") %in% experiment &
+    scd$getfeature("cell_number") %in% 1
+    scd$getfeature("QC_good") %in% T
+  bad_cells <- scd$
+    select(b_cells = b_cells, genes = ERCC(scd, minus = T))$getcounts
+  bad_cells <- rowSums(bad_cells > 5) < 1000
+  QC_good <- scd$getfeature("QC_good")
+  QC_good[bad_cells] <- FALSE
+  scd$setfeature("QC_good", QC_good)
+}
+
+for (experiment in c("P1902", "P3128")) {
+  system(paste0("rm results/tmp/normalization_", experiment, "_tmp.Rdata"))
+  b_cells <- scd$getfeature("day") %in% day &
+    scd$getfeature("experiment") %in% experiment &
+    scd$getfeature("cell_number") %in% 1 &
+    scd$getfeature("QC_good") %in% T
+  scd <- normalize(
+    scd = scd,
+    b_cells = b_cells,
+    method = "SCnorm",
+    cpus = 3,
+    tmp_file = paste0("results/tmp/normalization_", experiment, "_tmp.Rdata")
+  )
+}
+save(scd, file = "results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
+
+load("results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
+
+for (experiment in c("P1902", "P3128")) {
+  system(paste0(
+      "rm results/tmp/normalization_cells_combat_,", experiment, "_tmp.Rdata"
+    ))
   b_cells <- scd$getfeature("day") %in% day &
     scd$getfeature("experiment") %in% experiment &
     scd$getfeature("cell_number") %in% 1
@@ -67,22 +101,6 @@ for (experiment in c("P1902", "P3128")) {
   scd <- normalize(
     scd = scd,
     b_cells = b_cells,
-    method = "SCnorm",
-    cpus = 4,
-    tmp_file = paste0("results/tmp/normalization_", experiment, "_tmp.Rdata")
-  )
-}
-save(scd, file = "results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
-
-load("results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
-for (experiment in c("P1902", "P3128")) {
-  b_cells <- scd$getfeature("day") %in% day &
-    scd$getfeature("experiment") %in% experiment &
-    scd$getfeature("cell_number") %in% 1
-    scd$getfeature("QC_good") %in% T
-  scd <- normalize(
-    scd = scd,
-    b_cells = b_cells & scd$getfeature("day") %in% day,
     method = "ComBat",
     cpus = 5,
     tmp_file = paste0(
@@ -91,4 +109,6 @@ for (experiment in c("P1902", "P3128")) {
   )
 }
 save(scd, file = "results/QC/CB_counts_QC_in_vitro_P1902_P3128.Rdata")
+load("results/QC/CB_counts_QC_in_vitro_P1902_P3128.Rdata")
 
+summary(scd$select(b_cells = b_cells)$getgene("CCR7"))
