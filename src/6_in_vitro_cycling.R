@@ -118,6 +118,8 @@ save(scd,
   file = "results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata"
 )
 infos <- scd$getfeatures
+
+
 write.csv(
   infos,
   file = paste0("results/cycling/cell_type_infos_invitro_P1902_P3128.csv")
@@ -161,3 +163,13 @@ for (experiment in c("P1902", "P3128")) {
   ))
 }
 
+
+infos <- scd$getfeatures
+load("results/cell_type/cells_counts_QC_all.Rdata")
+scd <- scdata$new(
+    infos = infos,
+    counts = scd$getcounts
+  )
+save(scd,
+  file = "results/cycling/cells_counts_QC_cycling_invitro_P1902_P3128.Rdata"
+)
