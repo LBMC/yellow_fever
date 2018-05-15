@@ -5,7 +5,7 @@
 \title{DEA for scRNASeq data}
 \usage{
 DEA(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9, cpus = 4,
-  v = F, folder_name)
+  v = F, folder_name, continuous = c())
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}
@@ -14,7 +14,18 @@ DEA(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9, cpus = 4,
 
 \item{formula_full}{full model for the LR test}
 
-\item{output_file}{if non empty file to save the classification results}
+\item{b_cells}{boolean vector of cells to keep in scd}
+
+\item{zi_threshold}{(default: 0.9) work with genes with less that 0.9 zeros}
+
+\item{cpus}{(default: 4) number of cpus to use}
+
+\item{v}{(default: F) print stuff}
+
+\item{folder_name}{folder to write down intermendiate DEA results}
+
+\item{continuous}{vector of feature names that should be keep continuous (not
+converted into factors}
 }
 \value{
 a list() with the result of the DEA
