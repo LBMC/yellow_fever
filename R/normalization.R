@@ -41,11 +41,20 @@ SCnorm_normalize <- function(
     load(tmp_file)
   } else {
     print("normalizing cells effect...")
+    bad_cells <- scd$select(genes = ERCC(scd, minus = T))$getcounts
+    bad_cells <- colSums(bad_cells > 5) < 10000
+    if (any(bad_cells)) {
+      print(paste0("warning: ",
+                   scd$getcells[b_cells & bad_cells],
+                   " with < 10000 total counts, removed from normalization"))
+    }
     DataNorm <- SCnorm(
-      Data = t(scd$select(b_cells = b_cells)$getcounts),
+      Data = t(scd$select(b_cells = b_cells,
+                          genes = ERCC(scd, minus = T))$getcounts),
       Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
       PrintProgressPlots = TRUE,
-      FilterCellNum = 10,
+      FilterExpression = 0.4,
+      FilterCellNum = 20,
       NCore=cpus)
     if (v) {
       GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
@@ -57,7 +66,7 @@ SCnorm_normalize <- function(
     }
   }
   counts <- scd$getcounts
-  counts[b_cells] <- t(results(DataNorm))
+  counts[b_cells, ERCC(scd, minus = T)] <- t(results(DataNorm))
   rownames(counts) <- rownames(scd$getcounts)
   colnames(counts) <- colnames(scd$getcounts)
   return(
@@ -82,7 +91,8 @@ ComBat_normalize <- function(
     load(tmp_file)
   } else {
     expressed <- scd$getgenes[
-      colSums(scd$select(b_cells = b_cells)$getcounts) > 0
+      colSums(scd$select(b_cells = b_cells,
+                         genes = ERCC(scd, minus = T))$getcounts) > 0
     ]
     DataNorm <- ComBat(
       dat = t(ascb(scd$select(b_cells = b_cells, genes = expressed)$getcounts)),
