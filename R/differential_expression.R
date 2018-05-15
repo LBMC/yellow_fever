@@ -3,7 +3,13 @@
 #' @param scd is a scRNASeq data object
 #' @param formula_null null model for the LR test
 #' @param formula_full full model for the LR test
-#' @param output_file if non empty file to save the classification results
+#' @param folder_name folder to write down intermendiate DEA results
+#' @param continuous vector of feature names that should be keep continuous (not
+#' converted into factors
+#' @param b_cells boolean vector of cells to keep in scd
+#' @param zi_threshold (default: 0.9) work with genes with less that 0.9 zeros
+#' @param cpus (default: 4) number of cpus to use
+#' @param v (default: F) print stuff
 #' @return a list() with the result of the DEA
 #' @examples
 #' \dontrun {
@@ -24,7 +30,7 @@
 #' }
 #' @export DEA
 DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
-    cpus = 4, v = F, folder_name) {
+    cpus = 4, v = F, folder_name, continuous = c()) {
   scd_DEA <- scd$select(b_cells = b_cells)
   scd_DEA <- scd_DEA$select(
     genes = expressed(scd = scd_DEA, zi_threshold = zi_threshold)
@@ -33,7 +39,8 @@ DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
   names(genes_list) <- ERCC(scd_DEA, minus = TRUE)
   features <- formula_to_features(
     scd = scd_DEA,
-    formula_full = formula_full
+    formula_full = formula_full,
+    continuous = continuous
   )
   results <- lapply_parallel(
     genes_list = genes_list,
@@ -525,7 +532,7 @@ ziNB_fit <- function(data, formula, gene_name,
   return(model)
 }
 
-formula_to_features <- function(scd, formula_full){
+formula_to_features <- function(scd, formula_full, continuous = c()){
   features <- c()
   for(feature in colnames(scd$getfeatures)) {
     features <- c(
@@ -538,10 +545,12 @@ formula_to_features <- function(scd, formula_full){
   }
   features[1] <- TRUE
   features <- apply(
-    X = scd$getfeatures[, features],
+    X = scd$getfeatures[, features[!(features %in% continuous)]],
     MARGIN = 2,
     FUN = as.factor
   )
+  features <- cbind(features,
+                    scd$getfeatures[, features[features %in% continuous]])
   return(features)
 }
 
