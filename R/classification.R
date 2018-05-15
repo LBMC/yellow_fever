@@ -209,9 +209,17 @@ weight_genes_features <- function(scd, genes, features, cpus = 1, v = T) {
         scale(as.numeric(as.vector(x)))
       })
   }
+  genes_na <-apply(t(weighted_counts), 2, FUN = function(x) {
+                     any(is.na(x))
+      })
+  if (any(!genes_na)) {
+    print(paste0("warning: ", genes[genes_na],
+                 " contain NA after weighting, droping them"))
+    print(weight[genes_na,])
+  }
   return(scdata$new(
     infos = infos,
-    counts = t(weighted_counts)
+    counts = t(weighted_counts)[ ,!genes_na]
   ))
 }
 
