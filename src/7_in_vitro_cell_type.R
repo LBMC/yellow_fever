@@ -633,7 +633,37 @@ good_pls <- apply(scd$select(b_cells = b_cells,
                   })
 PLS_genes <- PLS_genes[good_pls]
 
-system("rm results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo*")
+DEA_cell_types_weighted_force_invitro_P3128_denovo_training_lsplsstab.Rdata
+DEA_cell_types_weighted_force_invitro_P3128_denovo_classification_lplscv.Rdata
+DEA_cell_types_weighted_force_invitro_P3128_denovo_classification_lpls.Rdata
+DEA_cell_types_weighted_force_splsstab_invitro_P3128_denovo.Rdata
+
+system("cp results/cell_type/DEA_cell_types_weighted_force_invitro_P1902_denovo_training_lsplsstab.Rdata results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo_training_lsplsstab.Rdata")
+system("cp results/cell_type/DEA_cell_types_weighted_force_invitro_P1902_denovo_classification_lplscv.Rdata results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo_classification_lplscv.Rdata")
+system("rm results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo_classification_lpls.Rdata")
+
+load("results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P3128_denovo.Rdata")
+
+devtools::load_all("../scRNAtools/", reset = T)
+b_cells <- scd$getfeature("QC_good") %in% T
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "founder_phenotype",
+  features = c(),
+  genes = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo",
+  force = DEA_cell_type_classification$classification$fit_spls$fit$selected
+)
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P3128_denovo.Rdata"
+)
+
+# system("rm results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo*")
+
 
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
