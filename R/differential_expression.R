@@ -550,7 +550,12 @@ formula_to_features <- function(scd, formula_full, continuous = c()){
     FUN = as.factor
   )
   features <- cbind(features,
-                    scd$getfeatures[, features[features %in% continuous]])
+    apply(
+      X = scd$getfeatures[, features[features %in% continuous]],
+      MARGIN = 2,
+      FUN = function(x){as.numeric(as.vector(x))}
+    )
+  )
   return(features)
 }
 
