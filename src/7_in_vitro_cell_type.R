@@ -616,12 +616,11 @@ for (alt in c("lesser", "greater")) {
 
   clone_palette <- function(clonality, other_set = TRUE){
     clonality_color <- RColorBrewer::brewer.pal(
-      length(levels(clonality)) + 1, "Set1"
-    )[-(round(length(levels(clonality))/2) +1)]
+      10, "RdYlBu"
+    )[-6]
     names(clonality_color) <- levels(clonality)
     return(clonality_color)
   }
-
   hm_title <- paste0("top ", length(DEA_genes_exp),
     "DE genes between cell-type
     ", day, "_", experiment, "(zi <= 0.5)")
@@ -630,26 +629,23 @@ for (alt in c("lesser", "greater")) {
       "DE genes between cell-type
       ", day, "_", experiment, "(zi >= 0.5)")
   }
-  system(paste0("rm results/cell_type/gene_cov_",
-      day, "_", experiment, "_zi0.5_", alt, "_top100.Rdata*"))
   gene_order <- order_by_factor(
     scd = scd_norm,
     score = scd_norm$getfeature("pDEA_cell_type"),
     tmp_file = paste0("results/cell_type/gene_cov_",
-      day, "_", experiment, "_zi0.5_", alt, "_top100.Rdata"),
+      day, "_", experiment, "_zi0.5_", alt),
     top = min(100, length(DEA_genes_exp))
   )
-  infos_norm <- scd_norm$getfeatures
-  infos_norm$clonality <- as.factor(as.vector(scd_norm$getfeature("clonality")))
-  scd_norm <- scdata$new(
-    infos = infos_norm,
-    counts = scd_norm$getcounts
+  gene_order <- order_by_factor(
+    scd = scd_norm,
+    score = scd_norm$getfeature("pDEA_cell_type"),
+    tmp_file = paste0("results/cell_type/gene_cov_",
+      day, "_", experiment, "_zi0.5_", alt, "_top100"),
+    top = min(100, length(DEA_genes_exp))
   )
-  table(scd_norm$getfeature("clonality"))
-
   hm <- heatmap_genes(
     scd = scd_norm,
-    features = c("clonality", "pDEA_cell_type"),
+    features = c("clone", "pDEA_cell_type"),
     cells_order = order(
       as.numeric(as.vector(
         scd_norm$getfeature("pDEA_cell_type")
@@ -661,13 +657,14 @@ for (alt in c("lesser", "greater")) {
     file = paste0(
       "results/cell_type/heatmap/hm_CB_counts_QC_DEA_cell_type_",
       day, "_", experiment, "_zi0.5_", alt, "_cov.pdf"
-    )
+    ),
+    gene_size = 3
   )
   print(hm)
 
   hm_corr <- heatmap_corr_genes(
     scd = scd_norm,
-    features = c("clonality", "pDEA_cell_type"),
+    features = c("clone", "pDEA_cell_type"),
     cells_order = order(
       as.numeric(as.vector(
         scd_norm$getfeature("pDEA_cell_type")
