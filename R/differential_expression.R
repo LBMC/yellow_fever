@@ -543,19 +543,24 @@ formula_to_features <- function(scd, formula_full, continuous = c()){
       )
     )
   }
+  b_features
   b_features[1] <- TRUE
   features <- apply(
-    X = scd$getfeatures[, b_features & !(scd$get_features %in% continuous)],
+    X = scd$getfeatures[, b_features],
     MARGIN = 2,
     FUN = as.factor
   )
-  features <- cbind(features,
-    apply(
-      X = scd$getfeatures[, b_features & scd$get_features %in% continuous],
-      MARGIN = 2,
-      FUN = function(x){as.numeric(as.vector(x))}
-    )
-  )
+  features <- as.data.frame(features)
+  if (length(continuous) > 0) {
+    if (any(!(continuous %in% colnames(features)))) {
+      stop(paste0("error: continuous variable in ",
+                  continuous, " not in formula"))
+    }
+    b_features <- which(colnames(features) %in% continuous)
+    for (i in b_features){
+      features[, i] <- as.numeric(as.vector(features[, i]))
+    }
+  }
   return(features)
 }
 
