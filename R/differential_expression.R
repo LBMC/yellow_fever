@@ -533,25 +533,25 @@ ziNB_fit <- function(data, formula, gene_name,
 }
 
 formula_to_features <- function(scd, formula_full, continuous = c()){
-  features <- c()
+  b_features <- c()
   for(feature in colnames(scd$getfeatures)) {
-    features <- c(
-      features,
+    b_features <- c(
+      b_features,
       grepl(
         pattern = feature,
         x = formula_full
       )
     )
   }
-  features[1] <- TRUE
+  b_features[1] <- TRUE
   features <- apply(
-    X = scd$getfeatures[, features[!(features %in% continuous)]],
+    X = scd$getfeatures[, b_features & !(scd$get_features %in% continuous)],
     MARGIN = 2,
     FUN = as.factor
   )
   features <- cbind(features,
     apply(
-      X = scd$getfeatures[, features[features %in% continuous]],
+      X = scd$getfeatures[, b_features & scd$get_features %in% continuous],
       MARGIN = 2,
       FUN = function(x){as.numeric(as.vector(x))}
     )
