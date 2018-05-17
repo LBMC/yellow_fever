@@ -8,6 +8,10 @@
 #' converted into factors
 #' @param b_cells boolean vector of cells to keep in scd
 #' @param zi_threshold (default: 0.9) work with genes with less that 0.9 zeros
+#' @param zero_threshold (default: 5) counts lesser than this threshold will be
+#' considered as zeros for the binomial regression
+#' @param family (default: "nbinom1") model to use for the DEA in
+#' c("nbinom1", "binomial")
 #' @param cpus (default: 4) number of cpus to use
 #' @param v (default: F) print stuff
 #' @return a list() with the result of the DEA
@@ -30,7 +34,8 @@
 #' }
 #' @export DEA
 DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
-    family = "nbinom1", cpus = 4, v = F, folder_name, continuous = c()) {
+    family = "nbinom1", cpus = 4, v = F, folder_name,
+    zero_threshold = 5, continuous = c()) {
   scd_DEA <- scd$select(b_cells = b_cells)
   scd_DEA <- scd_DEA$select(
     genes = expressed(scd = scd_DEA, zi_threshold = zi_threshold)
@@ -49,6 +54,7 @@ DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
     formula_null = formula_null,
     formula_full = formula_full,
     family = family,
+    zero_threshold = zero_threshold,
     cpus = cpus,
     v = v,
     folder_name = folder_name
@@ -183,18 +189,18 @@ unlist_results <- function(results){
 
 #' @importFrom parallel mclapply
 lapply_parallel <- function(genes_list, counts, features,
-    formula_null, formula_full, family = "nbinom1",
+    formula_null, formula_full, family = "nbinom1", zero_threshold = 5,
     cpus = 1, v, folder_name) {
   results <- list()
   if (cpus > 1) {
     results <- parallel::mclapply(
       X = genes_list,
       FUN  = function(x, counts, features, formula_null, formula_full,
-          family, v, folder_name){
+          family, zero_threshold, v, folder_name){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
         if (family %in% "binomial") {
-          data$y <- as.numeric(data$y > 0)
+          data$y <- as.numeric(data$y > zero_threshold)
         }
         DEA_gene(
           data = data,
@@ -212,6 +218,7 @@ lapply_parallel <- function(genes_list, counts, features,
       formula_null = formula_null,
       formula_full = formula_full,
       family = family,
+      zero_threshold = zero_threshold,
       v = v,
       folder_name = folder_name
     )
@@ -219,11 +226,11 @@ lapply_parallel <- function(genes_list, counts, features,
     results <- lapply(
       X = genes_list,
       FUN  = function(x, counts, features, formula_null, formula_full,
-          v, family, folder_name){
+          v, family, zero_threshold, folder_name){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
         if (family %in% "binomial") {
-          data$y <- as.numeric(data$y > 0)
+          data$y <- as.numeric(data$y > zero_threshold)
         }
         DEA_gene(
           data = data,
@@ -240,6 +247,7 @@ lapply_parallel <- function(genes_list, counts, features,
       formula_null = formula_null,
       formula_full = formula_full,
       family = family,
+      zero_threshold = zero_threshold,
       v = v,
       folder_name = folder_name
     )
@@ -317,6 +325,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
   }
   if (family %in% "binomial") {
     FUN <- binomial_fit
+    simplified <- TRUE
   }
   while(try_left > 0) {
     if (formula_null == formula_full) {
@@ -415,8 +424,12 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name,
         return(
           data.frame(
             Df = c(NA, NA),
+            AIC = c(NA, NA),
+            BIC = c(NA, NA),
             logLik = c(NA, NA),
             deviance = c(NA, NA),
+            Chisq = c(NA, NA),
+            "Chisq Df" = c(NA, NA),
             "Pr(>Chisq)" = c(NA, NA),
             stringsAsFactors = FALSE
           )
@@ -456,14 +469,14 @@ DEA_format <- function(LRT_result, models_result, v, family = "nbinom1") {
 
 DEA_format_binomial <- function(LRT_result, models_result, v) {
   results <- tryCatch({
-    LRT <- data.frame(
-      null_loglik = LRT_result[["logLik"]][1],
-      full_loglik = LRT_result[["LogLik"]][2],
-      null_Deviance = LRT_result[["deviance"]][1],
-      full_Deviance = LRT_result[["deviance"]][2],
-      null_df = LRT_result[["df"]][1],
-      full_df = LRT_result[["df"]][2],
-      pvalue = LRT_result[["Pr(>Chisq)"]][2],
+    data.frame(
+      null_loglik = LRT_result[["LRT"]][1, 4],
+      full_loglik = LRT_result[["LRT"]][2, 4],
+      null_Deviance = LRT_result[["LRT"]][1, 5],
+      full_Deviance = LRT_result[["LRT"]][2, 5],
+      null_df = LRT_result[["LRT"]][1, 1],
+      full_df = LRT_result[["LRT"]][2, 1],
+      pvalue = LRT_result[["LRT"]][2, 8],
       stringsAsFactors = FALSE
     )
   }, error = function(e){
@@ -473,6 +486,15 @@ DEA_format_binomial <- function(LRT_result, models_result, v) {
     }
     return(NA)
   })
+  results <- c(
+    unlist(data.frame(
+      LRT_file = as.vector(LRT_result[["file"]]),
+      models_file = as.vector(models_result[["file"]]),
+      stringsAsFactors = FALSE
+    )),
+    results
+  )
+  return(results)
 }
 
 
