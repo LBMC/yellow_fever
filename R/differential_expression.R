@@ -320,7 +320,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
   }
   while(try_left > 0) {
     if (formula_null == formula_full) {
-      if ( is.na( models_result[["formula_null"]]$residuals[1]) ) {
+      if ( is.na( residuals(models_result[["formula_null"]])[1]) ) {
         models_result[["formula_null"]] <- FUN(
           data = data,
           formula = formulas[["formula_null"]],
@@ -334,7 +334,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       models_result[["formula_full"]] <- models_result[["formula_null"]]
     } else {
       for (formula in names(formulas)) {
-        if ( is.na(models_result[[formula]]$residuals[1]) ) {
+        if ( is.na(residuals(models_result[[formula]])[1]) ) {
           models_result[[formula]] <- FUN(
             data = data,
             formula = formulas[[formula]],
@@ -351,8 +351,8 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       }
     }
     try_left <- 0
-    if ((is.na( models_result[["formula_null"]]$residuals[1]) |
-        is.na( models_result[["formula_full"]]$residuals[1])) &
+    if ((is.na( residuals(models_result[["formula_null"]])[1] )|
+        is.na( residuals(models_result[["formula_full"]])[1] )) &
         !simplified)
     {
       if (v) {
