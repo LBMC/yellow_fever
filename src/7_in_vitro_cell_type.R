@@ -223,11 +223,12 @@ write.csv(
   file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA.csv")
 )
 
+
 load(
-  paste0("results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA.Rdata")
+  paste0("results/cell_type/mbatch_",
+         day, "_", experiment,
+         "_DEA_cell_type_DEA.Rdata")
 )
-
-
 load(file = "results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 day <- "InVitro"
 experiment <- "P1902"
@@ -236,10 +237,11 @@ b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("QC_good") %in% T &
   scd$getfeature("cell_number") %in% 1
 
+
 for (alt in c("lesser", "greater")) {
   b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
     mbatch_DEA_cell_type_DEA$padj < 0.05
-  DEA_genes <- mbatch_DEA_cell_type_DEA$gene
+  DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
   DEA_genes_exp <- expressed(
     scd = scd$select(
       b_cells = b_cells,
@@ -274,13 +276,8 @@ for (alt in c("lesser", "greater")) {
       "DE genes between cell-type
       ", day, "_", experiment, "(zi >= 0.5)")
   }
-  gene_order <- order_by_factor(
-    scd = scd_norm,
-    score = scd_norm$getfeature("pDEA_cell_type"),
-    tmp_file = paste0("results/cell_type/gene_cov_",
-      day, "_", experiment, "_zi0.5_", alt),
-    top = min(100, length(DEA_genes_exp))
-  )
+  system( paste0("rm results/cell_type/gene_cov_",
+                 day, "_", experiment, "_zi0.5_", alt, "_top100*") )
   gene_order <- order_by_factor(
     scd = scd_norm,
     score = scd_norm$getfeature("pDEA_cell_type"),
@@ -636,6 +633,10 @@ for (alt in c("lesser", "greater")) {
       day, "_", experiment, "_zi0.5_", alt),
     top = min(100, length(DEA_genes_exp))
   )
+
+  devtools::load_all("../scRNAtools/", reset = T)
+  system(paste0("rm results/cell_type/gene_cov_",
+      day, "_", experiment, "_zi0.5_", alt, "_top100*"))
   gene_order <- order_by_factor(
     scd = scd_norm,
     score = scd_norm$getfeature("pDEA_cell_type"),
@@ -643,6 +644,8 @@ for (alt in c("lesser", "greater")) {
       day, "_", experiment, "_zi0.5_", alt, "_top100"),
     top = min(100, length(DEA_genes_exp))
   )
+  traceback()
+
   hm <- heatmap_genes(
     scd = scd_norm,
     features = c("clone", "pDEA_cell_type"),
