@@ -405,7 +405,38 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
   return(list(LRT = LRT_result, file = tmp_file))
 }
 
-DEA_format <- function(LRT_result, models_result, v) {
+DEA_format <- function(LRT_result, models_result, v, family = "nbinom1") {
+  if (family %in% "nbinom1") {
+    return(DEA_format_ziNB(LRT_result, models_result, v))
+  }
+  if (family %in% "binomial") {
+    return(DEA_format_binomial(LRT_result, models_result, v))
+  }
+}
+
+DEA_format_binomial <- function(LRT_result, models_result, v) {
+  results <- tryCatch({
+    LRT <- data.frame(
+      null_loglik = LRT_result[["logLik"]][1],
+      full_loglik = LRT_result[["LogLik"]][2],
+      null_Deviance = LRT_result[["deviance"]][1],
+      full_Deviance = LRT_result[["deviance"]][2],
+      null_df = LRT_result[["df"]][1],
+      full_df = LRT_result[["df"]][2],
+      pvalue = LRT_result[["Pr(>Chisq)"]][2],
+      stringsAsFactors = FALSE
+    )
+  }, error = function(e){
+    if (v) {
+      print("error: DEA_format")
+      print(e)
+    }
+    return(NA)
+  })
+}
+
+
+DEA_format_ziNB <- function(LRT_result, models_result, v) {
   results <- tryCatch({
     LRT <- data.frame(
       null_loglik = LRT_result[["LRT"]][1, 2],
@@ -419,14 +450,14 @@ DEA_format <- function(LRT_result, models_result, v) {
       pvalue = LRT_result[["LRT"]][2, 5],
       stringsAsFactors = FALSE
     )
-    model_null <- DEA_format_ziNB(
+    model_null <- DEA_format_ziNB_model(
       models_result[["formula_null"]], models_result[["is_zi"]]
     )
     names(model_null) <- paste0(
       "null_",
       names(model_null)
     )
-    model_full <- DEA_format_ziNB(
+    model_full <- DEA_format_ziNB_model(
       models_result[["formula_full"]], models_result[["is_zi"]]
     )
     names(model_full) <- paste0(
@@ -453,7 +484,7 @@ DEA_format <- function(LRT_result, models_result, v) {
   return(results)
 }
 
-DEA_format_ziNB <- function(model, zi) {
+DEA_format_ziNB_model <- function(model, zi) {
   result <- tryCatch({
     unlist(data.frame(
       zi = ifelse(zi, model$pz, NA),
@@ -462,31 +493,6 @@ DEA_format_ziNB <- function(model, zi) {
   }, error = function(e){
     return(c(NA, NA))
   })
-  # results_b <- tryCatch({
-  #   if ("b" %in% names(model)) {
-  #     b_estimate <- as.data.frame(model[["b"]])
-  #     b_estimate <- unlist(t(model[["b"]]))
-  #     names(b_estimate) <- paste0(
-  #       "fixed_", names(model$b))
-  #     return(b_estimate)
-  #   }
-  #   return(unlist(data.frame(fixed = NA)))
-  # }, error = function(e){
-  #   return(NA)
-  # })
-  # results_S <- tryCatch({
-  #   if ("S" %in% names(model)) {
-  #     S_estimate <- as.data.frame(model[["S"]])
-  #     S_estimate <- unlist(S_estimate)
-  #     names(S_estimate) <- paste0(
-  #       "mixed_", names(model$S))
-  #     return(S_estimate)
-  #   }
-  #   return(unlist(data.frame(mixed = NA)))
-  # }, error = function(e){
-  #   return(NA)
-  # })
-  # result <- c(result, results_b, results_S)
   return(result)
 }
 
