@@ -193,10 +193,14 @@ lapply_parallel <- function(genes_list, counts, features,
           family, v, folder_name){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
+        if (family %in% "binomial") {
+          data$y <- as.numeric(data$y > 0)
+        }
         DEA_gene(
           data = data,
           formula_null = formula_null,
           formula_full = formula_full,
+          family = family,
           gene_name = x,
           v = v,
           folder_name = folder_name
@@ -218,6 +222,9 @@ lapply_parallel <- function(genes_list, counts, features,
           v, family, folder_name){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
+        if (family %in% "binomial") {
+          data$y <- as.numeric(data$y > 0)
+        }
         DEA_gene(
           data = data,
           formula_null,
