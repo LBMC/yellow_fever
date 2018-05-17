@@ -573,7 +573,7 @@ ziNB_fit <- function(data, formula, gene_name,
 
 #' importFrom lme4 glmer
 binomial_fit <- function(data, formula, gene_name,
-    family = "binomial", link = "log",, zi = TRUE,
+    family = "binomial", link = "log", zi = TRUE,
     v) {
   if (v) {
     print(paste0(gene_name, " : binomial : ", formula))
