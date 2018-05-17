@@ -119,6 +119,7 @@ tmp_infos$DEA_clone_cell_type <- ifelse(
 )
 tmp_infos$KLRD1 <- scd$select(b_cells = b_cells)$getgene("KLRD1")
 tmp_infos$SELL <- scd$select(b_cells = b_cells)$getgene("SELL")
+tmp_infos$MKI67 <- scd$select(b_cells = b_cells)$getgene("MKI67")
 
 table(tmp_infos$DEA_clone_cell_type)
 
@@ -175,6 +176,24 @@ g <- ggplot(tmp_infos,
 print(g)
 ggsave(file = paste0(
   "results/cycling/violing_invitro_P1902_SELL_vs_DEA_cell_type.pdf"
+))
+
+g <- ggplot(tmp_infos,
+   aes(x = clonality,
+      y = log10(MKI67 + 1),
+      color = DEA_clone_cell_type)) +
+  geom_jitter() +
+  geom_violin(alpha = 0.5) +
+  theme_bw() +
+  scale_color_manual(
+    values = cell_type_palette(
+      levels(factorize(tmp_infos$DEA_cell_type)))) +
+  labs(x = "clones",
+       color = "DEA_cell_type",
+       title = day)
+print(g)
+ggsave(file = paste0(
+  "results/cycling/violing_invitro_P1902_MKI67_vs_DEA_cell_type.pdf"
 ))
 
 load(file = "results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
@@ -237,6 +256,27 @@ b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("QC_good") %in% T &
   scd$getfeature("cell_number") %in% 1
 
+mbatch_DEA_cell_type_DEA[mbatch_DEA_cell_type_DEA$gene %in% "SELL", ]
+
+load(file = "results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+system(paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA_test"))
+DEA_test <- DEA(
+  scd = scd$select(genes = c("SELL", "KLRD1")),
+  formula_null = "y ~ (1|batch)",
+  formula_full = "y ~ (1|batch) + DEA_cell_type",
+  b_cells = b_cells,
+  cpus = 10,
+  v = T,
+  folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA_test")
+)
+DEA_test
+data_infos <- data.frame(cell_type = scd$select(b_cells = b_cells)$getfeature("DEA_cell_type"),
+                         SELL = scd$select(b_cells = b_cells)$getgene("SELL"),
+                         KLRD1 = scd$select(b_cells = b_cells)$getgene("KLRD1")
+                         )
+ggplot(data = data_infos,
+       aes(x = SELL, fill = cell_type, group = cell_type)) +
+                geom_histogram(position = "dodge")
 
 for (alt in c("lesser", "greater")) {
   b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
@@ -470,6 +510,7 @@ tmp_infos$DEA_clone_cell_type <- ifelse(
 )
 tmp_infos$KLRD1 <- scd$select(b_cells = b_cells)$getgene("KLRD1")
 tmp_infos$SELL <- scd$select(b_cells = b_cells)$getgene("SELL")
+tmp_infos$MKI67 <- scd$select(b_cells = b_cells)$getgene("MKI67")
 
 table(tmp_infos$DEA_clone_cell_type)
 
@@ -526,6 +567,24 @@ g <- ggplot(tmp_infos,
 print(g)
 ggsave(file = paste0(
   "results/cycling/violing_invitro_P3128_SELL_vs_DEA_cell_type.pdf"
+))
+
+g <- ggplot(tmp_infos,
+   aes(x = clonality,
+      y = log10(MKI67 + 1),
+      color = DEA_clone_cell_type)) +
+  geom_jitter() +
+  geom_violin(alpha = 0.5) +
+  theme_bw() +
+  scale_color_manual(
+    values = cell_type_palette(
+      levels(factorize(tmp_infos$DEA_cell_type)))) +
+  labs(x = "clones",
+       color = "DEA_cell_type",
+       title = day)
+print(g)
+ggsave(file = paste0(
+  "results/cycling/violing_invitro_P3128_MKI67_vs_DEA_cell_type.pdf"
 ))
 
 
