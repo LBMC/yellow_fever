@@ -356,7 +356,8 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
 }
 
 #' importFrom glmmADMB glmmadmb
-DEA_LRT <- function(models_result, gene_name, v, folder_name) {
+DEA_LRT <- function(models_result, gene_name, v, folder_name,
+                    family = "nbinom1") {
   tmp_file <- ""
   LRT_result <- NA
   if (!missing(folder_name)) {
@@ -379,16 +380,29 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
         print(paste0("error: DEA_LRT for gene ", gene_name))
         print(e)
       }
-      return(
-        data.frame(
-          NoPar = c(NA, NA),
-          LogLik = c(NA, NA),
-          Df = c(NA, NA),
-          Deviance = c(NA, NA),
-          "Pr(>Chi)" = c(NA, NA),
-          stringsAsFactors = FALSE
+      if (family %in% "nbinom1") {
+        return(
+          data.frame(
+            NoPar = c(NA, NA),
+            LogLik = c(NA, NA),
+            Df = c(NA, NA),
+            Deviance = c(NA, NA),
+            "Pr(>Chi)" = c(NA, NA),
+            stringsAsFactors = FALSE
+          )
         )
-      )
+      }
+      if (family %in% "binomial") {
+        return(
+          data.frame(
+            Df = c(NA, NA),
+            logLik = c(NA, NA),
+            deviance = c(NA, NA),
+            "Pr(>Chisq)" = c(NA, NA),
+            stringsAsFactors = FALSE
+          )
+        )
+      }
     })
     if (!missing(folder_name)) {
       save(
@@ -398,9 +412,16 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name) {
     }
   }
   if (v) {
-    print(paste0(
-      "LRT : ", LRT_result[["Pr(>Chi)"]][2], " (", gene_name, ")"
-    ))
+    if (family %in% "nbinom1") {
+      print(paste0(
+        "LRT : ", LRT_result[["Pr(>Chi)"]][2], " (", gene_name, ")"
+      ))
+    }
+    if (family %in% "binomial") {
+      print(paste0(
+        "LRT : ", LRT_result[["Pr(>Chisq)"]][2], " (", gene_name, ")"
+      ))
+    }
   }
   return(list(LRT = LRT_result, file = tmp_file))
 }
