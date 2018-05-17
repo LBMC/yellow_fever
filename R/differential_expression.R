@@ -30,7 +30,7 @@
 #' }
 #' @export DEA
 DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
-    cpus = 4, v = F, folder_name, continuous = c()) {
+    family = "nbinom1", cpus = 4, v = F, folder_name, continuous = c()) {
   scd_DEA <- scd$select(b_cells = b_cells)
   scd_DEA <- scd_DEA$select(
     genes = expressed(scd = scd_DEA, zi_threshold = zi_threshold)
@@ -48,6 +48,7 @@ DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
     features = features,
     formula_null = formula_null,
     formula_full = formula_full,
+    family = family,
     cpus = cpus,
     v = v,
     folder_name = folder_name
@@ -182,20 +183,20 @@ unlist_results <- function(results){
 
 #' @importFrom parallel mclapply
 lapply_parallel <- function(genes_list, counts, features,
-    formula_null, formula_full,
+    formula_null, formula_full, family = "nbinom1",
     cpus = 1, v, folder_name) {
   results <- list()
   if (cpus > 1) {
     results <- parallel::mclapply(
       X = genes_list,
       FUN  = function(x, counts, features, formula_null, formula_full,
-          v, folder_name){
+          family, v, folder_name){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
         DEA_gene(
           data = data,
-          formula_null,
-          formula_full,
+          formula_null = formula_null,
+          formula_full = formula_full,
           gene_name = x,
           v = v,
           folder_name = folder_name
@@ -206,6 +207,7 @@ lapply_parallel <- function(genes_list, counts, features,
       features = features,
       formula_null = formula_null,
       formula_full = formula_full,
+      family = family,
       v = v,
       folder_name = folder_name
     )
@@ -213,7 +215,7 @@ lapply_parallel <- function(genes_list, counts, features,
     results <- lapply(
       X = genes_list,
       FUN  = function(x, counts, features, formula_null, formula_full,
-          v, folder_name){
+          v, family, folder_name){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
         DEA_gene(
@@ -221,6 +223,7 @@ lapply_parallel <- function(genes_list, counts, features,
           formula_null,
           formula_full,
           gene_name = x,
+          family = family,
           v = v,
           folder_name = folder_name
         )
@@ -229,6 +232,7 @@ lapply_parallel <- function(genes_list, counts, features,
       features = features,
       formula_null = formula_null,
       formula_full = formula_full,
+      family = family,
       v = v,
       folder_name = folder_name
     )
@@ -252,11 +256,13 @@ DEA_gene <- function(data, formula_null, formula_full, gene_name,
     models_result,
     gene_name = gene_name,
     v = v,
-    folder_name = folder_name
+    folder_name = folder_name,
+    family = family
   )
   DEA_result <- DEA_format(
     LRT_result = LRT_result,
     models_result = models_result,
+    family = family,
     v = v)
   return(DEA_result)
 }
@@ -288,7 +294,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
   if (!("file" %in% names(models_result))) {
     models_result[["file"]] <- tmp_file
   }
-  if (!("is_zi" %in% names(models_result))) {
+  if (!("is_zi" %in% names(models_result)) & family %in% "nbinom1") {
     models_result[["is_zi"]] <- zi_test(
       data = data,
       gene_name = gene_name,
@@ -299,10 +305,16 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
   }
   try_left <- 1
   simplified <- FALSE
+  if (family %in% "nbinom1") {
+    FUN <- ziNB_fit
+  }
+  if (family %in% "binomial") {
+    FUN <- binomial_fit
+  }
   while(try_left > 0) {
     if (formula_null == formula_full) {
       if ( is.na( models_result[["formula_null"]]$residuals[1]) ) {
-        models_result[["formula_null"]] <- ziNB_fit(
+        models_result[["formula_null"]] <- FUN(
           data = data,
           formula = formulas[["formula_null"]],
           gene_name = gene_name,
@@ -316,7 +328,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
     } else {
       for (formula in names(formulas)) {
         if ( is.na(models_result[[formula]]$residuals[1]) ) {
-          models_result[[formula]] <- ziNB_fit(
+          models_result[[formula]] <- FUN(
             data = data,
             formula = formulas[[formula]],
             gene_name = gene_name,
@@ -561,7 +573,7 @@ ziNB_fit <- function(data, formula, gene_name,
 
 #' importFrom lme4 glmer
 binomial_fit <- function(data, formula, gene_name,
-    family = "binomial", link = "log",
+    family = "binomial", link = "log",, zi = TRUE,
     v) {
   if (v) {
     print(paste0(gene_name, " : binomial : ", formula))
