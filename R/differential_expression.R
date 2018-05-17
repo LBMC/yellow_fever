@@ -532,6 +532,29 @@ ziNB_fit <- function(data, formula, gene_name,
   return(model)
 }
 
+#' importFrom lme4 glmer
+binomial_fit <- function(data, formula, gene_name,
+    family = "binomial", link = "log",
+    v) {
+  if (v) {
+    print(paste0(gene_name, " : binomial : ", formula))
+  }
+  model <- tryCatch({
+    lme4::glmer(as.formula(formula),
+                data = data,
+                family=binomial(link=log), nAGQ=0,
+                control=glmerControl(optimizer = "nloptwrap")
+                )
+  }, error = function(e){
+    if (v) {
+      print(paste0("error: binomial_fit for ", gene_name))
+      print(e)
+    }
+    return(list(residuals = NA))
+  })
+  return(model)
+}
+
 formula_to_features <- function(scd, formula_full, continuous = c()){
   b_features <- c()
   for(feature in colnames(scd$getfeatures)) {
