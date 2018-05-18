@@ -369,6 +369,88 @@ for (alt in c("lesser", "greater")) {
   print(hm_corr)
 }
 
+load(
+  paste0("results/cell_type/mbatch_",
+         day, "_", experiment,
+         "_DEA_cell_type_DEA_logit.Rdata")
+)
+load(file = "results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+day <- "InVitro"
+experiment <- "P1902"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
+  mbatch_DEA_cell_type_DEA$padj < 0.05
+DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
+scd_norm <- scd$select(
+    b_cells = b_cells,
+    genes = DEA_genes
+  )
+clonality <- scd_norm$getfeature("clonality")
+clonality <- factor(
+  clonality,
+  levels = c("A7", "A8", "G6", "G8", "H9", "F3", "E4", "H2", "B4")
+)
+scd_norm$setfeature("clone", clonality)
+clone_palette <- function(clonality, other_set = TRUE){
+  clonality_color <- RColorBrewer::brewer.pal(
+    10, "RdYlBu"
+  )[-6]
+  names(clonality_color) <- levels(clonality)
+  return(clonality_color)
+}
+hm_title <- paste0("top ", length(DEA_genes),
+  "DE genes between cell-type
+  ", day, "_", experiment, "(logistic)")
+gene_order <- order_by_factor(
+  scd = scd_norm,
+  score = scd_norm$getfeature("pDEA_cell_type"),
+  tmp_file = paste0("results/cell_type/gene_cov_",
+    day, "_", experiment, "_logistic_top100"),
+  top = min(100, length(DEA_genes))
+)
+hm <- heatmap_genes(
+  scd = scd_norm,
+  features = c("clone", "pDEA_cell_type"),
+  cells_order = order(
+    as.numeric(as.vector(
+      scd_norm$getfeature("pDEA_cell_type")
+    ))
+  ),
+  genes_order = gene_order,
+  title = hm_title,
+  factor = c(T, F),
+  file = paste0(
+    "results/cell_type/heatmap/hm_CB_counts_QC_DEA_cell_type_",
+    day, "_", experiment, "_logistic_cov.pdf"
+  ),
+  gene_size = 3
+)
+print(hm)
+hm_corr <- heatmap_corr_genes(
+  scd = scd_norm,
+  features = c("clone", "pDEA_cell_type"),
+  cells_order = order(
+    as.numeric(as.vector(
+      scd_norm$getfeature("pDEA_cell_type")
+    ))
+  ),
+  title = hm_title,
+  factor = c(T, F),
+  file = paste0(
+    "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
+    day, "_", experiment, "_logistic_cov_manhattan.pdf"
+  ),
+  dist_name = "manhattan",
+  pca = F,
+  pCMF = F,
+  ncomp = 5,
+  cpus = 10
+)
+print(hm_corr)
+
 ################################################################################
 # DEA PLS for the InVitro P3128 data
 setwd("~/projects/yellow_fever")
