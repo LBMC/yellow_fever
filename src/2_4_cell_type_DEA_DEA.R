@@ -1,3 +1,4 @@
+rm(list=ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
@@ -37,6 +38,48 @@ for (day in c("D15", "D136", "D593")) {
   write.csv(
     mbatch_DEA_cell_type_DEA,
     file = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.csv")
+  )
+}
+
+for (day in c("D15", "D136", "D593")) {
+  system(
+    paste0("mkdir -p results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_logit")
+  )
+  b_cells <- scd$getfeature("QC_good") %in% T &
+    !is.na(scd$getfeature("DEA_cell_type")) &
+    scd$getfeature("day") %in% day
+  mbatch_DEA_cell_type_DEA <- DEA(
+    scd = scd,
+    formula_null = "y ~ (1|batch)",
+    formula_full = "y ~ (1|batch) + DEA_cell_type",
+    b_cells = b_cells,
+    family = "binomial",
+    cpus = 16,
+    v = T,
+    folder_name = paste0("results/cell_type/mbatch_", day,
+                         "_DEA_cell_type_DEA_logit")
+  )
+  save(
+    mbatch_DEA_cell_type_DEA,
+    file = paste0("results/cell_type/mbatch_", day,
+                  "_DEA_cell_type_DEA_logit.Rdata")
+  )
+  system("~/scripts/sms.sh \"DEA done\"")
+  print(day)
+  print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
+  print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
+}
+
+for (day in c("D15", "D136", "D593")) {
+  load(paste0("results/cell_type/mbatch_", day,
+              "_DEA_cell_type_DEA_logit.Rdata"))
+  print(day)
+  print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
+  print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
+  write.csv(
+    apply(mbatch_DEA_cell_type_DEA,2,as.character),
+    file = paste0("results/cell_type/mbatch_", day,
+                  "_DEA_cell_type_DEA_logit.csv")
   )
 }
 
@@ -113,17 +156,17 @@ for (day in c("D15", "D136", "D593")) {
         genes = DEA_genes_exp
       )
     hm_title <- paste0("top ", length(DEA_genes_exp),
-      "DE genes between cell-type 
+      "DE genes between cell-type
       ", day, "(zi <= 0.5)")
     if (alt == "greater") {
       hm_title <- paste0("top ", length(DEA_genes_exp),
-        "DE genes between cell-type 
+        "DE genes between cell-type
         ", day, "(zi >= 0.5)")
     }
     system(paste0("rm results/cell_type/gene_cov_",
       day, "_zi0.5_", alt, ".Rdata_norm.Rdata"))
     gene_order <- order_by_factor(
-      scd = scd_norm, 
+      scd = scd_norm,
       score = scd_norm$getfeature("pDEA_cell_type"),
       tmp_file = paste0("results/cell_type/gene_cov_",
         day, "_zi0.5_", alt, ".Rdata"),
@@ -132,7 +175,7 @@ for (day in c("D15", "D136", "D593")) {
     system(paste0("rm results/cell_type/gene_cov_",
         day, "_zi0.5_", alt, "_top100.Rdata_norm.Rdata"))
     gene_order <- order_by_factor(
-      scd = scd_norm, 
+      scd = scd_norm,
       score = scd_norm$getfeature("pDEA_cell_type"),
       tmp_file = paste0("results/cell_type/gene_cov_",
         day, "_zi0.5_", alt, "_top100.Rdata"),
@@ -556,17 +599,17 @@ for (day in c("D15", "D90")) {
         genes = DEA_genes_exp
       )
     hm_title <- paste0("top ", length(DEA_genes_exp),
-      "DE genes between cell-type 
+      "DE genes between cell-type
       ", day, "(zi <= 0.5)")
     if (alt == "greater") {
       hm_title <- paste0("top ", length(DEA_genes_exp),
-        "DE genes between cell-type 
+        "DE genes between cell-type
         ", day, "(zi >= 0.5)")
     }
     system(paste0("rm results/cell_type/gene_cov_",
       day, "_zi0.5_", alt, ".Rdata_norm.Rdata"))
     gene_order <- order_by_factor(
-      scd = scd_norm, 
+      scd = scd_norm,
       score = scd_norm$getfeature("pDEA_cell_type"),
       tmp_file = paste0("results/cell_type/gene_cov_",
         day, "_zi0.5_", alt, "_F.Rdata"),
@@ -575,7 +618,7 @@ for (day in c("D15", "D90")) {
     system(paste0("rm results/cell_type/gene_cov_",
         day, "_zi0.5_", alt, "_top100.Rdata_norm.Rdata"))
     gene_order <- order_by_factor(
-      scd = scd_norm, 
+      scd = scd_norm,
       score = scd_norm$getfeature("pDEA_cell_type"),
       tmp_file = paste0("results/cell_type/gene_cov_",
         day, "_zi0.5_", alt, "_top100_F.Rdata"),
@@ -626,7 +669,7 @@ for (day in c("D15", "D90")) {
 
 
 load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
-b_cells <- scd$getfeature("sex") %in% "M" & 
+b_cells <- scd$getfeature("sex") %in% "M" &
   scd$getfeature("day") %in% c("D15", "D136", "D593")
 infos_M <- scd$getfeatures
 counts_M <- scd$getcounts
