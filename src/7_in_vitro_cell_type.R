@@ -1,9 +1,29 @@
 ################################################################################
 # DEA PLS for the InVitro P1902 data
+rm(list=ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 
 load("results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata", v = T)
+b_cells <- scd$getfeature("day") %in% "InVitro" &
+  scd$getfeature("experiment") %in% c( "P1902", "P3128" ) &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+infos_M <- scd$select(b_cells = b_cells)$getfeatures
+counts_M <- scd$select(b_cells = b_cells)$getcounts
+infos_M <- t(infos_M)
+counts_M <- t(counts_M)
+dim(infos_M)
+dim(counts_M)
+normalized_counts <- rbind(infos_M, counts_M)
+dim(normalized_counts)
+write.csv(
+  normalized_counts,
+  file = paste0("results/cell_type/cell_type_CB_counts_in_vitro.csv")
+)
+
+
+load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 load("results/cell_type/mbatch_day_surface_cell_type_weighted_DEA.Rdata", v = T)
 b_genes <- !is.na(mbatch_day_surface_cell_type_weighted_DEA$padj) &
   mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05
@@ -830,3 +850,18 @@ for (alt in c("lesser", "greater")) {
   )
   print(hm_corr)
 }
+
+load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+day <- "InVitro"
+experiment <- "P3128"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+infos <- scd$getfeatures
+load("results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata")
+infos[b_cells, ] <- scd$select(b_cells =  b_cells)$getfeatures
+write.csv(
+  infos,
+  file = paste0("results/cell_type/cell_type_infos_invivo_invitro.csv")
+)
