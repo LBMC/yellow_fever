@@ -362,7 +362,6 @@ for (day in c("D15", "D90")) {
 }
 
 for (day in c("D15", "D90")) {
-  day <- "D15"
   load(paste0("results/cell_type/mbatch_", day,
               "_DEA_cell_type_DEA_F_logit.Rdata"))
   print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
