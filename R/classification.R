@@ -766,13 +766,15 @@ gene_cov <- function(
     file = paste0(tmp_file, "_norm.Rdata")
   )
   if (missing(score)) {
-    b_genes <- which(scd_norm$getgenes %in% gene)
+    b_genes <- scd_norm$getgenes %in% gene
     gene_exp <- scd_norm$getgene(gene)
   } else {
     gene_exp <- score
     b_genes <- rep(F, scd_norm$getngenes)
   }
-  data_exp <- FUN(as.matrix(scd_norm$getcounts[, !b_genes]))
+  data_exp <- as.matrix(scd_norm$getcounts[, !b_genes])
+  data_exp <- data_exp[, !apply( data_exp, 2, function(x){ any(is.na(x) | is.infinite(x)) } )]
+  data_exp <- FUN(data_exp)
   if (sparse) {
     if (!missing(tmp_file) & file.exists(paste0(tmp_file, "fit.Rdata"))) {
       print(paste0(tmp_file, "fit.Rdata, found, loading..."))
