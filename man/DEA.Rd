@@ -4,8 +4,9 @@
 \alias{DEA}
 \title{DEA for scRNASeq data}
 \usage{
-DEA(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9, cpus = 4,
-  v = F, folder_name, continuous = c())
+DEA(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
+  family = "nbinom1", cpus = 4, v = F, folder_name, zero_threshold = 5,
+  continuous = c())
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}
@@ -18,11 +19,17 @@ DEA(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9, cpus = 4,
 
 \item{zi_threshold}{(default: 0.9) work with genes with less that 0.9 zeros}
 
+\item{family}{(default: "nbinom1") model to use for the DEA in
+c("nbinom1", "binomial")}
+
 \item{cpus}{(default: 4) number of cpus to use}
 
 \item{v}{(default: F) print stuff}
 
 \item{folder_name}{folder to write down intermendiate DEA results}
+
+\item{zero_threshold}{(default: 5) counts lesser than this threshold will be
+considered as zeros for the binomial regression}
 
 \item{continuous}{vector of feature names that should be keep continuous (not
 converted into factors}
