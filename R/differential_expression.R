@@ -10,7 +10,7 @@
 #' @param zi_threshold (default: 0.9) work with genes with less that 0.9 zeros
 #' @param zero_threshold (default: 5) counts lesser than this threshold will be
 #' considered as zeros for the binomial regression
-#' @param family (default: "nbinom1") model to use for the DEA in
+#' @param model_family (default: "nbinom1") model to use for the DEA in
 #' c("nbinom1", "binomial")
 #' @param cpus (default: 4) number of cpus to use
 #' @param v (default: F) print stuff
@@ -34,7 +34,7 @@
 #' }
 #' @export DEA
 DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
-    family = "nbinom1", cpus = 4, v = F, folder_name,
+    model_family = "nbinom1", cpus = 4, v = F, folder_name,
     zero_threshold = 5, continuous = c()) {
   scd_DEA <- scd$select(b_cells = b_cells)
   scd_DEA <- scd_DEA$select(
@@ -53,7 +53,7 @@ DEA <- function(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
     features = features,
     formula_null = formula_null,
     formula_full = formula_full,
-    family = family,
+    model_family = model_family,
     zero_threshold = zero_threshold,
     cpus = cpus,
     v = v,
@@ -189,24 +189,24 @@ unlist_results <- function(results){
 
 #' @importFrom parallel mclapply
 lapply_parallel <- function(genes_list, counts, features,
-    formula_null, formula_full, family = "nbinom1", zero_threshold = 5,
+    formula_null, formula_full, model_family = "nbinom1", zero_threshold = 5,
     cpus = 1, v, folder_name) {
   results <- list()
   if (cpus > 1) {
     results <- parallel::mclapply(
       X = genes_list,
       FUN  = function(x, counts, features, formula_null, formula_full,
-          family, zero_threshold, v, folder_name){
+          model_family, zero_threshold, v, folder_name){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
-        if (family %in% "binomial") {
+        if (model_family %in% "binomial") {
           data$y <- as.numeric(data$y > zero_threshold)
         }
         DEA_gene(
           data = data,
           formula_null = formula_null,
           formula_full = formula_full,
-          family = family,
+          model_family = model_family,
           gene_name = x,
           v = v,
           folder_name = folder_name
@@ -217,7 +217,7 @@ lapply_parallel <- function(genes_list, counts, features,
       features = features,
       formula_null = formula_null,
       formula_full = formula_full,
-      family = family,
+      model_family = model_family,
       zero_threshold = zero_threshold,
       v = v,
       folder_name = folder_name
@@ -226,10 +226,10 @@ lapply_parallel <- function(genes_list, counts, features,
     results <- lapply(
       X = genes_list,
       FUN  = function(x, counts, features, formula_null, formula_full,
-          v, family, zero_threshold, folder_name){
+          v, model_family, zero_threshold, folder_name){
         data <- data.frame(y = round(counts[ ,colnames(counts) %in% x]))
         data <- cbind(features, data)
-        if (family %in% "binomial") {
+        if (model_family %in% "binomial") {
           data$y <- as.numeric(data$y > zero_threshold)
         }
         DEA_gene(
@@ -237,7 +237,7 @@ lapply_parallel <- function(genes_list, counts, features,
           formula_null,
           formula_full,
           gene_name = x,
-          family = family,
+          model_family = model_family,
           v = v,
           folder_name = folder_name
         )
@@ -246,7 +246,7 @@ lapply_parallel <- function(genes_list, counts, features,
       features = features,
       formula_null = formula_null,
       formula_full = formula_full,
-      family = family,
+      model_family = model_family,
       zero_threshold = zero_threshold,
       v = v,
       folder_name = folder_name
@@ -255,14 +255,14 @@ lapply_parallel <- function(genes_list, counts, features,
 }
 
 DEA_gene <- function(data, formula_null, formula_full, gene_name,
-    family = "nbinom1", link = "log",
+    model_family = "nbinom1", link = "log",
     v, folder_name) {
   models_result <- DEA_fit(
     data = data,
     formula_null = formula_null,
     formula_full = formula_full,
     gene_name = gene_name,
-    family = family,
+    model_family = model_family,
     link = link,
     v = v,
     folder_name = folder_name
@@ -272,18 +272,18 @@ DEA_gene <- function(data, formula_null, formula_full, gene_name,
     gene_name = gene_name,
     v = v,
     folder_name = folder_name,
-    family = family
+    model_family = model_family
   )
   DEA_result <- DEA_format(
     LRT_result = LRT_result,
     models_result = models_result,
-    family = family,
+    model_family = model_family,
     v = v)
   return(DEA_result)
 }
 
 DEA_fit <- function(data, formula_null, formula_full, gene_name,
-    family = "nbinom1", link = "log",
+    model_family = "nbinom1", link = "log",
     v, folder_name) {
   tmp_file <- ""
   if (!missing(folder_name)) {
@@ -309,21 +309,20 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
   if (!("file" %in% names(models_result))) {
     models_result[["file"]] <- tmp_file
   }
-  if (!("is_zi" %in% names(models_result)) & family %in% "nbinom1") {
+  print(model_family)
+  if (!("is_zi" %in% names(models_result)) & model_family %in% "nbinom1") {
     models_result[["is_zi"]] <- zi_test(
       data = data,
       gene_name = gene_name,
-      family = family,
+      model_family = model_family,
       link = link,
       threshold = 0.05,
       v = v)
   }
   try_left <- 1
+  FUN <- ziNB_fit
   simplified <- FALSE
-  if (family %in% "nbinom1") {
-    FUN <- ziNB_fit
-  }
-  if (family %in% "binomial") {
+  if (model_family %in% "binomial") {
     FUN <- binomial_fit
     simplified <- TRUE
   }
@@ -334,7 +333,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
           data = data,
           formula = formulas[["formula_null"]],
           gene_name = gene_name,
-          family = family,
+          model_family = model_family,
           link = link,
           zi = models_result[["is_zi"]],
           v = v
@@ -348,7 +347,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
             data = data,
             formula = formulas[[formula]],
             gene_name = gene_name,
-            family = family,
+            model_family = model_family,
             link = link,
             zi = models_result[["is_zi"]],
             v = v
@@ -385,7 +384,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
 
 #' importFrom glmmADMB glmmadmb
 DEA_LRT <- function(models_result, gene_name, v, folder_name,
-                    family = "nbinom1") {
+                    model_family = "nbinom1") {
   tmp_file <- ""
   LRT_result <- NA
   if (!missing(folder_name)) {
@@ -408,7 +407,7 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name,
         print(paste0("error: DEA_LRT for gene ", gene_name))
         print(e)
       }
-      if (family %in% "nbinom1") {
+      if (model_family %in% "nbinom1") {
         return(
           data.frame(
             NoPar = c(NA, NA),
@@ -420,7 +419,7 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name,
           )
         )
       }
-      if (family %in% "binomial") {
+      if (model_family %in% "binomial") {
         return(
           data.frame(
             Df = c(NA, NA),
@@ -444,12 +443,12 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name,
     }
   }
   if (v) {
-    if (family %in% "nbinom1") {
+    if (model_family %in% "nbinom1") {
       print(paste0(
         "LRT : ", LRT_result[["Pr(>Chi)"]][2], " (", gene_name, ")"
       ))
     }
-    if (family %in% "binomial") {
+    if (model_family %in% "binomial") {
       print(paste0(
         "LRT : ", LRT_result[["Pr(>Chisq)"]][2], " (", gene_name, ")"
       ))
@@ -458,11 +457,11 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name,
   return(list(LRT = LRT_result, file = tmp_file))
 }
 
-DEA_format <- function(LRT_result, models_result, v, family = "nbinom1") {
-  if (family %in% "nbinom1") {
+DEA_format <- function(LRT_result, models_result, v, model_family = "nbinom1") {
+  if (model_family %in% "nbinom1") {
     return(DEA_format_ziNB(LRT_result, models_result, v))
   }
-  if (family %in% "binomial") {
+  if (model_family %in% "binomial") {
     return(DEA_format_binomial(LRT_result, models_result, v))
   }
 }
@@ -560,7 +559,7 @@ DEA_format_ziNB_model <- function(model, zi) {
 
 #' importFrom glmmADMB glmmadmb
 ziNB_fit <- function(data, formula, gene_name,
-    family = "nbinom1", link = "log", zi = TRUE,
+    model_family = "nbinom1", link = "log", zi = TRUE,
     v) {
   if (v) {
     if (zi) {
@@ -579,7 +578,7 @@ ziNB_fit <- function(data, formula, gene_name,
       as.formula(formula),
       data = data,
       zeroInflation = zi,
-      family = family,
+      family = model_family,
       link = link,
       mcmc = FALSE
     )
@@ -602,7 +601,7 @@ ziNB_fit <- function(data, formula, gene_name,
 
 #' importFrom lme4 glmer
 binomial_fit <- function(data, formula, gene_name,
-    family = "binomial", link = "log", zi = TRUE,
+    model_family = "binomial", link = "log", zi = TRUE,
     v) {
   if (v) {
     print(paste0(gene_name, " : binomial : ", formula))
@@ -658,7 +657,7 @@ formula_to_features <- function(scd, formula_full, continuous = c()){
 #' @importFrom MASS glm.nb
 #' @importFrom pscl zeroinfl
 zi_test <- function(data, formula = y ~ 1, gene_name,
-    family = "nbinom1", link = "log", threshold = 0.05, v = F){
+    model_family = "nbinom1", link = "log", threshold = 0.05, v = F){
   if (v) {
     print(paste0(
       "zi test: zi : ", sum(data$y == 0) / length(data$y), " for ", gene_name
