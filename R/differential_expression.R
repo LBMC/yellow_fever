@@ -309,7 +309,6 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
   if (!("file" %in% names(models_result))) {
     models_result[["file"]] <- tmp_file
   }
-  print(model_family)
   if (!("is_zi" %in% names(models_result)) & model_family %in% "nbinom1") {
     models_result[["is_zi"]] <- zi_test(
       data = data,
