@@ -561,7 +561,7 @@ ziNB_fit <- function(data, formula, gene_name,
     model_family = "nbinom1", link = "log", zi = TRUE,
     v) {
   if (v) {
-    if (zi) {
+    if (length(zi) != 0 & zi) {
       print(paste0(gene_name, " : ziNB : ", formula))
     } else {
       print(paste0(gene_name, " : NB : ", formula))
