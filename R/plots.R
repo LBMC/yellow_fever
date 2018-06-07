@@ -1035,8 +1035,8 @@ heatmap_corr_genes <- function(
 heatmap_corr_cells <- function(
   scd,
   features,
-  genes_order,
   factor = rep(TRUE, length(features)),
+  genes_order,
   show_legend = TRUE,
   title = "",
   pca = FALSE,
@@ -1048,19 +1048,15 @@ heatmap_corr_cells <- function(
   file
 ) {
   h_data <- ascb(scd$getcounts, to_zero = TRUE)
-  if (pca) {
-    h_data <- pca_loading(scd, cells = TRUE, ncomp = ncomp)
-  }
-  if (pCMF) {
-    h_data <- pCMF_loading(
-      scd = scd,
-      cells = TRUE,
-      ncomp = ncomp,
-      cpus = cpus,
-      tmp_file = paste0(file, "_pCMF.Rdata")
-    )
-  }
-  h_data <- h_data[, genes_order]
+
+  gene_type <- apply(scale(h_data), 2, FUN = function(x, pMEM){
+    mean(x * pMEM)
+  }, pMEM = scd$getfeature("pDEA_cell_type"))
+
+  ha <- ComplexHeatmap::HeatmapAnnotation(
+    df = data.frame(gene_type = gene_type),
+    show_legend = TRUE
+  )
   h_data <- as.matrix(cor(h_data, method = "spearman"))
   h_data <- apply(h_data, c(1:2), function(x, x_mean, x_sd){
       (x - x_mean) / x_sd
@@ -1069,6 +1065,7 @@ heatmap_corr_cells <- function(
     x_sd = sd(as.vector(h_data)))
   diag(h_data) <- NA
   h_data <- corr_scale_and_color(h_data)
+
   hmap <- ComplexHeatmap::Heatmap(h_data$counts,
     name = "expression",
     column_title = title,
@@ -1081,7 +1078,8 @@ heatmap_corr_cells <- function(
     row_title = "genes",
     row_names_gp = grid::gpar(fontsize = gene_size),
     show_heatmap_legend = TRUE,
-    heatmap_legend_param = list(color_bar = "continuous")
+    heatmap_legend_param = list(color_bar = "continuous"),
+    bottom_annotation = ha
   )
   save_classic_pdf(hmap, file)
   return(hmap)
