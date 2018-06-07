@@ -1,4 +1,8 @@
 rm(list=ls())
+load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+
+b_cells <- scd$getfeature("sex") %in% "M" &
+  scd$getfeature("day") %in% c("D15", "D136", "D593")
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
@@ -803,4 +807,104 @@ write.csv(
   normalized_counts,
   file = paste0("results/cell_type/cell_type_CB_counts.csv")
 )
+
+
+
+load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+b_cells <- scd$getfeature("sex") %in% "M" &
+  scd$getfeature("day") %in% c("D15", "D136", "D593") &
+  scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type"))
+
+scd_data <- scd$select(b_cells = b_cells)$getfeatures
+data <- data.frame(
+  ccr7 = as.numeric(as.vector(scd_data$ccr7)),
+  il7ra = as.numeric(as.vector(scd_data$il7ra)),
+  pMEM = ifelse(
+    scd_data$phenotype_surface_cell_type %in% "MEM",
+    1,
+    ifelse(
+      scd_data$phenotype_surface_cell_type %in% "EFF",
+      0,
+      NA
+    )
+  ),
+  day = factor(scd_data$day, levels = c("D15", "D136", "D593")),
+  classification = "manual"
+)
+data <- rbind(
+  data,
+  data.frame(
+    ccr7 = as.numeric(as.vector(scd_data$ccr7)),
+    il7ra = as.numeric(as.vector(scd_data$il7ra)),
+    pMEM = scd_data$psurface_cell_type,
+    day = factor(scd_data$day, levels = c("D15", "D136", "D593")),
+    classification = "PLS from manual"
+  )
+)
+data <- rbind(
+  data,
+  data.frame(
+    ccr7 = as.numeric(as.vector(scd_data$ccr7)),
+    il7ra = as.numeric(as.vector(scd_data$il7ra)),
+    pMEM = scd_data$pDEA_cell_type,
+    day = factor(scd_data$day, levels = c("D15", "D136", "D593")),
+    classification = "PLS from DEA"
+  )
+)
+
+ggplot(data = data,
+       aes(x = classification, y = ccr7, color = pMEM)) +
+  scale_y_log10() +
+  geom_jitter(height = 0) +
+  facet_wrap(~day) +
+  theme_bw()
+ggsave("results/cell_type/M_in_vivo_ccr7_pMEM.pdf",
+       width = 11,
+       height = 10)
+
+ggplot(data = data,
+       aes(x = classification, y = il7ra, color = pMEM)) +
+  scale_y_log10() +
+  geom_jitter(height = 0) +
+  facet_wrap(~day) +
+  theme_bw()
+ggsave("results/cell_type/M_in_vivo_il7ra_pMEM.pdf",
+       width = 11,
+       height = 10)
+
+load("results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
+b_cells <- scd$getfeature("sex") %in% "F" &
+  scd$getfeature("day") %in% c("D15", "D90") &
+  scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type"))
+
+scd_data <- scd$select(b_cells = b_cells)$getfeatures
+data <- data.frame(
+  ccr7 = as.numeric(as.vector(scd_data$ccr7)),
+  il7ra = as.numeric(as.vector(scd_data$il7ra)),
+  pMEM = scd_data$pDEA_cell_type,
+  day = factor(scd_data$day, levels = c("D15", "D90")),
+  classification = "PLS from DEA"
+)
+
+ggplot(data = data,
+       aes(x = classification, y = ccr7, color = pMEM)) +
+  scale_y_log10() +
+  geom_jitter(height = 0) +
+  facet_wrap(~day) +
+  theme_bw()
+ggsave("results/cell_type/F_in_vivo_ccr7_pMEM.pdf",
+       width = 11,
+       height = 10)
+
+ggplot(data = data,
+       aes(x = classification, y = il7ra, color = pMEM)) +
+  scale_y_log10() +
+  geom_jitter(height = 0) +
+  facet_wrap(~day) +
+  theme_bw()
+ggsave("results/cell_type/F_in_vivo_il7ra_pMEM.pdf",
+       width = 11,
+       height = 10)
 

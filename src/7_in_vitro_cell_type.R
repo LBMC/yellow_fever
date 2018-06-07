@@ -865,3 +865,41 @@ write.csv(
   infos,
   file = paste0("results/cell_type/cell_type_infos_invivo_invitro.csv")
 )
+
+load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+day <- "InVitro"
+experiment <- "P1902"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+
+scd_data <- scd$select(b_cells = b_cells)$getfeatures
+data <- data.frame(
+  ccr7 = as.numeric(as.vector(scd_data$ccr7)),
+  il7ra = as.numeric(as.vector(scd_data$il7ra)),
+  pMEM = scd_data$pDEA_cell_type,
+  day = factor(scd_data$day, levels = c("D15", "D90")),
+  classification = "PLS from DEA"
+)
+
+ggplot(data = data,
+       aes(x = classification, y = ccr7, color = pMEM)) +
+  scale_y_log10() +
+  geom_jitter(height = 0) +
+  facet_wrap(~day) +
+  theme_bw()
+ggsave("results/cell_type/P1902_in_vitro_ccr7_pMEM.pdf",
+       width = 11,
+       height = 10)
+
+ggplot(data = data,
+       aes(x = classification, y = il7ra, color = pMEM)) +
+  scale_y_log10() +
+  geom_jitter(height = 0) +
+  facet_wrap(~day) +
+  theme_bw()
+ggsave("results/cell_type/P1902_in_vitro_il7ra_pMEM.pdf",
+       width = 11,
+       height = 10)
+
