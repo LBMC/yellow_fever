@@ -225,7 +225,6 @@ corr_scale_and_color <- function(counts, FUN=function(x){x}, quant=FALSE){
       rev(RColorBrewer::brewer.pal(11, "RdBu"))
     )
   }else{
-    counts <- counts * -1
     colors <- colorRamp2(
       c(1, 0.5, 0, -0.5, -1),
       c("#09325d", "red", "white", "blue", "#6a000a")
@@ -988,6 +987,8 @@ heatmap_corr_genes <- function(
     },
     x_mean = mean(as.vector(h_data)),
     x_sd = sd(as.vector(h_data)))
+
+  h_data <- h_data * -1
   diag(h_data) <- NA
   h_data <- corr_scale_and_color(h_data)
   hmap <- ComplexHeatmap::Heatmap(h_data$counts,
@@ -1003,6 +1004,84 @@ heatmap_corr_genes <- function(
     show_heatmap_legend = TRUE,
     heatmap_legend_param = list(color_bar = "continuous"),
     bottom_annotation = ha
+  )
+  save_classic_pdf(hmap, file)
+  return(hmap)
+}
+
+#' correlation heatmap of genes
+#'
+#' @param scd is a scRNASeq data object
+#' @param features features of the scd object to display
+#' @param genes_order genes order
+#' @param factor vector indicating which features should be dealt with like a
+#' factor
+#' @param show_legend (default: TRUE) should the legend be displayed
+#' @param title title of the heatmap
+#' @param ncomp (default = 5) number of metagene to compute (PCA)
+#' @param file name of the pdf to save the heatmap
+#' @return return a heatmap object
+#' @examples
+#' \dontrun{
+#' headmap_corr_genes(
+#'   scd = scd,
+#'   features = c("cell_type", "day"),
+#'   cells_order = order(scd$getfeature("cell_type")),
+#'   title = "cell type heatmap"
+#' )
+#' }
+#' @importFrom ComplexHeatmap Heatmap
+#' @export heatmap_corr_cells
+heatmap_corr_cells <- function(
+  scd,
+  features,
+  genes_order,
+  factor = rep(TRUE, length(features)),
+  show_legend = TRUE,
+  title = "",
+  pca = FALSE,
+  pCMF = FALSE,
+  ncomp = 4,
+  cpus = 4,
+  dist_name = "manhattan",
+  gene_size = 10,
+  file
+) {
+  h_data <- ascb(scd$getcounts, to_zero = TRUE)
+  if (pca) {
+    h_data <- pca_loading(scd, cells = TRUE, ncomp = ncomp)
+  }
+  if (pCMF) {
+    h_data <- pCMF_loading(
+      scd = scd,
+      cells = TRUE,
+      ncomp = ncomp,
+      cpus = cpus,
+      tmp_file = paste0(file, "_pCMF.Rdata")
+    )
+  }
+  h_data <- h_data[, genes_order]
+  h_data <- as.matrix(cor(h_data, method = "spearman"))
+  h_data <- apply(h_data, c(1:2), function(x, x_mean, x_sd){
+      (x - x_mean) / x_sd
+    },
+    x_mean = mean(as.vector(h_data)),
+    x_sd = sd(as.vector(h_data)))
+  diag(h_data) <- NA
+  h_data <- corr_scale_and_color(h_data)
+  hmap <- ComplexHeatmap::Heatmap(h_data$counts,
+    name = "expression",
+    column_title = title,
+    col = h_data$colors,
+    cluster_rows = TRUE,
+    cluster_columns = TRUE,
+    show_row_names = TRUE,
+    row_names_side = "left",
+    show_column_names = FALSE,
+    row_title = "genes",
+    row_names_gp = grid::gpar(fontsize = gene_size),
+    show_heatmap_legend = TRUE,
+    heatmap_legend_param = list(color_bar = "continuous")
   )
   save_classic_pdf(hmap, file)
   return(hmap)
