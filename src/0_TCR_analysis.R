@@ -102,7 +102,7 @@ tmp$time[tmp$day %in% c(15, 30)] <- "peak"
 tmp$time[tmp$day %in% c(90, 136, 148)] <- "late"
 tmp$time[tmp$day %in% c(650, 720)] <- "very_late"
 tmp$time <- factor(tmp$time, c("early", "peak", "late", "very_late"))
-tmp$type <- paste(tmp$donor, tmp$antigen, tmp$time, tmp$day, sep = "_")
+tmp$type <- paste(tmp$donor, tmp$antigen, tmp$day, sep = "_")
 type_levels <- unique(tmp$type)
 tmp$type <- as.factor(tmp$type)
 tmp$type <- factor(tmp$type, levels = type_levels)
@@ -195,10 +195,10 @@ clone_diversity <- cbind(clone_diversity, t(R_est))
 save(clone_diversity, file="results/survival/clone_diversity.Rdata")
 write.csv(clone_diversity, file="results/survival/clone_diversity.csv")
 
-pdf(file = "results/survival/clone_diversity_fisher.pdf")
+pdf(file = "results/survival/clone_diversity_fisher.pdf", height = 10, width = 10)
 par(mfrow=c(4,4))
 for (i in 1:nrow(tmp)) {
-  plot(fisherfit(tmp[i, ]))
+  plot(fisherfit(tmp[i, ]), main = rownames(tmp)[i])
 }
 dev.off()
 
