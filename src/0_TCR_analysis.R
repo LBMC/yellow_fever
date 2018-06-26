@@ -1,3 +1,5 @@
+install.packages("vegan")
+
 rm(list=ls())
 setwd("~/projects/yellow_fever/")
 devtools::load_all("../scRNAtools/", reset = T)
@@ -110,8 +112,6 @@ tmp <- table(tmp$type, tmp$clonality)
 rownames(tmp)
 type_levels
 
-install.packages("vegan")
-
 simpson_infos <- simpson_infos[-1, ]
 simpson_infos
 table(simpson_infos$donor, simpson_infos$day, simpson_infos$antigen)
@@ -136,7 +136,6 @@ ggplot(data=data, aes(x=day, y=simpson, color=donor, group=donor)) +
 
 
 library("vegan")
-
 
 clone_diversity <- data.frame(
   shannon = diversity(tmp, index = "shannon"),
@@ -198,7 +197,24 @@ write.csv(clone_diversity, file="results/survival/clone_diversity.csv")
 pdf(file = "results/survival/clone_diversity_fisher.pdf", height = 10, width = 10)
 par(mfrow=c(4,4))
 for (i in 1:nrow(tmp)) {
-  plot(fisherfit(tmp[i, ]), main = rownames(tmp)[i])
+  str(fisherfit(tmp[i, ]))
+  plot(fisherfit(tmp[i, ]), main = rownames(tmp)[i], ylim = 500)
+}
+dev.off()
+
+pdf(file = "results/survival/clone_diversity_fisher.pdf", height = 10, width = 10)
+par(mfrow=c(4,4))
+for (i in 1:nrow(tmp)) {
+  x <- fisherfit(tmp[i, ])
+  freq <- as.numeric(names(x$fisher))
+  plot(freq, x$fisher, main = rownames(tmp)[i], ylab = "Species",
+       xlab = "Frequency",
+       ylim = c(0, 30), xlim = c(0.5, max(freq) + 0.5), type = "n")
+  rect(freq - 0.5, 0, freq + 0.5, x$fisher, col = "skyblue")
+  alpha <- x$estimate
+  k <- x$nuisance
+  curve(alpha * k^x/x, 1, max(freq), col = "red", lwd = 2,
+      add = TRUE)
 }
 dev.off()
 
