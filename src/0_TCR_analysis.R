@@ -204,17 +204,30 @@ dev.off()
 
 pdf(file = "results/survival/clone_diversity_fisher.pdf", height = 10, width = 10)
 par(mfrow=c(4,4))
+x <- strsplit(rownames(tmp)[1], "_")[[1]]
+prev_donor <- x[1]
+prev_antigen <- x[2]
+prev_specnumber <- specnumber(tmp[1, ])
 for (i in 1:nrow(tmp)) {
+  x <- strsplit(rownames(tmp)[i], "_")[[1]]
+  donor <- x[1]
+  antigen <- x[2]
+  if (donor != prev_donor | antigen != prev_antigen) {
+    prev_specnumber <- specnumber(tmp[i, ])
+  }
   x <- fisherfit(tmp[i, ])
   freq <- as.numeric(names(x$fisher))
   plot(freq, x$fisher, main = rownames(tmp)[i], ylab = "Species",
        xlab = "Frequency",
-       ylim = c(0, 30), xlim = c(0.5, max(freq) + 0.5), type = "n")
+       ylim = c(0, prev_specnumber), xlim = c(0.5, max(freq) + 0.5),
+       type = "n")
   rect(freq - 0.5, 0, freq + 0.5, x$fisher, col = "skyblue")
   alpha <- x$estimate
   k <- x$nuisance
   curve(alpha * k^x/x, 1, max(freq), col = "red", lwd = 2,
       add = TRUE)
+  prev_donor <- donor
+  prev_antigen <- antigen
 }
 dev.off()
 
