@@ -62,7 +62,7 @@ for (day in c("D15", "D136", "D593")) {
     folder_name = paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA")
   )
   save(
-    mbatch_DEA_cell_type_DEA,
+    mbatch_pDEA_cell_type_DEA,
     file = paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA.Rdata")
   )
   system("~/scripts/sms.sh \"DEA done\"")
@@ -80,6 +80,13 @@ for (day in c("D15", "D136", "D593")) {
     mbatch_pDEA_cell_type_DEA,
     file = paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA.csv")
   )
+}
+
+for (day in c("D15", "D136", "D593")) {
+  load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
+  load(paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA.Rdata"))
+  print(table(mbatch_pDEA_cell_type_DEA$padj < 0.05))
+  print(table(mbatch_pDEA_cell_type_DEA$padj < 0.05, mbatch_DEA_cell_type_DEA$padj < 0.05))
 }
 
 for (day in c("D15", "D136", "D593")) {
@@ -173,6 +180,78 @@ for (day in c("D15", "D136", "D593")) {
   print(hm_corr)
 }
 
+# same thing with DE genes
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "M"
+for (day in c("D15", "D136", "D593")) {
+    load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
+    DE_genes <- mbatch_DEA_cell_type_DEA$gene[
+      mbatch_DEA_cell_type_DEA$padj < 0.05]
+    DEA_genes_exp <- expressed(
+      scd = scd$select(
+        b_cells = b_cells & scd$getfeature("day") %in% day,
+        genes = DE_genes,
+      ),
+      zi_threshold = 0.90,
+    )
+    scd_norm <- scd$select(
+        b_cells = b_cells & scd$getfeature("day") %in% day,
+        genes = DEA_genes_exp
+      )
+  hm_corr <- heatmap_corr_cells(
+    scd = scd_norm,
+    features = c("antigen", "pDEA_cell_type"),
+    title = paste0("DE genes between cell-type ", day),
+    factor = c(T, F),
+    file = paste0(
+      "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
+      day, "_corr_DE_genes.pdf"
+    ),
+    dist_name = "euclidian",
+    gene_size = 3,
+    pca = F,
+    pCMF = F,
+    ncomp = 5,
+    cpus = 10
+  )
+  print(hm_corr)
+}
+for (day in c("D15", "D136", "D593")) {
+    load(paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA.Rdata"))
+    DE_genes <- mbatch_pDEA_cell_type_DEA$gene[
+      mbatch_pDEA_cell_type_DEA$padj < 0.05]
+    DEA_genes_exp <- expressed(
+      scd = scd$select(
+        b_cells = b_cells & scd$getfeature("day") %in% day,
+        genes = DE_genes,
+      ),
+      zi_threshold = 0.90,
+    )
+    scd_norm <- scd$select(
+        b_cells = b_cells & scd$getfeature("day") %in% day,
+        genes = DEA_genes_exp
+      )
+  hm_corr <- heatmap_corr_cells(
+    scd = scd_norm,
+    features = c("antigen", "pDEA_cell_type"),
+    title = paste0("DE genes between cell-type ", day),
+    factor = c(T, F),
+    file = paste0(
+      "results/cell_type/heatmap/hm_corr_CB_counts_QC_pDEA_cell_type_",
+      day, "_corr_DE_genes.pdf"
+    ),
+    dist_name = "euclidian",
+    gene_size = 3,
+    pca = F,
+    pCMF = F,
+    ncomp = 5,
+    cpus = 10
+  )
+  print(hm_corr)
+}
+
+
 # same thing with all genes
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("DEA_cell_type")) &
@@ -180,7 +259,7 @@ b_cells <- scd$getfeature("QC_good") %in% T &
 for (day in c("D15", "D136", "D593")) {
     DEA_genes_exp <- expressed(
       scd = scd$select(
-        b_cells = b_cells & scd$getfeature("day") %in% day,
+        b_cells = b_cells & scd$getfeature("day") %in% day
       ),
       zi_threshold = 0.90,
     )
