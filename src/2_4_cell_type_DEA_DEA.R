@@ -186,8 +186,9 @@ b_cells <- scd$getfeature("QC_good") %in% T &
   scd$getfeature("sex") %in% "M"
 for (day in c("D15", "D136", "D593")) {
     load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
-    DE_genes <- mbatch_DEA_cell_type_DEA$gene[
-      mbatch_DEA_cell_type_DEA$padj < 0.05]
+    b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
+      mbatch_DEA_cell_type_DEA$padj < 0.05
+    DE_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
     DEA_genes_exp <- expressed(
       scd = scd$select(
         b_cells = b_cells & scd$getfeature("day") %in% day,
@@ -219,8 +220,9 @@ for (day in c("D15", "D136", "D593")) {
 }
 for (day in c("D15", "D136", "D593")) {
     load(paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA.Rdata"))
-    DE_genes <- mbatch_pDEA_cell_type_DEA$gene[
-      mbatch_pDEA_cell_type_DEA$padj < 0.05]
+    b_genes <- !is.na(mbatch_pDEA_cell_type_DEA$padj) &
+      mbatch_pDEA_cell_type_DEA$padj < 0.05
+    DE_genes <- mbatch_pDEA_cell_type_DEA$gene[b_genes]
     DEA_genes_exp <- expressed(
       scd = scd$select(
         b_cells = b_cells & scd$getfeature("day") %in% day,
@@ -361,6 +363,73 @@ b_cells <- scd$getfeature("QC_good") %in% T &
 for (day in c("D15", "D136", "D593")) {
   for (alt in c("lesser", "greater")) {
     load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
+    b_genes <- !is.na(mbatch_pDEA_cell_type_DEA$padj) &
+      mbatch_pDEA_cell_type_DEA$padj < 0.05
+    DE_genes <- mbatch_pDEA_cell_type_DEA$gene[b_genes]
+    DEA_genes_exp <- expressed(
+      scd = scd$select(
+        b_cells = b_cells & scd$getfeature("day") %in% day,
+        genes = DE_genes,
+      ),
+      zi_threshold = 0.90,
+    )
+    scd_norm <- scd$select(
+        b_cells = b_cells & scd$getfeature("day") %in% day,
+        genes = DEA_genes_exp
+      )
+    hm_title <- paste0("top ", length(DEA_genes_exp),
+      "DE genes between cell-type
+      ", day)
+    gene_order <- order_by_factor(
+      scd = scd_norm,
+      score = scd_norm$getfeature("pDEA_cell_type"),
+      cpus = 1,
+      tmp_file = paste0("results/cell_type/gene_cov_",
+        day, "_pDEA.Rdata")
+    )
+    hm <- heatmap_genes(
+      scd = scd_norm,
+      features = c("antigen", "pDEA_cell_type"),
+      cells_order = order(
+        as.numeric(as.vector(
+          scd_norm$getfeature("pDEA_cell_type")
+        ))
+      ),
+      genes_order = gene_order,
+      title = hm_title,
+      factor = c(T, F),
+      file = paste0(
+        "results/cell_type/heatmap/hm_CB_counts_QC_pDEA_cell_type_",
+        day, "_cov.pdf"
+      )
+    )
+    print(hm)
+    hm_corr <- heatmap_corr_genes(
+      scd = scd_norm,
+      features = c("antigen", "pDEA_cell_type"),
+      cells_order = order(
+        as.numeric(as.vector(
+          scd_norm$getfeature("pDEA_cell_type")
+        ))
+      ),
+      title = hm_title,
+      factor = c(T, F),
+      file = paste0(
+        "results/cell_type/heatmap/hm_corr_CB_counts_QC_pDEA_cell_type_",
+        day, "_cov_manhattan.pdf"
+      ),
+      dist_name = "manhattan",
+      pca = F,
+      pCMF = F,
+      ncomp = 5,
+      cpus = 10
+    )
+    print(hm_corr)
+  }
+}
+
+for (day in c("D15", "D136", "D593")) {
+    load(paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA.Rdata"))
     b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
       mbatch_DEA_cell_type_DEA$padj < 0.05
     DEA_genes <- mbatch_DEA_cell_type_DEA$gene[b_genes]
@@ -491,6 +560,51 @@ for (day in c("D15", "D136", "D593")) {
     "results/cell_type/pcmf/pCMF_CB_counts_QC_DEA_cell_type_", day, ".pdf"
   ))
 }
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("sex") %in% "M"
+DEA_cell_type_palette <- cell_type_palette
+for (day in c("D15", "D136", "D593")) {
+  load(paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA.Rdata"))
+  system(paste0("rm results/tmp/zi_norm_cells_counts_QC_pDEA_cell_type_",
+      day, ".RData")
+  )
+  system(paste0("rm results/tmp/pCMF_CB_counts_QC_pDEA_cell_type_", day, ".Rdata"))
+  system(paste0("rm results/tmp/pca_zi_norm_counts_QC_pDEA_cell_type_", day, ".Rdata"))
+  b_genes <- !is.na(mbatch_pDEA_cell_type_DEA$padj) &
+    mbatch_pDEA_cell_type_DEA$padj < 0.05
+  DEA_genes <- mbatch_pDEA_cell_type_DEA$gene[b_genes]
+  scd_norm <- zinorm(
+    scd = scd$select(
+      b_cells = b_cells & scd$getfeature("day") %in% day,
+      genes = DEA_genes
+    ),
+    cpus = 11,
+    file = paste0("results/tmp/zi_norm_cells_counts_QC_pDEA_cell_type_",
+      day, ".RData")
+  )
+  scRNAtools::pca_plot(
+    scd_norm,
+    color = "pDEA_cell_type", color_name = "pMEM",
+    tmp_file = paste0("results/tmp/pca_zi_norm_counts_QC_pDEA_cell_type_", day, ".Rdata"),
+    main = day
+  )
+  ggsave(file = paste0(
+    "results/cell_type/pca/pca_zi_norm_counts_QC_pDEA_cell_type_pca", day, ".pdf"
+  ))
+  scRNAtools::pCMF_plot(
+    scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
+    color = "pDEA_cell_type", color_name = "pMEM",
+    tmp_file = paste0("results/tmp/pCMF_CB_counts_QC_pDEA_cell_type_", day, ".Rdata"),
+    main = day,
+    ncores = 11
+  )
+  ggsave(file = paste0(
+    "results/cell_type/pcmf/pCMF_CB_counts_QC_pDEA_cell_type_", day, ".pdf"
+  ))
+}
+
 
 
 
