@@ -696,6 +696,7 @@ for (day in c("D15", "D136", "D593")) {
 ## DEA for the F donor
 
 rm(list=ls())
+devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T
 infos_M <- scd$getfeatures
@@ -740,13 +741,50 @@ for (day in c("D15", "D90")) {
 }
 
 for (day in c("D15", "D90")) {
-  day <- "D15"
   load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F.Rdata"))
   print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
   print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
   write.csv(
     mbatch_DEA_cell_type_DEA,
     file = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_F.csv")
+  )
+}
+
+for (day in c("D15", "D90")) {
+  system(
+    paste0("mkdir -p results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA_F")
+  )
+  b_cells <- scd$getfeature("QC_good") %in% T &
+    scd$getfeature("sex") %in% "F" &
+    !is.na(scd$getfeature("DEA_cell_type")) &
+    scd$getfeature("day") %in% day
+  mbatch_pDEA_cell_type_DEA <- DEA(
+    scd = scd,
+    formula_null = "y ~ (1|batch)",
+    formula_full = "y ~ (1|batch) + pDEA_cell_type",
+    continuous = "pDEA_cell_type",
+    b_cells = b_cells,
+    cpus = 16,
+    v = T,
+    folder_name = paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA_F")
+  )
+  save(
+    mbatch_pDEA_cell_type_DEA,
+    file = paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA_F.Rdata")
+  )
+  system("~/scripts/sms.sh \"DEA done\"")
+  print(day)
+  print(table(is.na(mbatch_pDEA_cell_type_DEA$padj)))
+  print(table(mbatch_pDEA_cell_type_DEA$padj < 0.05))
+}
+
+for (day in c("D15", "D90")) {
+  load(paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA_F.Rdata"))
+  print(table(is.na(mbatch_pDEA_cell_type_DEA$padj)))
+  print(table(mbatch_pDEA_cell_type_DEA$padj < 0.05))
+  write.csv(
+    mbatch_pDEA_cell_type_DEA,
+    file = paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA_F.csv")
   )
 }
 
