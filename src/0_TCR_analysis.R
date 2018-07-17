@@ -194,11 +194,11 @@ clone_diversity <- cbind(clone_diversity, t(R_est))
 save(clone_diversity, file="results/survival/clone_diversity.Rdata")
 write.csv(clone_diversity, file="results/survival/clone_diversity.csv")
 
-pdf(file = "results/survival/clone_diversity_fisher.pdf", height = 10, width = 10)
+pdf(file = "results/survival/clone_diversity_fisher_scaled.pdf", height = 10, width = 10)
 par(mfrow=c(4,4))
 for (i in 1:nrow(tmp)) {
   str(fisherfit(tmp[i, ]))
-  plot(fisherfit(tmp[i, ]), main = rownames(tmp)[i], ylim = 500)
+  plot(fisherfit(tmp[i, ]), main = rownames(tmp)[i])
 }
 dev.off()
 
