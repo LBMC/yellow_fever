@@ -363,7 +363,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
         !simplified)
     {
       if (v) {
-        print(paste0("error: in gene ", gene_name, "simplifying formula..."))
+        print(paste0("error: in gene ", gene_name, " simplifying formula..."))
       }
       formulas <- simplify_formula(formulas)
       models_result[["formula_null"]]$residuals[1] <- NA
@@ -372,6 +372,7 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       simplified <- TRUE
     }
   }
+  models_result[["formulas"]] <- formulas
   if (!missing(folder_name)) {
     save(
       models_result, gene_name, formulas,
@@ -434,6 +435,20 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name,
         )
       }
     })
+    if (model_family %in% "nbinom1" &
+        !models_result[["is_zi"]] &
+        !base::grepl("\\(1\\|(.*)\\)",
+                     models_result[["formulas"]][["formula_null"]],
+                     perl = T)) {
+      LRT_result <- data.frame(
+        NoPar = c(NA, NA),
+        LogLik = LRT_result[, 4],
+        Df = LRT_result[, 3],
+        Deviance = c(NA, NA),
+        "Pr(>Chi)" = LRT_result[, 8],
+        stringsAsFactors = FALSE
+      )
+    }
     if (!missing(folder_name)) {
       save(
         LRT_result, gene_name,
@@ -557,6 +572,7 @@ DEA_format_ziNB_model <- function(model, zi) {
 }
 
 #' importFrom glmmADMB glmmadmb
+#' importFrom MASS glm.nb
 ziNB_fit <- function(data, formula, gene_name,
     model_family = "nbinom1", link = "log", zi = TRUE,
     v) {
@@ -568,28 +584,34 @@ ziNB_fit <- function(data, formula, gene_name,
     }
   }
   model <- tryCatch({
-    glmmADMB::admbControl(
-      maxfn = 10000,
-      imaxf = 10000,
-      maxph = 10
-    )
-    glmmADMB::glmmadmb(
-      as.formula(formula),
-      data = data,
-      zeroInflation = zi,
-      family = model_family,
-      link = link,
-      mcmc = FALSE
-    )
+    if (!zi & !base::grepl("\\(1\\|(.*)\\)", formula, perl = T)) {
+      MASS::glm.nb(
+        as.formula(formula),
+        data = data
+      )
+    } else {
+      glmmADMB::admbControl(
+        maxfn = 10000,
+        imaxf = 10000,
+        maxph = 10
+      )
+      glmmADMB::glmmadmb(
+        as.formula(formula),
+        data = data,
+        zeroInflation = zi,
+        family = model_family,
+        link = link,
+        mcmc = FALSE
+      )
+    }
   }, error = function(e){
     if (v) {
       if (zi) {
         print(paste0(
-            "error: ziNB_fit for ", gene_name,
-            " with zero-inflation"
+            "error: ziNB_fit for ", gene_name
         ))
       } else {
-        print(paste0("error: ziNB_fit for ", gene_name))
+        print(paste0("error: NB_fit for ", gene_name))
       }
       print(e)
     }
