@@ -125,7 +125,7 @@ weight_regression <- function( gene, scd, v) {
     data = data,
     formula = "y ~ 1",
     gene_name = gene,
-    family = "nbinom1",
+    model_family = "nbinom1",
     link = "log",
     threshold = 0.05,
     v = v)
@@ -133,7 +133,7 @@ weight_regression <- function( gene, scd, v) {
     data = data,
     formula = "y ~ 1",
     gene_name = gene,
-    family = "nbinom1",
+    model_family = "nbinom1",
     link = "log",
     zi = is_zi,
     v = v
