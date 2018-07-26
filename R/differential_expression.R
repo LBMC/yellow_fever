@@ -590,18 +590,18 @@ ziNB_fit <- function(data, formula, gene_name,
         data = data
       )
     } else {
-      glmmADMB::admbControl(
-        maxfn = 10000,
-        imaxf = 10000,
-        maxph = 10
-      )
       glmmADMB::glmmadmb(
         as.formula(formula),
         data = data,
         zeroInflation = zi,
         family = model_family,
         link = link,
-        mcmc = FALSE
+        mcmc = FALSE,
+        admb.opts = glmmADMB::admbControl(
+          maxfn = 10000,
+          imaxf = 10000,
+          maxph = 10
+        )
       )
     }
   }, error = function(e){
