@@ -443,12 +443,14 @@ order_by_groups <- function(score, by, FUN = mean){
 #' genes_order = order_by_factor(scd$get_feature("pDEA_cell_type"), scd)
 #' }
 #' @export order_by_groups
-order_by_factor <- function(score, scd, tmp_file, top = FALSE, quant = 0.75){
+order_by_factor <- function(score, scd, tmp_file, top = FALSE, quant = 0.75,
+                            cpus = 4){
   score_cov <- gene_cov(
-    scd = scd, 
+    scd = scd,
     score = score,
     sparse = F,
     ncomp = 1,
+    cpus = cpus,
     tmp_file = tmp_file)
   if (( top %in% TRUE | is.numeric(top) ) & top + 1 < scd$getngenes) {
     la_score <- log(abs(score_cov$B))
