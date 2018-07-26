@@ -437,6 +437,7 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name,
     })
     if (model_family %in% "nbinom1" &
         !models_result[["is_zi"]] &
+        !models_result[[ "formula_null" ]][["admb"]] &
         !base::grepl("\\(1\\|(.*)\\)",
                      models_result[["formulas"]][["formula_null"]],
                      perl = T)) {
@@ -584,13 +585,7 @@ ziNB_fit <- function(data, formula, gene_name,
     }
   }
   model <- tryCatch({
-    if (!zi & !base::grepl("\\(1\\|(.*)\\)", formula, perl = T)) {
-      MASS::glm.nb(
-        as.formula(formula),
-        data = data
-      )
-    } else {
-      glmmADMB::glmmadmb(
+      model <- glmmADMB::glmmadmb(
         as.formula(formula),
         data = data,
         zeroInflation = zi,
@@ -603,7 +598,8 @@ ziNB_fit <- function(data, formula, gene_name,
           maxph = 10
         )
       )
-    }
+      model[["admb"]] <- TRUE
+      return(model)
   }, error = function(e){
     if (v) {
       if (zi) {
@@ -615,7 +611,28 @@ ziNB_fit <- function(data, formula, gene_name,
       }
       print(e)
     }
-    return(list(residuals = NA))
+    if (!zi & !base::grepl("\\(1\\|(.*)\\)", formula, perl = T)) {
+      model <- tryCatch({
+        if (v) {
+          print(paste0("error: ADMB:NB_fit for ", gene_name,
+                       " trying with MASS"))
+        }
+        MASS::glm.nb(
+          as.formula(formula),
+          data = data
+        )
+      }, error = function(e){
+        if (v) {
+          print(paste0("error: NB_fit for ", gene_name))
+          print(e)
+        }
+        return(list(residuals = NA))
+      })
+      model[["admb"]] <- FALSE
+      return(model)
+    } else {
+      return(list(residuals = NA))
+    }
   })
   return(model)
 }
