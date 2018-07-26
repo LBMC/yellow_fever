@@ -458,7 +458,8 @@ plot_2_axes <- function(scd, x, y, color = NULL, shape = NULL, size = NULL,
   aes_str <- "x=x, y=y"
   for (opt in c("color", "size", "alpha", "shape", "wrap", "label")){
     if (!is.null(get(opt))){
-      if (opt %in% "color" & color_name %in% c("cycling_score")) {
+      if (opt %in% "color" & color_name %in% c("cycling_score",
+                                               "cytotoxic_score", "pMEM")) {
         data[[opt]] <- scd$getfeature(get(opt))
       } else {
         data[[opt]] <- as.factor(scd$getfeature(get(opt)))
@@ -513,7 +514,7 @@ plot_2_axes <- function(scd, x, y, color = NULL, shape = NULL, size = NULL,
     g <- g +
       scale_color_manual(values = color_scale)
   }
-  if (color_name %in% c("day", "pMEM", "clonality", "cell_type", "sex",
+  if (color_name %in% c("day", "clonality", "cell_type", "sex",
     "cycling")) {
     color_name_palette <- get(paste0(color_name, "_palette"))
     g <- g +
@@ -888,7 +889,7 @@ heatmap_genes <- function(
     x <- log( x + 1 )
     x <- (x - mean(x) ) / sd(x)
   },
-  gene_size = round( scd$getngenes / 12 )
+  gene_size = 10
 ) {
   ha <- heatmap_annotation(
     scd = scd,
