@@ -1,3 +1,4 @@
+rm(list=ls())
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
@@ -261,8 +262,7 @@ scRNAtools::pCMF_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   tmp_file = "results/tmp/pCMF_batch_counts_QC_good_tmp.Rdata",
   main = "all day",,
-  ncores = 11
-)
+
 ggsave(file = "results/QC/pcmf/pcmf_batch_counts_QC_good.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pCMF_plot(
@@ -476,6 +476,8 @@ setwd("~/projects/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/counts_QC.Rdata")
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 
 F_QC_score <- ifelse(scd$getfeature("sex") %in% "F",
   0.5,
@@ -525,17 +527,24 @@ scRNAtools::pca_plot(
 # cells effect normalization
 load("results/QC/counts_QC_F.Rdata")
 b_cells = scd$getfeature('sex') %in% "F" & scd$getfeature("QC_good") %in% T
-scd <- normalize(
-  scd = scd,
-  b_cells = b_cells,
-  method = "SCnorm",
-  cpus = 4,
-  tmp_file = "results/tmp/normalization_F_tmp.Rdata"
-)
+for (day in c("D15", "D90")) {
+  system(paste0("rm results/tmp/normalization_", day, "_F_tmp.Rdata"))
+  scd <- normalize(
+    scd = scd,
+    b_cells = b_cells & scd$getfeature("day") %in% day,
+    method = "SCnorm",
+    cpus = 4,
+    tmp_file = paste0("results/tmp/normalization_", day, "_F_tmp.Rdata")
+  )
+}
 save(scd, file = "results/QC/cells_counts_QC_F.Rdata")
 
 load("results/QC/cells_counts_QC_F.Rdata")
+devtools::load_all("../scRNAtools/", reset = T)
 for (day in c("D15", "D90")) {
+  system(paste0("rm results/tmp/normalization_cells_combat_,", day, "_F_tmp.Rdata"))
+  table(scd$select(b_cells = b_cells & scd$getfeature("day") %in% day)$getfeature("batch"))
+  scd$select(b_cells = b_cells & scd$getfeature("day") %in% day)$getncells
   scd <- normalize(
     scd = scd,
     b_cells = b_cells & scd$getfeature("day") %in% day,
@@ -546,3 +555,8 @@ for (day in c("D15", "D90")) {
 }
 save(scd, file = "results/QC/CB_counts_QC_F.Rdata")
 
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  tmp_file = "results/tmp/pca_CB_QC_F_tmp.Rdata",
+  main = "all day"
+)
