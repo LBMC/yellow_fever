@@ -97,7 +97,7 @@ ComBat_normalize <- function(
     DataNorm <- ComBat(
       dat = t(ascb(scd$select(b_cells = b_cells, genes = expressed)$getcounts)),
       batch =  scd$select(b_cells = b_cells)$getfeature("batch"),
-      par.prior = T,
+      par.prior = F,
       BPPARAM = bpparam("SerialParam")
     )
     if (!missing(tmp_file)) {
