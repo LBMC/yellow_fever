@@ -5,7 +5,7 @@ devtools::load_all("../scRNAtools/", reset = T)
 
 system("perl -pi -e 's/[pP](\\d*_\\d*)/P\\1/g' data/Summary_SSEQ.csv")
 system("perl -pi -e 's/P1306/P1316/g' data/Summary_SSEQ.csv")
-################################################################################
+############################## load data ######################################
 for (feature in c("counts", "length", "abundance")) {
   print(feature)
   scd <- scRNAtools::load_data_salmon(
@@ -56,7 +56,7 @@ load("results/tmp/pca_counts_tmp.Rdata", v = T)
 scd$select(b_cells = b_cells)$getfeatures[order(pca_data$y, decreasing = T)[1:2],]
 ggsave(file = "results/QC/pca/pca_counts_outliers.pdf")
 
-################################################################################
+############################# QC from M #######################################
 load("results/counts.Rdata")
 system("mkdir -p results/QC/QC_paraload/abundance/")
 system("mkdir -p results/QC/QC_paraload/counts/")
@@ -121,7 +121,8 @@ scd <- scdata$new(
   v = T
 )
 save(scd, file = "results/QC/abundance_QC.Rdata")
-################################################################################
+
+############################# QC plots for M ##################################
 
 load("results/QC/counts_QC.Rdata")
 
@@ -340,7 +341,8 @@ devtools::load_all("../scRNAtools/", reset = T)
 system("rm results/tmp/CB_normalization_tmp.Rdata")
 load("results/QC/cells_counts_QC.Rdata")
 for (day in c("D15", "D136", "D593")) {
-    scd <- normalize(
+  system(paste0("rm results/tmp/normalization_cells_combat_,", day, "_tmp.Rdata"))
+  scd <- normalize(
     scd = scd,
     b_cells = scd$getfeature("QC_good") %in% T & scd$getfeature("day") %in% day,
     method = "ComBat",
@@ -398,7 +400,7 @@ for (day in c("D15", "D136", "D593")) {
 }
 
 
-################################################################################
+############################## weird_D15 analysis #############################
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
@@ -539,6 +541,7 @@ for (day in c("D15", "D90")) {
 }
 save(scd, file = "results/QC/cells_counts_QC_F.Rdata")
 
+# batch effect normalization
 load("results/QC/cells_counts_QC_F.Rdata")
 devtools::load_all("../scRNAtools/", reset = T)
 for (day in c("D15", "D90")) {
