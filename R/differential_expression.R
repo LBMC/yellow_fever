@@ -631,7 +631,7 @@ ziNB_fit <- function(data, formula, gene_name,
       model[["admb"]] <- FALSE
       return(model)
     } else {
-      return(list(residuals = NA))
+      return(list(residuals = NA, admb = TRUE))
     }
   })
   return(model)
