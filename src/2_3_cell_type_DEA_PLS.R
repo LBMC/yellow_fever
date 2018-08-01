@@ -6,11 +6,11 @@ devtools::load_all("../scRNAtools/", reset = T)
 
 # with weights
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/cell_type/CB_counts_QC_surface_cell_type_weighted.Rdata")
-load("results/cell_type/mbatch_day_surface_cell_type_weighted_DEA.Rdata")
-b_genes <- !is.na(mbatch_day_surface_cell_type_weighted_DEA$padj) &
-  mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05
-DEA_genes <- mbatch_day_surface_cell_type_weighted_DEA$gene[b_genes]
+load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
+load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
+b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
+  mbatch_day_surface_cell_type_DEA$padj < 0.05
+DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
 b_cells <- scd$getfeature("QC_good") %in% T
 length(DEA_genes)
 
@@ -29,7 +29,6 @@ for (marker_type in colnames(genes_PLS)) {
   }
 }
 
-system("file_handle.py -f results/cell_type/DEA_cell_types_weighted_force*")
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("surface_cell_type"))
 DEA_cell_type_classification <- classification(
