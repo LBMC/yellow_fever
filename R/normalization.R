@@ -53,8 +53,7 @@ SCnorm_normalize <- function(
                           genes = ERCC(scd, minus = T))$getcounts),
       Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
       PrintProgressPlots = TRUE,
-      FilterExpression = 0.4,
-      FilterCellNum = 20,
+      FilterCellNum = 10,
       NCore=cpus)
     if (v) {
       GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
@@ -107,6 +106,63 @@ ComBat_normalize <- function(
   b_genes <- colnames(scd$getcounts) %in% expressed
   counts <- scd$getcounts
   norm_counts <- round(ascb_inv(t(DataNorm)))
+  print( norm_counts[1:10, 1:10] )
+  norm_expressed <- colSums( norm_counts ) > 0
+  print(summary(norm_expressed))
+  norm_counts[, !norm_expressed] <- counts[b_cells, b_genes][, !norm_expressed]
+  counts[b_cells, b_genes] <- norm_counts
+  rownames(counts) <- rownames(scd$getcounts)
+  colnames(counts) <- colnames(scd$getcounts)
+  return(
+    scdata$new(
+      infos = scd$getfeatures,
+      counts = counts,
+      v = v
+    )
+  )
+}
+
+#' @importFrom scran mnnCorrect
+mnnCorrect_normalize <- function(
+    scd,
+    b_cells = scd$getfeature("QC_good") %in% T,
+    cpus = 4,
+    tmp_file,
+    v = F
+  ) {
+  if (!missing(tmp_file) & file.exists(tmp_file)) {
+    print("tmp file found skipping mnnCorrect...")
+    load(tmp_file)
+  } else {
+    expressed <- scd$getgenes[
+      colSums(scd$select(b_cells = b_cells,
+                         genes = ERCC(scd, minus = T))$getcounts) > 0
+    ]
+    batchs <- levels(as.factor(scd$select(b_cells = b_cells)$
+                               getfeature("batch")))
+    arg_matrix <- c()
+    for (i in batchs) {
+      b_batch <- b_cells & scd$getfeature("batch") %in% i
+      assign(paste0("batch_", i), t(round(scd$select(b_cells = b_batch,
+                                                     genes = expressed)
+                                             $getcounts)))
+      arg_matrix <- c(arg_matrix, paste0("batch_", i))
+    }
+
+    arg_matrix <- paste(arg_matrix, collapse = ", ")
+    mnnCorrect_cmd <- paste0("DataNorm <- mnnCorrect(",
+                             arg_matrix,
+                             ", svd.dim = 0 ",
+                             ")")
+    eval(parse(text = mnnCorrect_cmd))
+    if (!missing(tmp_file)) {
+      save(DataNorm, expressed, file = tmp_file)
+    }
+  }
+  b_genes <- colnames(scd$getcounts) %in% expressed
+  tDataNorm <- lapply(DataNorm$corrected, t)
+  norm_counts <- as.data.frame(do.call(rbind, tDataNorm))
+  counts <- as.data.frame(scd$getcounts)
   counts[b_cells, b_genes] <- norm_counts
   rownames(counts) <- rownames(scd$getcounts)
   colnames(counts) <- colnames(scd$getcounts)
