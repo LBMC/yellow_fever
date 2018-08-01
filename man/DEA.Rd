@@ -5,8 +5,8 @@
 \title{DEA for scRNASeq data}
 \usage{
 DEA(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
-  family = "nbinom1", cpus = 4, v = F, folder_name, zero_threshold = 5,
-  continuous = c())
+  model_family = "nbinom1", cpus = 4, v = F, folder_name,
+  zero_threshold = 5, continuous = c())
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}
@@ -19,7 +19,7 @@ DEA(scd, formula_null, formula_full, b_cells, zi_threshold = 0.9,
 
 \item{zi_threshold}{(default: 0.9) work with genes with less that 0.9 zeros}
 
-\item{family}{(default: "nbinom1") model to use for the DEA in
+\item{model_family}{(default: "nbinom1") model to use for the DEA in
 c("nbinom1", "binomial")}
 
 \item{cpus}{(default: 4) number of cpus to use}

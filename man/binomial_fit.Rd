@@ -4,8 +4,8 @@
 \alias{binomial_fit}
 \title{importFrom lme4 glmer}
 \usage{
-binomial_fit(data, formula, gene_name, family = "binomial", link = "log",
-  zi = TRUE, v)
+binomial_fit(data, formula, gene_name, model_family = "binomial",
+  link = "log", zi = TRUE, v)
 }
 \description{
 importFrom lme4 glmer

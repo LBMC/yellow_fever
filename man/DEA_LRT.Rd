@@ -4,7 +4,7 @@
 \alias{DEA_LRT}
 \title{importFrom glmmADMB glmmadmb}
 \usage{
-DEA_LRT(models_result, gene_name, v, folder_name, family = "nbinom1")
+DEA_LRT(models_result, gene_name, v, folder_name, model_family = "nbinom1")
 }
 \description{
 importFrom glmmADMB glmmadmb
