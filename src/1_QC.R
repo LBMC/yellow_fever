@@ -223,7 +223,7 @@ for (day in c("D15", "D136", "D593")) {
 devtools::load_all("../scRNAtools/", reset = T)
 # system("rm results/tmp/normalization_tmp.Rdata")
 load("results/QC/counts_QC_M.Rdata")
-raw_scd <- scd
+b_cells = scd$getfeature('QC_good') %in% T
 scd <- normalize(
   scd = scd,
   b_cells = scd$getfeature("QC_good") %in% T,
@@ -282,18 +282,15 @@ for (day in c("D15", "D136", "D593")) {
 
 # batch & cells effect normalization
 devtools::load_all("../scRNAtools/", reset = T)
-system("rm results/tmp/CB_normalization_tmp.Rdata")
 load("results/QC/cells_counts_QC_M.Rdata")
-for (day in c("D15", "D136", "D593")) {
-  system(paste0("rm results/tmp/normalization_cells_combat_,", day, "_tmp.Rdata"))
-  scd <- normalize(
-    scd = scd,
-    b_cells = scd$getfeature("QC_good") %in% T & scd$getfeature("day") %in% day,
-    method = "ComBat",
-    cpus = 5,
-    tmp_file = paste0("results/tmp/normalization_cells_combat_,", day, "_tmp.Rdata")
-  )
-}
+b_cells = scd$getfeature('QC_good') %in% T
+scd <- normalize(
+  scd = scd,
+  b_cells = scd$getfeature("QC_good") %in% T,
+  method = "mnnCorrect",
+  cpus = 5,
+  tmp_file = paste0("results/tmp/normalization_cells_mnnCorrect_tmp.Rdata")
+)
 save(scd, file = "results/QC/CB_counts_QC_M.Rdata")
 system("~/scripts/sms.sh \" batch normalization done\"")
 
@@ -487,9 +484,17 @@ for (day in c("D15", "D90")) {
 }
 save(scd, file = "results/QC/cells_counts_QC_F.Rdata")
 
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
+  tmp_file = "results/tmp/pca_cells_QC_F_tmp.Rdata",
+  main = "all day"
+)
+ggsave(file = "results/QC/pca/pca_cells_counts_F_QC_good.pdf")
+
 # batch effect normalization
 load("results/QC/cells_counts_QC_F.Rdata")
 devtools::load_all("../scRNAtools/", reset = T)
+b_cells = scd$getfeature('sex') %in% "F" & scd$getfeature("QC_good") %in% T
 for (day in c("D15", "D90")) {
   system(paste0("rm results/tmp/normalization_cells_combat_,", day, "_F_tmp.Rdata"))
   table(scd$select(b_cells = b_cells & scd$getfeature("day") %in% day)$getfeature("batch"))
@@ -497,18 +502,31 @@ for (day in c("D15", "D90")) {
   scd <- normalize(
     scd = scd,
     b_cells = b_cells & scd$getfeature("day") %in% day,
-    method = "ComBat",
+    method = "mnnCorrect",
     cpus = 5,
     tmp_file = paste0("results/tmp/normalization_cells_combat_,", day, "_F_tmp.Rdata")
   )
 }
+
+load("results/QC/cells_counts_QC_F.Rdata")
+devtools::load_all("../scRNAtools/", reset = T)
+scd <- normalize(
+  scd = scd,
+  b_cells = b_cells,
+  method = "mnnCorrect",
+  cpus = 5,
+  tmp_file = paste0("results/tmp/normalization_cells_mnnCorrect_F_tmp.Rdata")
+)
+traceback()
 save(scd, file = "results/QC/CB_counts_QC_F.Rdata")
 
+system("rm results/tmp/pca_CB_QC_F_tmp.Rdata")
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
   tmp_file = "results/tmp/pca_CB_QC_F_tmp.Rdata",
   main = "all day"
 )
+ggsave(file = "results/QC/pca/pca_CB_counts_F_QC_good.pdf")
 system("~/scripts/sms.sh \"normalization done\"")
 
 ################################# F and M data set ############################
@@ -518,6 +536,7 @@ library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 bad_F_cells <- paste0("P1292_", 1097:1192)
 
+# merge count data
 load("results/QC/counts_QC_M.Rdata")
 scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 infos_M <- scd$getfeatures
@@ -532,6 +551,7 @@ scd <- scdata$new(
 )
 save(scd, file = "results/QC/counts_QC.Rdata")
 
+# merge count data normalize for cell effect
 load("results/QC/cells_counts_QC_M.Rdata")
 scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 infos_M <- scd$getfeatures
@@ -546,6 +566,7 @@ scd <- scdata$new(
 )
 save(scd, file = "results/QC/cells_counts_QC.Rdata")
 
+# merge count data normalize for cell effect and batch effect
 load("results/QC/CB_counts_QC_M.Rdata")
 scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 infos_M <- scd$getfeatures
