@@ -1,6 +1,7 @@
+rm(list=ls())
 setwd("~/projects/yellow_fever/")
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/QC/CB_counts_QC.Rdata")
+load("results/QC/cells_counts_QC.Rdata")
 system("mkdir -p results/cell_type")
 
 # csv table to select feature to classify the cell-type one
@@ -35,11 +36,23 @@ levels(phenotype_surface_marker) <- c("", "MEM", "MEM", "EFF", "EFF", "EFF",
   "MEM", "Naive", "EFF", "EFF", "EFF", "MEM", "MEM")
 phenotype_surface_marker <- as.factor(as.vector(phenotype_surface_marker))
 scd$setfeature("phenotype_surface_cell_type", phenotype_surface_marker)
-b_cells <- scd$getfeature("QC_good") %in% T
+b_cells <- scd$getfeature("QC_good") %in% T & scd$getfeature("sex") %in% "M"
+
+scd$select(b_cells = b_cells)$getncells
+table(scd$select(b_cells = b_cells)$getfeature("day"))
+
+load("results/QC/CB_counts_QC.Rdata")
+summary(scd$select(b_cells = b_cells, genes = genes_marker)$getcounts)
+load("results/QC/cells_counts_QC.Rdata")
+summary(scd$select(b_cells = b_cells, genes = genes_marker)$getcounts)
+load("results/QC/counts_QC.Rdata")
+summary(scd$select(b_cells = b_cells, genes = genes_marker)$getcounts)
 
 ################################################################################
 # classification on surface_marker
+system("rm -R results/cell_type/surface_cell_types_weighted*")
 
+# PLS classification
 surface_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "phenotype_surface_cell_type",
@@ -56,6 +69,7 @@ save(
 system("~/scripts/sms.sh \"PLS done\"")
 load("results/cell_type/surface_cell_types_weighted_all_smplscv.Rdata")
 
+# export annotation to the data
 length(surface_cell_type_classification$groups)
 surface_cell_type_classification$classification$fit_spls$fit$selected
 cell_type_groups <- rep(NA, scd$getncells)
@@ -65,7 +79,7 @@ cell_type_pgroups <- rep(NA, scd$getncells)
 cell_type_pgroups[b_cells] <- surface_cell_type_classification$pgroups
 scd$setfeature("psurface_cell_type", cell_type_pgroups)
 
-save(scd, file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 load(file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
 scd_norm <- scd
 load("results/QC/cells_counts_QC.Rdata")
@@ -75,7 +89,9 @@ scd <- scdata$new(
 )
 save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 
-load("results/cell_type/CB_counts_QC_surface_cell_type_weighted.Rdata")
+####################### plots of the classification ###########################
+
+load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
 data_gplot <- data.frame(
@@ -100,7 +116,7 @@ ggplot() +
   geom_point(data = data_gplot[data_gplot$cell_type != "unknown", ],
     aes(x = ccr7, y = il7ra, color = cell_type)) +
   theme_bw()
-ggsave(file = "results/cell_type/counts_QC_phenotype_surface_cell_type.pdf")
+ggsave(file = "results/cell_type/counts_cells_phenotype_surface_cell_type.pdf")
 data_gplot <- data.frame(
   ccr7 = scd$select(b_cells = b_cells)$getfeature("ccr7"),
   il7ra = scd$select(b_cells = b_cells)$getfeature("il7ra"),
@@ -118,20 +134,18 @@ ggplot(data = data_gplot, aes(x = ccr7, y = il7ra, color = cell_type)) +
     values = scRNAtools::cell_type_palette(levels(data_gplot$cell_type))
   ) +
   theme_bw()
-ggsave(file = "results/cell_type/counts_QC_surface_cell_type.pdf")
+ggsave(file = "results/cell_type/counts_cells_surface_cell_type.pdf")
 
 ggplot(data = data_gplot, aes(x = pcell_type)) +
   geom_histogram() +
   theme_bw()
-ggsave(file = "results/cell_type/counts_QC_surface_cell_type_histogram.pdf")
-
-
+ggsave(file = "results/cell_type/counts_cells_surface_cell_type_histogram.pdf")
 
 system("mkdir -p results/cell_type/pca")
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells),
   color = "surface_cell_type", color_name = "cell_type",
-  tmp_file = "results/tmp/pca_CB_counts_QC_good_tmp.Rdata",
+  tmp_file = "results/tmp/pca_cells_counts_QC_good_tmp.Rdata",
   main = "all day"
 )
 ggsave(file = "results/cell_type/pca/pca_counts_QC_surface_cell_type.pdf")
@@ -139,11 +153,11 @@ for (day in c("D15", "D136", "D593")) {
   scRNAtools::pca_plot(
     scd$select(b_cells = b_cells & scd$getfeature("day") %in% day),
     color = "surface_cell_type", color_name = "cell_type",
-    tmp_file = paste0("results/tmp/pca_CB_counts_", day, "QC_good_tmp.Rdata"),
+    tmp_file = paste0("results/tmp/pca_cells_counts_", day, "QC_good_tmp.Rdata"),
     main = day
   )
   ggsave(file = paste0(
-    "results/cell_type/pca/pca_counts_QC_surface_cell_type_", day, ".pdf"
+    "results/cell_type/pca/pca_counts_cells_surface_cell_type_", day, ".pdf"
   ))
 }
 
