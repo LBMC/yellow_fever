@@ -18,7 +18,7 @@ devtools::install_github("rhondabacher/SCnorm")
 devtools::install_github("lme4/lme4")
 devtools::install_github("BatzoglouLabSU/SIMLR")
 source('http://bioconductor.org/biocLite.R')
-biocLite(c("tximport", "readr", "pCMF", "sva", "ComplexHeatmap"))
+biocLite(c("tximport", "readr", "pCMF", "sva", "ComplexHeatmap", "scran"))
 install.packages("R2admb")
 install.packages("glmmADMB", 
     repos=c("http://glmmadmb.r-forge.r-project.org/repos",
