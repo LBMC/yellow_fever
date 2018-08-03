@@ -309,10 +309,11 @@ for (day in c("D15", "D136", "D593")) {
 
 ################################################################################
 # DEA PLS for the F data
+rm(list = ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 
-load("results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
+load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
 b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
   mbatch_day_surface_cell_type_DEA$padj < 0.05
@@ -336,10 +337,10 @@ for (marker_type in colnames(genes_PLS)) {
   }
 }
 
-load(file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
+load(file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 scd_PLS <- scd
 infos_M <- scd_PLS$getfeatures
-load("results/QC/CB_counts_QC_F.Rdata")
+load("results/QC/cells_counts_QC_F.Rdata")
 scd$setfeature("phenotype_surface_cell_type", scd_PLS$getfeature("phenotype_surface_cell_type"))
 scd$setfeature("surface_cell_type", scd_PLS$getfeature("surface_cell_type"))
 scd$setfeature("psurface_cell_type", scd_PLS$getfeature("psurface_cell_type"))
@@ -397,16 +398,17 @@ scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 
 b_cells <- scd$getfeature("QC_good") %in% T
 
-save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
-load(file = "results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
+save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+load(file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 scd_norm <- scd
-load("results/QC/cells_counts_QC_F.Rdata")
+load("results/QC/CB_counts_QC.Rdata")
 scd <- scdata$new(
   infos = scd_norm$getfeatures,
   counts = scd$getcounts
 )
-save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_F.Rdata")
+save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 
+load(file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 b_cells <- scd$getfeature("sex") %in% "F" & scd$getfeature("QC_good") %in% T
 genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
   "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
@@ -418,7 +420,7 @@ per_genes_barplot(
   order_by = "pDEA_cell_type",
   color_by = "DEA_cell_type",
   file = paste0(
-    "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_F.pdf"),
+    "results/cell_type/per_genes_barplot_cells_counts_QC_DEA_F.pdf"),
   main = paste0("DEA DEA_cell_type F")
 )
 
@@ -432,6 +434,6 @@ per_genes_barplot(
   order_by = "pDEA_cell_type",
   color_by = "DEA_cell_type",
   file = paste0(
-    "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_F_selected.pdf"),
+    "results/cell_type/per_genes_barplot_cells_counts_QC_DEA_F_selected.pdf"),
     main = paste0("DEA DEA_cell_type F_selected")
 )
