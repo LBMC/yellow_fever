@@ -3,8 +3,6 @@ bin/*
 results/*
 doc/*.pdf
 *.ipynb*
-<<<<<<< HEAD
+2018_07_27_results
 *DS_Store
-=======
 .DS_Store
->>>>>>> 1d993f4e0381523f50618b708ef531e5ed2cd425
