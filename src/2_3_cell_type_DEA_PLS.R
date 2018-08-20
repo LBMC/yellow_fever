@@ -72,6 +72,7 @@ cell_type_groups[cell_type_pgroups < 0.5] <- "EFF"
 scd$setfeature("DEA_cell_type", cell_type_groups)
 scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 
+save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_M.Rdata")
 save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 load(file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 scd_norm <- scd
@@ -80,6 +81,7 @@ scd <- scdata$new(
   infos = scd_norm$getfeatures,
   counts = scd$getcounts
 )
+save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type_M.Rdata")
 save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
@@ -337,7 +339,7 @@ for (marker_type in colnames(genes_PLS)) {
   }
 }
 
-load(file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+load(file = "results/cell_type/cells_counts_QC_DEA_cell_type_M.Rdata")
 scd_PLS <- scd
 infos_M <- scd_PLS$getfeatures
 load("results/QC/cells_counts_QC_F.Rdata")
@@ -354,6 +356,8 @@ scd <- scdata$new(
 )
 
 b_cells <- scd$getfeature("QC_good") %in% T
+table(b_cells)
+summary(as.factor(scd$getfeature("DEA_cell_type")))
 
 
 # with only F data passing the QC
@@ -363,6 +367,8 @@ system("cp results/cell_type/DEA_cell_types_force_classification_lplscv.Rdata re
 system("rm results/cell_type/DEA_cell_types_force_MF_classification_lpls.Rdata")
 
 load("results/cell_type/DEA_cell_types_force_splsstab.Rdata")
+PLS_genes <- DEA_cell_type_classification$classification$fit_spls$fit$selected
+PLS_genes <- PLS_genes[!( PLS_genes %in% c("ZEB2") )]
 
 devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
@@ -370,11 +376,11 @@ DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "surface_cell_type",
   features = c(),
-  genes = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  genes = PLS_genes,
   ncores = 10,
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_cell_types_force_MF",
-  force = DEA_cell_type_classification$classification$fit_spls$fit$selected
+  force = PLS_genes
 )
 
 save(
@@ -384,9 +390,11 @@ save(
 
 load("results/cell_type/DEA_cell_types_force_splsstab_MF.Rdata")
 
+load(file = "results/cell_type/cells_counts_QC_DEA_cell_type_M.Rdata")
 b_cells_b <- scd$getfeature("QC_good") %in% T
 b_cells_b <- (scd$getfeature("sex") %in% "F")[b_cells_b]
 b_cells <- scd$getfeature("sex") %in% "F" & scd$getfeature("QC_good") %in% T
+infos_M <- scd$getfeatures
 
 DEA_cell_type_classification$classification$fit_spls$fit$selected
 cell_type_groups <- rep(NA, scd$getncells)
@@ -395,9 +403,16 @@ scd$setfeature("DEA_cell_type", cell_type_groups)
 cell_type_pgroups <- rep(NA, scd$getncells)
 cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups[b_cells_b]
 scd$setfeature("pDEA_cell_type", cell_type_pgroups)
+infos_M[b_cells, ] <- scd$select(b_cells = b_cells)$getfeatures
+
+scd <- scdata$new(
+  infos = infos_M,
+  counts = scd$getcounts
+)
 
 b_cells <- scd$getfeature("QC_good") %in% T
 
+save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_F.Rdata")
 save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 load(file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 scd_norm <- scd
@@ -406,6 +421,7 @@ scd <- scdata$new(
   infos = scd_norm$getfeatures,
   counts = scd$getcounts
 )
+save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
 save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 
 load(file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
