@@ -435,20 +435,21 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name,
         )
       }
     })
-    if (model_family %in% "nbinom1" &
-        !models_result[["is_zi"]] &
-        !models_result[[ "formula_null" ]][["admb"]] &
-        !base::grepl("\\(1\\|(.*)\\)",
-                     models_result[["formulas"]][["formula_null"]],
-                     perl = T)) {
-      LRT_result <- data.frame(
-        NoPar = c(NA, NA),
-        LogLik = LRT_result[, 4],
-        Df = LRT_result[, 3],
-        Deviance = c(NA, NA),
-        "Pr(>Chi)" = LRT_result[, 8],
-        stringsAsFactors = FALSE
-      )
+    if (model_family %in% "nbinom1") {
+        if (!models_result[["is_zi"]] &
+          !models_result[[ "formula_null" ]][["admb"]] &
+          !base::grepl("\\(1\\|(.*)\\)",
+                      models_result[["formulas"]][["formula_null"]],
+                      perl = T)) {
+        LRT_result <- data.frame(
+          NoPar = c(NA, NA),
+          LogLik = LRT_result[, 4],
+          Df = LRT_result[, 3],
+          Deviance = c(NA, NA),
+          "Pr(>Chi)" = LRT_result[, 8],
+          stringsAsFactors = FALSE
+        )
+      }
     }
     if (!missing(folder_name)) {
       save(
