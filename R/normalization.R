@@ -3,7 +3,9 @@
 #' @param scd scdata object
 #' @param method (default = "SCnorm") to use for the normalization
 #' @param cpus (default = 4) number of cpus to use (if possible)
+#' @param tmp_file temporary file to save intermediate results
 #' @param v (default = FALSE) verbose mode
+#' @param ... other arguments for the method function
 #' @return return scdata object
 #' @examples
 #' \dontrun{
@@ -16,7 +18,8 @@ normalize <- function(
     method = "SCnorm",
     cpus = 4,
     tmp_file,
-    v = F
+    v = F,
+    ...
   ) {
   algo_norm <- get(paste0(method, "_normalize"))
   return(algo_norm(
@@ -24,7 +27,8 @@ normalize <- function(
     b_cells = b_cells,
     cpus = cpus,
     tmp_file = tmp_file,
-    v = v
+    v = v,
+    ...
   ))
 }
 
@@ -34,27 +38,25 @@ SCnorm_normalize <- function(
     b_cells = scd$getfeature("QC_good") %in% T,
     cpus = 4,
     tmp_file,
-    v = F
+    v = F,
+    ...
   ) {
   if (!missing(tmp_file) & file.exists(tmp_file)) {
     print("tmp file found skipping SCnorm...")
     load(tmp_file)
   } else {
-    print("normalizing cells effect...")
-    bad_cells <- scd$select(genes = ERCC(scd, minus = T))$getcounts
-    bad_cells <- colSums(bad_cells > 5) < 10000
-    if (any(bad_cells)) {
-      print(paste0("warning: ",
-                   scd$getcells[b_cells & bad_cells],
-                   " with < 10000 total counts, removed from normalization"))
+    scnorm_arg = list( PrintProgressPlots = TRUE,
+                      FilterCellNum = 10)
+    new_args <- list(...)
+    for (new_arg in names(new_args)) {
+      scnorm_arg[[new_arg]] <- new_args[[new_arg]]
     }
     DataNorm <- SCnorm(
       Data = t(scd$select(b_cells = b_cells,
                           genes = ERCC(scd, minus = T))$getcounts),
       Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
-      PrintProgressPlots = TRUE,
-      FilterCellNum = 10,
-      NCore=cpus)
+      NCore=cpus,
+      new_args)
     if (v) {
       GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
       print("genes not normalized:")
@@ -83,7 +85,8 @@ ComBat_normalize <- function(
     b_cells = scd$getfeature("QC_good") %in% T,
     cpus = 4,
     tmp_file,
-    v = F
+    v = F,
+    ...
   ) {
   if (!missing(tmp_file) & file.exists(tmp_file)) {
     print("tmp file found skipping ComBat...")
@@ -93,11 +96,16 @@ ComBat_normalize <- function(
       colSums(scd$select(b_cells = b_cells,
                          genes = ERCC(scd, minus = T))$getcounts) > 0
     ]
+    combat_arg = list( par.prior = F,
+                      BPPARAM = bpparam("SerialParam"))
+    new_args <- list(...)
+    for (new_arg in names(new_args)) {
+      combat_arg[[new_arg]] <- new_args[[new_arg]]
+    }
     DataNorm <- ComBat(
       dat = t(ascb(scd$select(b_cells = b_cells, genes = expressed)$getcounts)),
       batch =  scd$select(b_cells = b_cells)$getfeature("batch"),
-      par.prior = F,
-      BPPARAM = bpparam("SerialParam")
+      combat_arg
     )
     if (!missing(tmp_file)) {
       save(DataNorm, expressed, file = tmp_file)
@@ -128,7 +136,8 @@ mnnCorrect_normalize <- function(
     b_cells = scd$getfeature("QC_good") %in% T,
     cpus = 4,
     tmp_file,
-    v = F
+    v = F,
+    ...
   ) {
   if (!missing(tmp_file) & file.exists(tmp_file)) {
     print("tmp file found skipping mnnCorrect...")
