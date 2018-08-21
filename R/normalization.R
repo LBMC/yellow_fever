@@ -56,7 +56,7 @@ SCnorm_normalize <- function(
                           genes = ERCC(scd, minus = T))$getcounts),
       Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
       NCore=cpus,
-      new_args)
+      scnorm_arg)
     if (v) {
       GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
       print("genes not normalized:")
