@@ -45,18 +45,19 @@ SCnorm_normalize <- function(
     print("tmp file found skipping SCnorm...")
     load(tmp_file)
   } else {
-    scnorm_arg = list( PrintProgressPlots = TRUE,
-                      FilterCellNum = 10)
-    new_args <- list(...)
-    for (new_arg in names(new_args)) {
-      scnorm_arg[[new_arg]] <- new_args[[new_arg]]
-    }
-    DataNorm <- SCnorm(
+    scnorm_arg = list(
       Data = t(scd$select(b_cells = b_cells,
                           genes = ERCC(scd, minus = T))$getcounts),
       Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
       NCore=cpus,
-      scnorm_arg)
+      PrintProgressPlots = TRUE,
+      FilterCellNum = 10
+    )
+    new_args <- list(...)
+    for (new_arg in names(new_args)) {
+      scnorm_arg[[new_arg]] <- new_args[[new_arg]]
+    }
+    DataNorm <- do.call(SCnorm, scnorm_arg)
     if (v) {
       GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
       print("genes not normalized:")
@@ -96,17 +97,17 @@ ComBat_normalize <- function(
       colSums(scd$select(b_cells = b_cells,
                          genes = ERCC(scd, minus = T))$getcounts) > 0
     ]
-    combat_arg = list( par.prior = F,
-                      BPPARAM = bpparam("SerialParam"))
+    combat_arg = list(
+      dat = t(ascb(scd$select(b_cells = b_cells, genes = expressed)$getcounts)),
+      batch =  scd$select(b_cells = b_cells)$getfeature("batch"),
+      par.prior = F,
+      BPPARAM = bpparam("SerialParam")
+    )
     new_args <- list(...)
     for (new_arg in names(new_args)) {
       combat_arg[[new_arg]] <- new_args[[new_arg]]
     }
-    DataNorm <- ComBat(
-      dat = t(ascb(scd$select(b_cells = b_cells, genes = expressed)$getcounts)),
-      batch =  scd$select(b_cells = b_cells)$getfeature("batch"),
-      combat_arg
-    )
+    DataNorm <- do.call(ComBat, combat_arg)
     if (!missing(tmp_file)) {
       save(DataNorm, expressed, file = tmp_file)
     }
