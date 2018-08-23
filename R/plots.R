@@ -1212,7 +1212,10 @@ dotplot <- function(
   rank_by = "pDEA_cell_type",
   file
   ){
-  scd <- scd$select(b_cells = scd$getfeature("clonality") %in% clones_order,
+  clones_order <- clones_order[clones_order %in% scd$getfeature("clonality")]
+  b_cells <- scd$getfeature("clonality") %in% clones_order
+  scd <- scd$select(
+    b_cells = b_cells,
     genes = genes_order
   )
   clonality <- factor(scd$getfeature("clonality"),
@@ -1280,9 +1283,7 @@ dotplot <- function(
       "#91129A",
       "#400F33"),
       values = c(0, 0.25, 0.5, 0.75, 1),
-      breaks = c(0, 0.25, 0.5, 0.75, 1),
-      rescaler = function(x, ...) x,
-      oob = identity) +
+      breaks = c(0, 0.25, 0.5, 0.75, 1)) +
     theme_bw() +
     labs(title = title,
       y = "clone",
