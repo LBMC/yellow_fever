@@ -1,6 +1,7 @@
+rm(list = ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/cycling/CB_counts_QC_cycling.Rdata")
+load("results/cycling/cells_counts_QC_cycling.Rdata")
 
 system("mkdir -p results/clonality/")
 
@@ -178,7 +179,7 @@ for (sex in c("M", "F")) {
       panel.margin.y = unit(0, "lines"),
       axis.ticks = element_blank(),
       strip.text.y = element_blank(),
-)      strip.background = element_blank())
+      strip.background = element_blank())
   print(g)
   ggsave(file = paste0("results/clonality/pMEM_density_D100+", sex, ".pdf"))
 }
