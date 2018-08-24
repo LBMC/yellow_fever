@@ -1,6 +1,7 @@
+rm(list = ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/cycling/CB_counts_QC_cycling.Rdata")
+load("results/cycling/cells_counts_QC_cycling.Rdata")
 
 system("mkdir -p results/clonality/")
 
@@ -30,15 +31,16 @@ for (sex in c("M", "F")) {
   genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMA",
     "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
     "NELL2", "CCR7")
-
   scd_norm <- zinorm(
     scd = scd$select(
       b_cells = b_cells,
       genes = genes_list
     ),
     cpus = 10,
-    file = paste0("results/tmp/zi_norm_CB_counts_D100_clone_size_4", sex, ".RData")
+    file = paste0("results/tmp/zi_norm_cells_counts_D100_clone_size_4", sex, ".RData")
   )
+  scd_norm$setfeature("clonality",
+                      as.factor(as.vector(scd_norm$getfeature("clonality"))))
 
   hm <- heatmap_genes(
     scd = scd_norm,

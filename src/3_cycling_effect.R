@@ -1,16 +1,7 @@
+rm(list = ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
-b_cells <- scd$getfeature("QC_good") %in% T
-infos_M <- scd$getfeatures
-load("results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
-b_cells_F <- scd$getfeature("sex") %in% "F"
-infos_M[b_cells_F, ] <- scd$select(b_cells = b_cells_F)$getfeatures
-scd <- scdata$new(
-  infos = infos_M,
-  counts = scd$getcounts
-)
-
+load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 system("mkdir -p results/cycling/")
 
 # we try to refine the regev cell-cycle genes list
@@ -65,21 +56,29 @@ scd$setfeature("cycling", cycling)
 scd$setfeature("pcycling", as.vector(pcycling))
 scd$setfeature("cycling_score", as.vector(cycling_score))
 
-save(scd, file = "results/cycling/CB_counts_QC_cycling.Rdata")
+save(scd, file = "results/cycling/cells_counts_QC_cycling.Rdata")
 infos <- scd$getfeatures
 write.csv(
   infos,
   file = paste0("results/cycling/cell_type_infos.csv")
 )
 
-load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
-scd <- scdata$new(
-  infos = infos,
-  counts = scd$getcounts
+b_cells <- scd$getfeature("day") %in% c("D15", "D136", "D593", "D90") &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+infos_M <- scd$select(b_cells = b_cells)$getfeatures
+infos_M <- apply(infos_M, 2, as.vector)
+counts_M <- scd$select(b_cells = b_cells)$getcounts
+infos_M <- t(infos_M)
+counts_M <- t(counts_M)
+dim(infos_M)
+dim(counts_M)
+normalized_counts <- rbind(infos_M, counts_M)
+dim(normalized_counts)
+write.csv(
+  normalized_counts,
+  file = paste0("results/cell_type/cell_type_cells_counts.csv")
 )
-save(scd, file = "results/cycling/cells_counts_QC_cycling.Rdata")
-
-load(file = "results/cycling/CB_counts_QC_cycling.Rdata")
 
 # plots
 
@@ -110,7 +109,7 @@ for (sex in c("M", "F")) {
       x = "cycling score", y = "Memory probability", color = "day")
   print(g)
   ggsave(
-    file = paste0("results/cycling/CB_counts_QC_DEA_cell_type_vs_cycling_score_", sex, ".pdf")
+    file = paste0("results/cycling/cells_counts_QC_DEA_cell_type_vs_cycling_score_", sex, ".pdf")
   )
 }
 
@@ -123,8 +122,8 @@ for (sex in c("M", "F")) {
       time_range <- c("D15", "D90")
     }
     system(ifelse(time_range[1] == "D15",
-      paste0("rm results/tmp/pca_CB_counts_QC_D15_", sex, ".Rdata"),
-      paste0("rm results/tmp/pca_CB_counts_QC_all_day_", sex, ".Rdata")
+      paste0("rm results/tmp/pca_cells_counts_QC_D15_", sex, ".Rdata"),
+      paste0("rm results/tmp/pca_cells_counts_QC_all_day_", sex, ".Rdata")
     ))
     for (score_type in c("cycling", "pcycling")) {
       scRNAtools::pca_plot(
@@ -136,14 +135,14 @@ for (sex in c("M", "F")) {
         color_name = ifelse(score_type == "cycling",
           "cycling", "cycling_score"),
         tmp_file = ifelse(time_range[1] == "D15",
-          paste0("results/tmp/pca_CB_counts_QC_D15_", sex, ".Rdata"),
-          paste0("results/tmp/pca_CB_counts_QC_all_day_", sex, ".Rdata")
+          paste0("results/tmp/pca_cells_counts_QC_D15_", sex, ".Rdata"),
+          paste0("results/tmp/pca_cells_counts_QC_all_day_", sex, ".Rdata")
         ),
         main = score_type
       )
       ggsave(file = ifelse(time_range[1] == "D15",
-          paste0("results/cycling/pca_CB_counts_QC_", score_type, "_D15_", sex, ".pdf"),
-          paste0("results/cycling/pca_CB_counts_QC_", score_type, "_all_day_", sex, ".pdf")
+          paste0("results/cycling/pca_cells_counts_QC_", score_type, "_D15_", sex, ".pdf"),
+          paste0("results/cycling/pca_cells_counts_QC_", score_type, "_all_day_", sex, ".pdf")
         )
       )
     }
@@ -155,7 +154,8 @@ load("results/cycling/regev_genes.RData")
 regev_genes_cov <- list()
 for(gene in regev_genes[-c(38,50,60,66,68,85,98)]){
   print(gene)
-  regev_genes_cov[[gene]] <- pls_on_one_genes(data_genes_norm[r_select,], gene)
+  regev_genes_cov[[gene]] <- gene_cov(data_genes_norm[r_select,],
+                                      gene)
 }
 save(regev_genes_cov, file=paste0(outdir, "regev_genes_cov.RData"))
 
