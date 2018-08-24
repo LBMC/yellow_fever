@@ -1,6 +1,7 @@
+rm(list = ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/cycling/CB_counts_QC_cycling.Rdata")
+load("results/cycling/cells_counts_QC_cycling.Rdata")
 
 system("mkdir -p results/clonality/")
 
@@ -36,7 +37,7 @@ for (sex in c("M", "F")) {
         clones_order = clone_list,
         genes_order = genes_list,
         file = paste0(
-          "results/clonality/CB_counts_QC_dotplot_",
+          "results/clonality/cells_counts_QC_dotplot_",
           gene_type, "_",
           ifelse(length(days) == 2, "D100+", days[1]),
           "_", sex, ".pdf"
@@ -45,5 +46,4 @@ for (sex in c("M", "F")) {
     }
   }
 }
-
 
