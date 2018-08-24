@@ -1,6 +1,6 @@
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
-load("results/cycling/CB_counts_QC_cycling.Rdata")
+load("results/cycling/cells_counts_QC_cycling.Rdata")
 
 system("mkdir -p results/clonality/")
 
