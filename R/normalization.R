@@ -45,30 +45,24 @@ SCnorm_normalize <- function(
     print("tmp file found skipping SCnorm...")
     load(tmp_file)
   } else {
-    scnorm_arg = list(
+    DataNorm <- SCnorm(
       Data = t(scd$select(b_cells = b_cells,
                           genes = ERCC(scd, minus = T))$getcounts),
       Conditions = rep(1, scd$select(b_cells = b_cells)$getncells),
       NCore=cpus,
-      PrintProgressPlots = TRUE,
-      FilterCellNum = 10
+      ...
     )
-    new_args <- list(...)
-    for (new_arg in names(new_args)) {
-      scnorm_arg[[new_arg]] <- new_args[[new_arg]]
-    }
-    DataNorm <- do.call(SCnorm, scnorm_arg)
-    if (v) {
-      GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
-      print("genes not normalized:")
-      print(str(GenesNotNormalized))
-    }
     if (!missing(tmp_file)) {
       save(DataNorm, file = tmp_file)
     }
   }
+  if (v) {
+    GenesNotNormalized <- results(DataNorm, type="GenesFilteredOut")
+    print("genes not normalized:")
+    print(str(GenesNotNormalized))
+  }
   counts <- scd$getcounts
-  counts[b_cells, ERCC(scd, minus = T)] <- t(results(DataNorm))
+  counts[b_cells, ERCC(scd, minus = T)] <- t(DataNorm$NormalizedData)
   rownames(counts) <- rownames(scd$getcounts)
   colnames(counts) <- colnames(scd$getcounts)
   return(
