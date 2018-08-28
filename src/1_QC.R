@@ -428,6 +428,11 @@ F_QC_score <- ifelse(scd$getfeature("sex") %in% "F",
   0.5,
   scd$getfeature("QC_score")
 )
+F_QC_score <- ifelse(scd$getfeature("cell_number") == 0 &
+                     scd$getfeature("sex") %in% "F",
+  0,
+  F_QC_score
+)
 F_to_QC <- ifelse(scd$getfeature("sex") %in% "F",
   TRUE,
   scd$getfeature("to_QC")
@@ -483,6 +488,7 @@ for (day in c("D15", "D90")) {
   )
 }
 save(scd, file = "results/QC/cells_counts_QC_F.Rdata")
+load(file = "results/QC/cells_counts_QC_F.Rdata")
 
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "batch", color_name = "clonality",
@@ -549,6 +555,8 @@ scd <- scdata$new(
   infos = infos_M,
   counts = counts_M
 )
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 save(scd, file = "results/QC/counts_QC.Rdata")
 
 # merge count data normalize for cell effect
@@ -564,6 +572,8 @@ scd <- scdata$new(
   infos = infos_M,
   counts = counts_M
 )
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 save(scd, file = "results/QC/cells_counts_QC.Rdata")
 
 # merge count data normalize for cell effect and batch effect
@@ -581,3 +591,11 @@ scd <- scdata$new(
 )
 save(scd, file = "results/QC/CB_counts_QC.Rdata")
 
+load(file = "results/QC/cells_counts_QC.Rdata")
+outlier <- c("P1373_1013", "P1373_1023", "P1373_1043", "P1373_1058", "P1373_1025")
+b_cells <- scd$getfeature("QC_good") %in% T & scd$getfeature("sex") %in% "F"
+data <- scd$select(b_cells = b_cells)$getfeatures
+ggplot(data = data, aes(x = QC_score, y = QC_score, color = id %in% outlier)) +
+  geom_point()
+
+summary(data[data$id %in% outlier,])
