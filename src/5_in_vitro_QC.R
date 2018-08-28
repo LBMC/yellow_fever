@@ -1,7 +1,10 @@
+rm(list = ls())
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/counts_QC.Rdata")
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 scd$setfeature(
   "experiment",
   gsub("(P\\d+)_\\d+", "\\1", scd$getfeature("id"), perl = T)
@@ -55,6 +58,7 @@ for (experiment in c("P1902", "P3128")) {
 save(scd, file = "results/QC/counts_QC_in_vitro_P1902_P3128.Rdata")
 
 # cells effect normalization
+rm(list = ls())
 load("results/QC/counts_QC_in_vitro_P1902_P3128.Rdata")
 devtools::load_all("../scRNAtools/", reset = T)
 
@@ -68,7 +72,7 @@ for (experiment in c("P1902", "P3128")) {
     select(b_cells = b_cells, genes = ERCC(scd, minus = T))$getcounts
   bad_cells <- rowSums(bad_cells > 5) < 1000
   QC_good <- scd$getfeature("QC_good")
-  QC_good[bad_cells] <- FALSE
+  QC_good[b_cells][bad_cells] <- FALSE
   scd$setfeature("QC_good", QC_good)
 }
 
@@ -83,10 +87,13 @@ for (experiment in c("P1902", "P3128")) {
     b_cells = b_cells,
     method = "SCnorm",
     cpus = 3,
-    tmp_file = paste0("results/tmp/normalization_", experiment, "_tmp.Rdata")
+    tmp_file = paste0("results/tmp/normalization_",
+                      experiment, "_tmp.Rdata"),
+    FilterCellNum = 20
   )
 }
 save(scd, file = "results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
+system("~/scripts/sms.sh \"SCnorm done\"")
 
 load("results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
 
