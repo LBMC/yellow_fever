@@ -96,6 +96,32 @@ save(scd, file = "results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
 system("~/scripts/sms.sh \"SCnorm done\"")
 
 load("results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
+scd_invitro <- scd
+load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
+scd$setfeature(
+  "experiment",
+  gsub("(P\\d+)_\\d+", "\\1", scd$getfeature("id"), perl = T)
+)
+day <- "InVitro"
+experiments <- c("P1902", "P3128")
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiments &
+  scd$getfeature("cell_number") %in% 1
+b_cells_invitro <- scd_invitro$getfeature("day") %in% day &
+  scd_invitro$getfeature("experiment") %in% experiments &
+  scd_invitro$getfeature("cell_number") %in% 1
+infos <- scd$getfeatures
+infos[b_cells, names(scd$getfeatures) %in% names(scd_invitro$getfeatures)] <- scd_invitro$select(b_cells = b_cells_invitro)$getfeatures
+counts <- scd$getcounts
+counts[b_cells, ] <- scd_invitro$select(b_cells = b_cells_invitro)$getcounts
+scd <- scdata$new(
+  infos = infos,
+  counts = counts
+)
+save(scd, file = "results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
+
 
 for (experiment in c("P1902", "P3128")) {
   system(paste0(
