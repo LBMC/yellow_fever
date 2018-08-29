@@ -8,9 +8,6 @@ load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 
 for (day in c("D15", "D136", "D593")) {
   system(
-    paste0("rm -R results/cell_type/mbatch_", day, "_DEA_cell_type_DEA")
-  )
-  system(
     paste0("mkdir -p results/cell_type/mbatch_", day, "_DEA_cell_type_DEA")
   )
   b_cells <- scd$getfeature("QC_good") %in% T &
@@ -750,6 +747,8 @@ for (day in c("D15", "D136", "D593")) {
 rm(list=ls())
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 
 infos_M <- scd$getfeatures
 write.csv(

@@ -6,7 +6,6 @@ setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 
 # with weights
-devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
 b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
@@ -71,9 +70,11 @@ cell_type_groups[cell_type_pgroups > 0.5] <- "MEM"
 cell_type_groups[cell_type_pgroups < 0.5] <- "EFF"
 scd$setfeature("DEA_cell_type", cell_type_groups)
 scd$setfeature("pDEA_cell_type", cell_type_pgroups)
-
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_M.Rdata")
 save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
+
 load(file = "results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 scd_norm <- scd
 load("results/QC/CB_counts_QC.Rdata")
@@ -316,6 +317,8 @@ setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata")
 b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
   mbatch_day_surface_cell_type_DEA$padj < 0.05
@@ -421,6 +424,8 @@ scd <- scdata$new(
   infos = scd_norm$getfeatures,
   counts = scd$getcounts
 )
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
 save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
 save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 

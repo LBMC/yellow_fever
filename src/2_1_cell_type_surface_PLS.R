@@ -39,14 +39,6 @@ scd$setfeature("phenotype_surface_cell_type", phenotype_surface_marker)
 b_cells <- scd$getfeature("QC_good") %in% T & scd$getfeature("sex") %in% "M"
 
 scd$select(b_cells = b_cells)$getncells
-table(scd$select(b_cells = b_cells)$getfeature("day"))
-
-load("results/QC/CB_counts_QC.Rdata")
-summary(scd$select(b_cells = b_cells, genes = genes_marker)$getcounts)
-load("results/QC/cells_counts_QC.Rdata")
-summary(scd$select(b_cells = b_cells, genes = genes_marker)$getcounts)
-load("results/QC/counts_QC.Rdata")
-summary(scd$select(b_cells = b_cells, genes = genes_marker)$getcounts)
 
 ################################################################################
 # classification on surface_marker
