@@ -1,37 +1,14 @@
+rm(list = ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 
-load("results/cycling/CB_counts_QC_cycling.Rdata")
-b_cells <- scd$getfeature("sex") %in% "M" &
-  scd$getfeature("day") %in% c("D15", "D136", "D593")
-infos <- scd$getfeatures
-CB_counts <- scd$getcounts
-load("results/QC/CB_counts_QC.Rdata")
-cells_counts <- scd$getcounts
+load("results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
 
-load("results/cycling/CB_counts_QC_cycling.Rdata")
-b_cells <- scd$getfeature("sex") %in% "F" &
-  scd$getfeature("day") %in% c("D15", "D90")
-infos[b_cells, ] <- scd$select(b_cells = b_cells)$getfeatures
-CB_counts[b_cells, ] <- scd$select(b_cells = b_cells)$getcounts
-load("results/QC/CB_counts_QC_F.Rdata")
-cells_counts[b_cells, ] <- scd$select(b_cells = b_cells)$getcounts
-
-load("results/QC/CB_counts_QC_in_vitro_P1902_P3128.Rdata")
 experiment <- c("P1902", "P3128")
 day <- "InVitro"
 b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("experiment") %in% experiment &
   scd$getfeature("cell_number") %in% 1
-c_cells <- which(colnames(infos) %in% colnames(scd$getfeatures))
-c_cells_bis <- which(colnames(scd$getfeatures) %in% colnames(infos))
-infos[b_cells, c_cells] <- scd$select(b_cells = b_cells)$getfeatures[, c_cells_bis]
-c_cells_bis <- which(colnames(scd$getfeatures) %in%
-  setdiff(colnames(scd$getfeatures), colnames(infos)))
-infos <- cbind(infos, scd$getfeatures[, c_cells_bis])
-CB_counts[b_cells, ] <- scd$select(b_cells = b_cells)$getcounts
-load("results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
-cells_counts[b_cells, ] <- scd$select(b_cells = b_cells)$getcounts
 
 founder_phenotype <- rep(NA, scd$getncells)
 founder_infos <- read.csv("data/FounderCellP1902_P3128.csv")
@@ -41,12 +18,6 @@ for (i in 1:nrow(founder_infos)) {
     scd$getfeature("clonality") %in% founder_infos$Clone.ID[i]
   founder_phenotype[b_select] <- as.vector(founder_infos$Founder_Type_Simple[i])
 }
-
-scd <- scdata$new(
-  infos = infos,
-  counts = CB_counts
-)
-
 scd$setfeature(
   "founder_phenotype",
   founder_phenotype
@@ -56,31 +27,13 @@ scd$setfeature(
   gsub("(P\\d+)_\\d+", "\\1", scd$getfeature("id"), perl = T)
 )
 
-save(scd, file = "results/cell_type/CB_counts_QC_all.Rdata")
-
-scd <- scdata$new(
-  infos = infos,
-  counts = cells_counts
-)
-
-scd$setfeature(
-  "founder_phenotype",
-  founder_phenotype
-)
-scd$setfeature(
-  "experiment",
-  gsub("(P\\d+)_\\d+", "\\1", scd$getfeature("id"), perl = T)
-)
-
-save(scd, file = "results/cell_type/cells_counts_QC_all.Rdata")
-
-
+save(scd, file = "results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
 
 system("mkdir -p results/cycling/")
 
 # we try to refine the regev cell-cycle genes list
 load(file="results/cycling/regev_genes.RData", v = T)
-load("results/cell_type/CB_counts_QC_all.Rdata")
+load("results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
 
 cycling_score <- scd$getfeature("cycling_score")
 cycling <- scd$getfeature("cycling")
@@ -115,7 +68,7 @@ scd$setfeature("pcycling", as.vector(pcycling))
 scd$setfeature("cycling_score", as.vector(cycling_score))
 
 save(scd,
-  file = "results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata"
+  file = "results/cycling/cells_counts_QC_cycling_invitro_P1902_P3128.Rdata"
 )
 infos <- scd$getfeatures
 
@@ -126,7 +79,7 @@ write.csv(
 )
 
 
-load("results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata")
+load("results/cycling/cells_counts_QC_cycling_invitro_P1902_P3128.Rdata")
 day <- "InVitro"
 for (experiment in c("P1902", "P3128")) {
   b_cells <- scd$getfeature("day") %in% day &
@@ -163,13 +116,3 @@ for (experiment in c("P1902", "P3128")) {
   ))
 }
 
-
-infos <- scd$getfeatures
-load("results/cell_type/cells_counts_QC_all.Rdata")
-scd <- scdata$new(
-    infos = infos,
-    counts = scd$getcounts
-  )
-save(scd,
-  file = "results/cycling/cells_counts_QC_cycling_invitro_P1902_P3128.Rdata"
-)
