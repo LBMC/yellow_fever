@@ -5,7 +5,8 @@
 \title{return order base on the rank FUN in groups}
 \usage{
 order_2_groups(scd, b_cells = NULL, cells = NULL, genes = NULL, by,
-  FUN = function(x) {     mean(x)/sd(x) }, top = ncol(data), min_cell = 5)
+  FUN = function(x) {     mean(x)/sd(x) }, top = ncol(data),
+  min_cell = 5)
 }
 \arguments{
 \item{scd}{an scdata object}

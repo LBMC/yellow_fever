@@ -4,7 +4,8 @@
 \alias{order_by_factor}
 \title{return order of genes by a covariate}
 \usage{
-order_by_factor(score, scd, tmp_file, top = FALSE, quant = 0.75, cpus = 4)
+order_by_factor(score, scd, tmp_file, top = FALSE, quant = 0.75,
+  cpus = 4)
 }
 \arguments{
 \item{score}{covariate to order on}

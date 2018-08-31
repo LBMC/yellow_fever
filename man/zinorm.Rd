@@ -4,7 +4,8 @@
 \alias{zinorm}
 \title{return scalled counts for zidata}
 \usage{
-zinorm(scd, cpus = 4, v = F, file, zi_scale = TRUE, sd_scale = TRUE)
+zinorm(scd, cpus = 4, v = F, file, zi_scale = TRUE,
+  sd_scale = TRUE)
 }
 \arguments{
 \item{scd}{scdata object to scale}

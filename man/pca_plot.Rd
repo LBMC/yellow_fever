@@ -4,11 +4,11 @@
 \alias{pca_plot}
 \title{display single or multiple genes as violin plot}
 \usage{
-pca_plot(scd, color = NULL, shape = NULL, size = NULL, alpha = NULL,
-  wrap = NULL, file, main = "", axes, res = FALSE, rainbow = FALSE,
-  heatcolor = FALSE, is_contour, label = NULL, genes_list, arrow = FALSE,
-  color_name = "day", return_data = FALSE, color_scale = NULL, tmp_file,
-  FUN = function(x) {     log(x + 1) })
+pca_plot(scd, color = NULL, shape = NULL, size = NULL,
+  alpha = NULL, wrap = NULL, file, main = "", axes, res = FALSE,
+  rainbow = FALSE, heatcolor = FALSE, is_contour, label = NULL,
+  genes_list, arrow = FALSE, color_name = "day", return_data = FALSE,
+  color_scale = NULL, tmp_file, FUN = function(x) {     log(x + 1) })
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}

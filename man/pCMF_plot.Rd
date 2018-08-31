@@ -4,11 +4,11 @@
 \alias{pCMF_plot}
 \title{plot the 2 first axis of a pCMF analysis}
 \usage{
-pCMF_plot(scd, color = NULL, shape = NULL, size = NULL, alpha = NULL,
-  wrap = NULL, file, main = "", axes, res = FALSE, rainbow = FALSE,
-  heatcolor = FALSE, is_contour, label = NULL, genes_list, arrow = FALSE,
-  color_name = "day", return_data = FALSE, color_scale = NULL, tmp_file,
-  ncomp = 2, ncores = 4)
+pCMF_plot(scd, color = NULL, shape = NULL, size = NULL,
+  alpha = NULL, wrap = NULL, file, main = "", axes, res = FALSE,
+  rainbow = FALSE, heatcolor = FALSE, is_contour, label = NULL,
+  genes_list, arrow = FALSE, color_name = "day", return_data = FALSE,
+  color_scale = NULL, tmp_file, ncomp = 2, ncores = 4)
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}

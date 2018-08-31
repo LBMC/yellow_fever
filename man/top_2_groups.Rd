@@ -4,9 +4,9 @@
 \alias{top_2_groups}
 \title{return top and bottom of list for order base on the rank FUN in groups}
 \usage{
-top_2_groups(scd, b_cells = NULL, top = 100, cells = NULL, genes = NULL,
-  by, FUN = function(x) {     mean(x[x != 0]) * length(x[x !=
-  0])/length(x)/sd(x[x != 0]) })
+top_2_groups(scd, b_cells = NULL, top = 100, cells = NULL,
+  genes = NULL, by, FUN = function(x) {     mean(x[x != 0]) *
+  length(x[x != 0])/length(x)/sd(x[x != 0]) })
 }
 \arguments{
 \item{scd}{an scdata object}

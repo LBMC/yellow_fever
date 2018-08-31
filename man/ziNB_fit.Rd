@@ -5,8 +5,8 @@
 \title{importFrom glmmADMB glmmadmb
 importFrom MASS glm.nb}
 \usage{
-ziNB_fit(data, formula, gene_name, model_family = "nbinom1", link = "log",
-  zi = TRUE, v)
+ziNB_fit(data, formula, gene_name, model_family = "nbinom1",
+  link = "log", zi = TRUE, v)
 }
 \description{
 importFrom glmmADMB glmmadmb

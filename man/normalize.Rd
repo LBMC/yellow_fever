@@ -5,7 +5,7 @@
 \title{normalize counts in a scdata object}
 \usage{
 normalize(scd, b_cells = scd$getfeature("QC_good") \%in\% T,
-  method = "SCnorm", cpus = 4, tmp_file, v = F)
+  method = "SCnorm", cpus = 4, tmp_file, v = F, ...)
 }
 \arguments{
 \item{scd}{scdata object}
@@ -14,7 +14,11 @@ normalize(scd, b_cells = scd$getfeature("QC_good") \%in\% T,
 
 \item{cpus}{(default = 4) number of cpus to use (if possible)}
 
+\item{tmp_file}{temporary file to save intermediate results}
+
 \item{v}{(default = FALSE) verbose mode}
+
+\item{...}{other arguments for the method function}
 }
 \value{
 return scdata object

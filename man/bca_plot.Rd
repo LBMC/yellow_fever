@@ -4,8 +4,8 @@
 \alias{bca_plot}
 \title{plot the 2 first axis of a BCA analysis}
 \usage{
-bca_plot(scd, by, color, ncomp = 2, top, n_groups, n_cells, norm_by, file,
-  main = "", genes_list, xlimit, ylimit)
+bca_plot(scd, by, color, ncomp = 2, top, n_groups, n_cells, norm_by,
+  file, main = "", genes_list, xlimit, ylimit)
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}

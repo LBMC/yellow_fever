@@ -4,8 +4,9 @@
 \alias{DEA_paraload_parameters}
 \title{helper function for DEA for scRNASeq data}
 \usage{
-DEA_paraload_parameters(paraload_file, scd, job_DEA_number = 5, formula_null,
-  formula_full, b_cells, zi_threshold = 0.9, cpus, folder_name)
+DEA_paraload_parameters(paraload_file, scd, job_DEA_number = 5,
+  formula_null, formula_full, b_cells, zi_threshold = 0.9, cpus,
+  folder_name)
 }
 \arguments{
 \item{paraload_file}{paraload table file}

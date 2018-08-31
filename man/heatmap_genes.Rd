@@ -5,9 +5,10 @@
 \title{heatmap of genes}
 \usage{
 heatmap_genes(scd, features, cells_order = order(scd$getcells),
-  genes_order = order(scd$getgenes), factor = rep(TRUE, length(features)),
-  show_legend = TRUE, title = "", file, FUN = function(x) {     x <- log(x
-  + 1)     x <- (x - mean(x))/sd(x) }, gene_size = 10)
+  genes_order = order(scd$getgenes), factor = rep(TRUE,
+  length(features)), show_legend = TRUE, title = "", file,
+  FUN = function(x) {     x <- log(x + 1)     x <- (x - mean(x))/sd(x) },
+  gene_size = 10)
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}

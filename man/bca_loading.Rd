@@ -4,7 +4,8 @@
 \alias{bca_loading}
 \title{compute bca loading}
 \usage{
-bca_loading(scd, by, norm_by, ncomp = 5, cells_l = FALSE, loading = F)
+bca_loading(scd, by, norm_by, ncomp = 5, cells_l = FALSE,
+  loading = F)
 }
 \arguments{
 \item{by}{a factor defining the groups}

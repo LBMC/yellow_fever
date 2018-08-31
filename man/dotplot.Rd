@@ -4,8 +4,8 @@
 \alias{dotplot}
 \title{genes expression dotplot graph}
 \usage{
-dotplot(scd, title, clones_order, genes_order, rank_by = "pDEA_cell_type",
-  file)
+dotplot(scd, title, clones_order, genes_order,
+  rank_by = "pDEA_cell_type", file)
 }
 \arguments{
 \item{scd}{is a scRNASeq data object}
