@@ -395,6 +395,45 @@ TPM <- function(counts, len) {
   }
 }
 
+#' compute winsorize transform of the data
+#' @param x matrix, data.frame or vector of counts
+#' @param up_quantile (default:0.99) upper quantile to winsorize the data
+#' (per genes if 2 dimentional)
+#' @param down_quantile if set, lower quantile to winsorize the data
+#' (per genes if 2 dimentional)
+#' @param genes_as_col (default: T) if a matrix of data.frame, are the genes
+#' in column ?
+#' @return return winsorized x
+#' @examples
+#' \dontrun{
+#' x = winsorize(scd$getcounts, up_quantile = 0.90)
+#' }
+#' @export winsorize
+winsorize <- function(x, up_quantile=0.99, down_quantile, genes_as_col = T) {
+  winsorize_vec <- function(x, up_quantile, down_quantile){
+    Max <- as.numeric(quantile(x, probs=up_quantile, na.rm=TRUE))
+    if (!missing(down_quantile)) {
+      Min <- as.numeric(quantile(x, probs=down_quantile, na.rm=TRUE))
+    } else {
+      Min <- min(x)
+    }
+    x[x >= Max] <- Max
+    x[x <= Min] <- Min
+    return(x)
+  }
+  if (is.null(ncol(x))) {
+    x <- winsorize_vec(x, up_quantile, down_quantile)
+  } else {
+    x <- apply(x, ifelse(genes_as_col, 2, 1),
+               FUN = function(x, up_quantile, down_quantile){
+                 x <- winsorize_vec(x, up_quantile, down_quantile)
+              },
+    up_quantile = up_quantile,
+    down_quantile = down_quantile)
+  }
+  return(x)
+}
+
 #' return genes expressed with the following criteria
 #' @param scd scdata object
 #' @param zi_threshold persentage of cells == 0
