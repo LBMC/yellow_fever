@@ -516,6 +516,7 @@ for (day in c("D15", "D90")) {
 
 load("results/QC/cells_counts_QC_F.Rdata")
 devtools::load_all("../scRNAtools/", reset = T)
+b_cells = scd$getfeature('sex') %in% "F" & scd$getfeature("QC_good") %in% T
 scd <- normalize(
   scd = scd,
   b_cells = b_cells,
@@ -525,6 +526,102 @@ scd <- normalize(
 )
 traceback()
 save(scd, file = "results/QC/CB_counts_QC_F.Rdata")
+
+
+load("results/QC/CB_counts_QC_F.Rdata")
+scd_mnn <- scd
+load("results/QC/cells_counts_QC_F.Rdata")
+b_cells = scd$getfeature('sex') %in% "F" & scd$getfeature("QC_good") %in% T
+scd <- normalize(
+  scd = scd,
+  b_cells = b_cells,
+  method = "ComBat",
+  cpus = 5,
+  tmp_file = paste0("results/tmp/normalization_cells_ComBat_F_tmp.Rdata")
+)
+save(scd, file = "results/QC/CB_counts_QC_F.Rdata")
+
+load("/home/laurent/projects/yellow_fever/2018_07_27_results/cell_type/CB_counts_QC_DEA_cell_type_F.Rdata")
+weird_F_cells <- paste0("P1373_", 1001:1096)
+good_F_cells <- paste0("P1292_", 1001:1096)
+
+load("results/QC/cells_counts_QC.Rdata")
+data_norm <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getfeatures
+data_norm$max_counts <- rowMaxs(scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getcounts)
+data_norm$total_counts <- rowSums(scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getcounts)
+data_norm$CCR7 <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getgene("CCR7")
+data_norm$type <- "norm"
+counts_norm <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getcounts
+load("results/QC/counts_QC.Rdata")
+data <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getfeatures
+data$max_counts <- rowMaxs(scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getcounts)
+data$total_counts <- rowSums(scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getcounts)
+data$CCR7 <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getgene("CCR7")
+data$type <- "raw"
+counts <- scd$select(b_cells = scd$getfeature("QC_good") %in% T)$getcounts
+data <- rbind(data,
+              data_norm)
+
+winsorize <- function(x, up_quantile=0.95, down_quantile) {
+  x <- vectorize(x)
+  if(missing(down_quantile)){
+    down_quantile=1-up_quantile
+  }
+  Max <- as.numeric(quantile(x, probs=up_quantile, na.rm=TRUE))
+  Min <- as.numeric(quantile(x, probs=down_quantile, na.rm=TRUE))
+  x[x >= Max] <- Max
+  x[x <= Min] <- Min
+  return(x)
+}
+
+table(scd$getfeature("QC_good") %in% T & scd$getfeature("id") %in% c(weird_F_cells, good_F_cells))
+table(scd$getfeature("QC_good") %in% T & scd$getfeature("id") %in% c(good_F_cells))
+
+summary(x)
+summary(y)
+summary(data$max_counts)
+ggplot(data,
+       aes(x = log10( max_counts + 1 ), fill = sex)) +
+  geom_histogram() +
+  facet_wrap(~type+day, nrow =2)
+ggsave("~/Downloads/max_counts.png")
+
+ggplot(data,
+       aes(x = log10( total_counts + 1 ), fill = sex)) +
+  geom_histogram() +
+  facet_wrap(~type+day, nrow =2)
+ggsave("~/Downloads/total_counts.png")
+
+ggplot(data[data$CCR7 != 0, ],
+       aes(x = log10( CCR7 + 1 ), fill = sex)) +
+  geom_histogram() +
+  facet_wrap(~type+day, nrow =2)
+ggsave("~/Downloads/CCR7_counts.png")
+
+ggplot(data[data$CCR7 != 0 & data$sex %in% "F" & data$id %in% c(weird_F_cells, good_F_cells), ],
+       aes(x = CCR7, fill = id %in% good_F_cells)) +
+  geom_histogram() +
+  facet_wrap(~type+day, nrow =2)
+
+delta_norm <- counts_norm - counts
+summary(as.vector(delta_norm[delta_norm != 0]))
+
+x11()
+load("results/QC/counts_QC.Rdata")
+b_cells <- scd$getfeature("sex") %in% "F" & scd$getfeature("QC_good") %in% T & scd$getfeature("id") %in% weird_F_cells
+counts_raw <- scd$select(b_cells = b_cells)$getcounts
+counts_CPM <- (counts_raw / rowSums(counts_raw)) * mean(rowSums(counts_raw))
+load("results/QC/cells_counts_QC.Rdata")
+counts_norm <- scd$select(b_cells = b_cells)$getcounts
+SCnorm::plotCountDepth(Data = t(counts_raw),
+  NormalizedData = t(counts_CPM),
+  Conditions = rep(1, nrow(counts_raw)),
+  FilterCellProportion = .1, NCores=3)
+SCnorm::plotCountDepth(Data = t(counts_raw),
+  NormalizedData = t(counts_norm),
+  Conditions = rep(1, nrow(counts_raw)),
+  FilterCellProportion = .1, NCores=3)
+
 
 system("rm results/tmp/pca_CB_QC_F_tmp.Rdata")
 scRNAtools::pca_plot(
