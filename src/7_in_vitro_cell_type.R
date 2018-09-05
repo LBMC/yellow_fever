@@ -90,7 +90,6 @@ save(
 )
 
 load("results/cell_type/founder_cell_types_splsstab_invitro_P1902_denovo.Rdata")
-
 day <- "InVitro"
 experiment <- "P1902"
 b_cells <- scd$getfeature("day") %in% day &
@@ -215,6 +214,7 @@ ggsave(file = paste0(
 ))
 
 # DEA analysis InVitro P1902
+load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 day <- "InVitro"
 experiment <- "P1902"
 b_cells <- scd$getfeature("day") %in% day &
@@ -222,7 +222,6 @@ b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("QC_good") %in% T &
   scd$getfeature("cell_number") %in% 1
 
-load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 system(
   paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA")
 )
@@ -235,7 +234,7 @@ mbatch_pfounder_cell_type_DEA <- DEA(
   formula_full = "y ~ (1|batch) + pfounder_cell_type",
   b_cells = b_cells,
   continuous = "pfounder_cell_type",
-  cpus = 10,
+  cpus = 8,
   v = T,
   folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_pfounder_cell_type_DEA")
 )
@@ -252,11 +251,11 @@ write.csv(
 )
 
 # 2nd PLS based on DEA genes
-
+load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 load(paste0("results/cell_type/mbatch_", day, "_", experiment, "_pfounder_cell_type_DEA.Rdata"))
-b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
-  mbatch_day_surface_cell_type_DEA$padj < 0.05
-DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
+b_genes <- !is.na(mbatch_pfounder_cell_type_DEA$padj) &
+  mbatch_pfounder_cell_type_DEA$padj < 0.05
+DEA_genes <- mbatch_pfounder_cell_type_DEA$gene[b_genes]
 b_cells <- scd$getfeature("QC_good") %in% T & scd$getfeature("sex") %in% "M"
 length(DEA_genes)
 
@@ -285,6 +284,7 @@ DEA_cell_type_classification <- classification(
   output_file = "results/cell_type/DEA_cell_types_invitro_P1902_denovo",
   force =  genes_marker
 )
+system("~/scripts/sms.sh \"PLS done\"")
 
 save(
   DEA_cell_type_classification,
@@ -309,6 +309,42 @@ cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
 scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 
+# 2nd DEA analysis InVitro P1902
+load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+day <- "InVitro"
+experiment <- "P1902"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+
+system(
+  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA")
+)
+system(
+  paste0("mkdir -p results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA")
+)
+mbatch_pDEA_cell_type_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ (1|batch)",
+  formula_full = "y ~ (1|batch) + pDEA_cell_type",
+  b_cells = b_cells,
+  continuous = "pDEA_cell_type",
+  cpus = 8,
+  v = T,
+  folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA")
+)
+save(
+  mbatch_pDEA_cell_type_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA.Rdata")
+)
+system("~/scripts/sms.sh \"DEA done\"")
+print(table(is.na(mbatch_pDEA_cell_type_DEA$padj)))
+print(table(mbatch_pDEA_cell_type_DEA$padj < 0.05))
+write.csv(
+  mbatch_pDEA_cell_type_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA.csv")
+)
 ############################
 
 
