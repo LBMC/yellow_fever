@@ -446,7 +446,7 @@ DEA_LRT <- function(models_result, gene_name, v, folder_name,
           LogLik = LRT_result[, 4],
           Df = LRT_result[, 3],
           Deviance = c(NA, NA),
-          "Pr(>Chi)" = LRT_result[, 8],
+          "Pr(>Chi)" = LRT_result[, min(8, ncol(LRT_result))],
           stringsAsFactors = FALSE
         )
       }
