@@ -91,17 +91,13 @@ ComBat_normalize <- function(
       colSums(scd$select(b_cells = b_cells,
                          genes = ERCC(scd, minus = T))$getcounts) > 0
     ]
-    combat_arg = list(
+    DataNorm <- ComBat(
       dat = t(ascb(scd$select(b_cells = b_cells, genes = expressed)$getcounts)),
       batch =  scd$select(b_cells = b_cells)$getfeature("batch"),
       par.prior = F,
-      BPPARAM = bpparam("SerialParam")
+      BPPARAM = bpparam("SerialParam"),
+      ...
     )
-    new_args <- list(...)
-    for (new_arg in names(new_args)) {
-      combat_arg[[new_arg]] <- new_args[[new_arg]]
-    }
-    DataNorm <- do.call(ComBat, combat_arg)
     if (!missing(tmp_file)) {
       save(DataNorm, expressed, file = tmp_file)
     }
@@ -109,10 +105,6 @@ ComBat_normalize <- function(
   b_genes <- colnames(scd$getcounts) %in% expressed
   counts <- scd$getcounts
   norm_counts <- round(ascb_inv(t(DataNorm)))
-  print( norm_counts[1:10, 1:10] )
-  norm_expressed <- colSums( norm_counts ) > 0
-  print(summary(norm_expressed))
-  norm_counts[, !norm_expressed] <- counts[b_cells, b_genes][, !norm_expressed]
   counts[b_cells, b_genes] <- norm_counts
   rownames(counts) <- rownames(scd$getcounts)
   colnames(counts) <- colnames(scd$getcounts)
