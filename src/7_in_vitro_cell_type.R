@@ -1,5 +1,6 @@
 ################################################################################
 # DEA PLS for the InVitro P1902 data
+Sys.setenv("DISPLAY"=":1")
 rm(list=ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
@@ -23,11 +24,25 @@ write.csv(
 )
 
 
+rm(list = ls())
+devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata", v = T)
 b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
   mbatch_day_surface_cell_type_DEA$padj < 0.05
 DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
 length(DEA_genes)
+
+
+load("results/cycling/cells_counts_QC_cycling_invitro_P1902_P3128.Rdata", v = T)
+day <- "InVitro"
+experiment <- "P1902"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+founder_phenotype <- scd$getfeature("founder_phenotype")
+founder_phenotype[b_cells & scd$getfeature("clonality") %in% "A7"] <- NA
+scd$setfeature("founder_phenotype", founder_phenotype)
 
 # load selection off genes and makers to classify on
 genes_PLS <- read.csv("data/genes_PLS.csv")
@@ -44,21 +59,9 @@ for (marker_type in colnames(genes_PLS)) {
   }
 }
 
-devtools::load_all("../scRNAtools/", reset = T)
-load("results/cycling/cells_counts_QC_cycling_invitro_P1902_P3128.Rdata", v = T)
-founder_phenotype <- scd$getfeature("founder_phenotype")
-founder_phenotype[b_cells & scd$getfeature("clonality") %in% "A7"] <- NA
-scd$setfeature("founder_phenotype", founder_phenotype)
-day <- "InVitro"
-experiment <- "P1902"
-b_cells <- scd$getfeature("day") %in% day &
-  scd$getfeature("experiment") %in% experiment &
-  scd$getfeature("QC_good") %in% T &
-  scd$getfeature("cell_number") %in% 1
-system("rm results/cell_type/DEA_cell_types_weighted_force_invitro_P1902_denovo*")
-
 PLS_genes <- scd$getgenes[scd$getgenes %in%
                           unique(c(DEA_genes, genes_marker, "KLRD1", "SELL"))]
+# filter out PLS genes with small counts
 good_pls <- apply(scd$select(b_cells = b_cells,
                              genes = PLS_genes)$getcounts,
                   2, FUN = function(x){
@@ -70,7 +73,10 @@ good_pls <- apply(scd$select(b_cells = b_cells,
 PLS_genes <- PLS_genes[good_pls]
 table(good_pls)
 
+summary(as.factor(scd$select(b_cells = b_cells)$getfeature("founder_phenotype")))
+
 PLS_genes
+system("rm results/cell_type/founder_cell_types_invitro_P1902_denovo*")
 founder_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "founder_phenotype",
@@ -86,8 +92,10 @@ founder_cell_type_classification <- classification(
 
 save(
   founder_cell_type_classification,
-  file = "results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo.Rdata"
+  file = "results/cell_type/founder_cell_types_splsstab_invitro_P1902_denovo.Rdata"
 )
+system("~/scripts/sms.sh \"PLS done\"")
+
 
 load("results/cell_type/founder_cell_types_splsstab_invitro_P1902_denovo.Rdata")
 day <- "InVitro"
@@ -97,14 +105,14 @@ b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("QC_good") %in% T &
   scd$getfeature("cell_number") %in% 1
 
-DEA_cell_type_classification$classification$fit_spls$fit$selected
-cell_type_groups <- scd$getfeature("founder_cell_type")
-cell_type_groups[b_cells] <- DEA_cell_type_classification$groups
-scd$setfeature("founder_cell_type", cell_type_groups)
 cell_type_pgroups <- scd$getfeature("pfounder_cell_type")
-cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
+cell_type_pgroups[b_cells] <- founder_cell_type_classification$pgroups
 scd$setfeature("pfounder_cell_type", cell_type_pgroups)
+cell_type_groups <- scd$getfeature("founder_cell_type")
+cell_type_groups[b_cells] <- ifelse(cell_type_pgroups[b_cells] > 0.5, "MEM", "EFF")
+scd$setfeature("founder_cell_type", cell_type_groups)
 save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+
 
 load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
@@ -178,6 +186,20 @@ ggsave(file = paste0(
 ))
 
 g <- ggplot(tmp_infos,
+   aes(x = pfounder_cell_type,
+      y = log10(KLRD1 + 1),
+      color = founder_clone_cell_type)) +
+  geom_point() +
+  theme_bw() +
+  scale_color_manual(
+    values = cell_type_palette(
+      levels(factorize(tmp_infos$founder_cell_type)))) +
+  labs(x = "clones",
+       color = "foudner_cell_type",
+       title = day)
+print(g)
+
+g <- ggplot(tmp_infos,
    aes(x = clonality,
       y = log10(SELL + 1),
       color = founder_clone_cell_type)) +
@@ -223,7 +245,7 @@ b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("cell_number") %in% 1
 
 system(
-  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA")
+  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_pfounder_cell_type_DEA")
 )
 system(
   paste0("mkdir -p results/cell_type/mbatch_", day, "_", experiment, "_pfounder_cell_type_DEA")
@@ -251,12 +273,17 @@ write.csv(
 )
 
 # 2nd PLS based on DEA genes
+day <- "InVitro"
+experiment <- "P1902"
 load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 load(paste0("results/cell_type/mbatch_", day, "_", experiment, "_pfounder_cell_type_DEA.Rdata"))
 b_genes <- !is.na(mbatch_pfounder_cell_type_DEA$padj) &
   mbatch_pfounder_cell_type_DEA$padj < 0.05
 DEA_genes <- mbatch_pfounder_cell_type_DEA$gene[b_genes]
-b_cells <- scd$getfeature("QC_good") %in% T & scd$getfeature("sex") %in% "M"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
 length(DEA_genes)
 
 # load selection off genes and makers to classify on
@@ -274,6 +301,7 @@ for (marker_type in colnames(genes_PLS)) {
   }
 }
 
+system("rm results/cell_type/DEA_cell_types_invitro_P1902_denovo*")
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "founder_cell_type",
@@ -285,6 +313,9 @@ DEA_cell_type_classification <- classification(
   force =  genes_marker
 )
 system("~/scripts/sms.sh \"PLS done\"")
+traceback()
+
+summary( scd$select(b_cells = b_cells, genes = c(genes_marker, DEA_genes))$getcounts )
 
 save(
   DEA_cell_type_classification,
@@ -308,6 +339,75 @@ cell_type_pgroups <- scd$getfeature("pDEA_cell_type")
 cell_type_pgroups[b_cells] <- DEA_cell_type_classification$pgroups
 scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+
+genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
+  "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
+  "NELL2", "CCR7")
+per_genes_barplot(
+  scd = scd$select(b_cells = b_cells),
+  genes = genes_list,
+  features = c("ccr7", "pDEA_cell_type"),
+  order_by = "pDEA_cell_type",
+  color_by = "DEA_cell_type",
+  file = paste0(
+    "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_invitro_P1902.pdf"),
+  main = paste0("founder_cell_type InVitro P1902")
+)
+
+tmp_infos <- scd$select(b_cells = b_cells)$getfeatures
+tmp_infos$clonality <- as.factor( as.vector(tmp_infos$clonality) )
+tmp_infos$clonality <- factor(
+  tmp_infos$clonality,
+  levels = c("A7", "A8", "G6", "G8", "H9", "F3", "E4", "H2", "B4"))
+tmp_infos$pDEA_clone_cell_type <- unlist(as.list(by(
+  tmp_infos$pDEA_cell_type, tmp_infos$clonality, median
+))[tmp_infos$clonality])
+tmp_infos$DEA_clone_cell_type <- ifelse(
+  tmp_infos$pDEA_clone_cell_type > 0.5,
+  "MEM",
+  "EFF"
+)
+tmp_infos$KLRD1 <- scd$select(b_cells = b_cells)$getgene("KLRD1")
+tmp_infos$SELL <- scd$select(b_cells = b_cells)$getgene("SELL")
+tmp_infos$MKI67 <- scd$select(b_cells = b_cells)$getgene("MKI67")
+
+g <- ggplot(tmp_infos,
+   aes(x = clonality,
+      y = log(cycling_score),
+      color = DEA_clone_cell_type)) +
+  geom_violin(alpha = 0.5) +
+  geom_jitter(aes(color = DEA_cell_type)) +
+  theme_bw() +
+  scale_color_manual(
+    values = cell_type_palette(
+      levels(factorize(tmp_infos$founder_cell_type)))) +
+  labs(x = "clones",
+       y =  "cell-cycle score",
+       color = "founder_cell_type",
+       title = day)
+print(g)
+ggsave(file = paste0(
+  "results/cycling/violing_invitro_P1902_cycling_vs_DEA_cell_type.pdf"
+))
+
+g <- ggplot(tmp_infos,
+   aes(x = clonality,
+      y = log10(SELL+1),
+      color = DEA_clone_cell_type)) +
+  geom_violin(alpha = 0.5) +
+  geom_jitter(aes(color = DEA_cell_type)) +
+  theme_bw() +
+  scale_color_manual(
+    values = cell_type_palette(
+      levels(factorize(tmp_infos$founder_cell_type)))) +
+  labs(x = "clones",
+       y =  "log10(SELL+1)",
+       color = "founder_cell_type",
+       title = day)
+print(g)
+ggsave(file = paste0(
+  "results/cycling/violing_invitro_P1902_SELL_vs_DEA_cell_type.pdf"
+))
 
 # 2nd DEA analysis InVitro P1902
 load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
