@@ -742,6 +742,12 @@ ggsave(file = paste0(
   "results/cycling/violing_invitro_P3128_SELL_vs_DEA_cell_type.pdf"
 ))
 
+infos_M <- scd$getfeatures
+write.csv(
+  infos_M,
+  file = paste0("results/cell_type/cell_type_infos_invivo_invitro.csv")
+)
+
 
 # DEA analysis InVitro P3128
 
@@ -754,30 +760,30 @@ b_cells <- scd$getfeature("day") %in% day &
 
 load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
 system(
-  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA")
+  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA")
 )
 system(
-  paste0("mkdir -p results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA")
+  paste0("mkdir -p results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA")
 )
-mbatch_DEA_cell_type_DEA <- DEA(
+mbatch_pDEA_cell_type_DEA <- DEA(
   scd = scd,
   formula_null = "y ~ (1|batch)",
-  formula_full = "y ~ (1|batch) + DEA_cell_type",
+  formula_full = "y ~ (1|batch) + pDEA_cell_type",
   b_cells = b_cells,
-  cpus = 16,
+  cpus = 10,
   v = T,
-  folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA")
+  folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA")
 )
 save(
-  mbatch_DEA_cell_type_DEA,
-  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA.Rdata")
+  mbatch_pDEA_cell_type_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA.Rdata")
 )
 system("~/scripts/sms.sh \"DEA done\"")
-print(table(is.na(mbatch_DEA_cell_type_DEA$padj)))
-print(table(mbatch_DEA_cell_type_DEA$padj < 0.05))
+print(table(is.na(mbatch_pDEA_cell_type_DEA$padj)))
+print(table(mbatch_pDEA_cell_type_DEA$padj < 0.05))
 write.csv(
-  mbatch_DEA_cell_type_DEA,
-  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_DEA_cell_type_DEA.csv")
+  mbatch_pDEA_cell_type_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA.csv")
 )
 
 
@@ -794,9 +800,9 @@ b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("cell_number") %in% 1
 
 for (alt in c("lesser", "greater")) {
-  b_genes <- !is.na(mbatch_DEA_cell_type_DEA$padj) &
-    mbatch_DEA_cell_type_DEA$padj < 0.05
-  DEA_genes <- mbatch_DEA_cell_type_DEA$gene
+  b_genes <- !is.na(mbatch_pDEA_cell_type_DEA$padj) &
+    mbatch_pDEA_cell_type_DEA$padj < 0.05
+  DEA_genes <- mbatch_pDEA_cell_type_DEA$gene
   DEA_genes_exp <- expressed(
     scd = scd$select(
       b_cells = b_cells,
@@ -860,7 +866,7 @@ for (alt in c("lesser", "greater")) {
     title = hm_title,
     factor = c(T, F),
     file = paste0(
-      "results/cell_type/heatmap/hm_CB_counts_QC_DEA_cell_type_",
+      "results/cell_type/heatmap/hm_CB_counts_QC_pDEA_cell_type_",
       day, "_", experiment, "_zi0.5_", alt, "_cov.pdf"
     ),
     gene_size = 3
@@ -878,7 +884,7 @@ for (alt in c("lesser", "greater")) {
     title = hm_title,
     factor = c(T, F),
     file = paste0(
-      "results/cell_type/heatmap/hm_corr_CB_counts_QC_DEA_cell_type_",
+      "results/cell_type/heatmap/hm_corr_CB_counts_QC_pDEA_cell_type_",
       day, "_", experiment, "_zi0.5_", alt, "_cov_manhattan.pdf"
     ),
     dist_name = "manhattan",
@@ -889,21 +895,6 @@ for (alt in c("lesser", "greater")) {
   )
   print(hm_corr)
 }
-
-load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
-day <- "InVitro"
-experiment <- "P3128"
-b_cells <- scd$getfeature("day") %in% day &
-  scd$getfeature("experiment") %in% experiment &
-  scd$getfeature("QC_good") %in% T &
-  scd$getfeature("cell_number") %in% 1
-infos <- scd$getfeatures
-load("results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata")
-infos[b_cells, ] <- scd$select(b_cells =  b_cells)$getfeatures
-write.csv(
-  infos,
-  file = paste0("results/cell_type/cell_type_infos_invivo_invitro.csv")
-)
 
 load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
 day <- "InVitro"
