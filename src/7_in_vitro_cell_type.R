@@ -694,7 +694,7 @@ tmp_infos$pDEA_clone_cell_type <- unlist(as.list(by(
   tmp_infos$pDEA_cell_type, tmp_infos$clonality, median
 ))[tmp_infos$clonality])
 tmp_infos$DEA_clone_cell_type <- ifelse(
-  tmp_infos$pDEA_clone_cell_type > 0.7,
+  tmp_infos$pDEA_clone_cell_type > 0.5,
   "MEM",
   "EFF"
 )
@@ -708,15 +708,15 @@ g <- ggplot(tmp_infos,
    aes(x = clonality,
       y = log(cycling_score),
       color = DEA_clone_cell_type)) +
-  geom_jitter() +
   geom_violin(alpha = 0.5) +
+  geom_jitter(aes(color = DEA_cell_type)) +
   theme_bw() +
   scale_color_manual(
     values = cell_type_palette(
       levels(factorize(tmp_infos$DEA_cell_type)))) +
   labs(x = "clones",
        y =  "cell-cycle score",
-       color = "DEA_cell_type",
+       color = "founder_cell_type",
        title = day)
 print(g)
 ggsave(file = paste0(
@@ -725,70 +725,25 @@ ggsave(file = paste0(
 
 g <- ggplot(tmp_infos,
    aes(x = clonality,
-      y = log10(KLRD1 + 1),
+      y = log10(SELL+1),
       color = DEA_clone_cell_type)) +
-  geom_jitter() +
   geom_violin(alpha = 0.5) +
+  geom_jitter(aes(color = DEA_cell_type)) +
   theme_bw() +
   scale_color_manual(
     values = cell_type_palette(
       levels(factorize(tmp_infos$DEA_cell_type)))) +
   labs(x = "clones",
-       color = "DEA_cell_type",
-       title = day)
-print(g)
-ggsave(file = paste0(
-  "results/cycling/violing_invitro_P3128_KLRD1_vs_DEA_cell_type.pdf"
-))
-
-g <- ggplot(tmp_infos,
-   aes(x = clonality,
-      y = log10(SELL + 1),
-      color = DEA_clone_cell_type)) +
-  geom_jitter() +
-  geom_violin(alpha = 0.5) +
-  theme_bw() +
-  scale_color_manual(
-    values = cell_type_palette(
-      levels(factorize(tmp_infos$DEA_cell_type)))) +
-  labs(x = "clones",
-       color = "DEA_cell_type",
+       y =  "log10(SELL+1)",
+       color = "founder_cell_type",
        title = day)
 print(g)
 ggsave(file = paste0(
   "results/cycling/violing_invitro_P3128_SELL_vs_DEA_cell_type.pdf"
 ))
 
-g <- ggplot(tmp_infos,
-   aes(x = clonality,
-      y = log10(MKI67 + 1),
-      color = DEA_clone_cell_type)) +
-  geom_jitter() +
-  geom_violin(alpha = 0.5) +
-  theme_bw() +
-  scale_color_manual(
-    values = cell_type_palette(
-      levels(factorize(tmp_infos$DEA_cell_type)))) +
-  labs(x = "clones",
-       color = "DEA_cell_type",
-       title = day)
-print(g)
-ggsave(file = paste0(
-  "results/cycling/violing_invitro_P3128_MKI67_vs_DEA_cell_type.pdf"
-))
 
-
-
-save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
-load(file = "results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
-scd_norm <- scd
-load("results/QC/cells_counts_QC.Rdata")
-scd <- scdata$new(
-  infos = scd_norm$getfeatures,
-  counts = scd$getcounts
-)
-save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
-
+# DEA analysis InVitro P3128
 
 day <- "InVitro"
 experiment <- "P3128"
@@ -796,8 +751,6 @@ b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("experiment") %in% experiment &
   scd$getfeature("QC_good") %in% T &
   scd$getfeature("cell_number") %in% 1
-
-# DEA analysis InVitro P3128
 
 load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
 system(
