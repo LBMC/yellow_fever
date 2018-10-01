@@ -506,10 +506,10 @@ for (alt in c("lesser", "greater")) {
   )
   hm <- heatmap_genes(
     scd = scd_norm,
-    features = c("clone", "ppDEA_cell_type"),
+    features = c("clone", "pDEA_cell_type"),
     cells_order = order(
       as.numeric(as.vector(
-        scd_norm$getfeature("ppDEA_cell_type")
+        scd_norm$getfeature("pDEA_cell_type")
       ))
     ),
     genes_order = gene_order,
@@ -525,10 +525,10 @@ for (alt in c("lesser", "greater")) {
 
   hm_corr <- heatmap_corr_genes(
     scd = scd_norm,
-    features = c("clone", "ppDEA_cell_type"),
+    features = c("clone", "pDEA_cell_type"),
     cells_order = order(
       as.numeric(as.vector(
-        scd_norm$getfeature("ppDEA_cell_type")
+        scd_norm$getfeature("pDEA_cell_type")
       ))
     ),
     title = hm_title,
@@ -548,14 +548,23 @@ for (alt in c("lesser", "greater")) {
 
 ################################################################################
 # DEA PLS for the InVitro P3128 data
+rm(list=ls())
 setwd("~/projects/yellow_fever")
 devtools::load_all("../scRNAtools/", reset = T)
 
-load("results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata")
-load("results/cell_type/mbatch_day_surface_cell_type_weighted_DEA.Rdata")
-b_genes <- !is.na(mbatch_day_surface_cell_type_weighted_DEA$padj) &
-  mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05
-DEA_genes <- mbatch_day_surface_cell_type_weighted_DEA$gene[b_genes]
+day <- "InVitro"
+experiment <- "P1902"
+load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+load(paste0("results/cell_type/mbatch_", day, "_", experiment, "_pfounder_cell_type_DEA.Rdata"))
+b_genes <- !is.na(mbatch_pfounder_cell_type_DEA$padj) &
+  mbatch_pfounder_cell_type_DEA$padj < 0.05
+DEA_genes <- mbatch_pfounder_cell_type_DEA$gene[b_genes]
+day <- "InVitro"
+experiment <- "P3128"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
 length(DEA_genes)
 
 # load selection off genes and makers to classify on
@@ -572,22 +581,6 @@ for (marker_type in colnames(genes_PLS)) {
     }
   }
 }
-
-devtools::load_all("../scRNAtools/", reset = T)
-load("results/cycling/CB_counts_QC_cycling_invitro_P1902_P3128.Rdata", v = T)
-day <- "InVitro"
-experiment <- "P3128"
-b_cells <- scd$getfeature("day") %in% day &
-  scd$getfeature("experiment") %in% experiment &
-  scd$getfeature("QC_good") %in% T &
-  scd$getfeature("cell_number") %in% 1
-
-founder_phenotype <- scd$getfeature("founder_phenotype")
-founder_phenotype[
-  b_cells & founder_phenotype %in% "UNK"] <- NA
-scd$setfeature("founder_phenotype", founder_phenotype)
-summary(as.factor(founder_phenotype[b_cells]))
-
 PLS_genes <- scd$getgenes[scd$getgenes %in%
                           unique(c(DEA_genes, genes_marker, "KLRD1", "SELL"))]
 good_pls <- apply(scd$select(b_cells = b_cells,
@@ -600,11 +593,44 @@ good_pls <- apply(scd$select(b_cells = b_cells,
                   })
 PLS_genes <- PLS_genes[good_pls]
 
-system("cp results/cell_type/DEA_cell_types_weighted_force_invitro_P1902_denovo_training_lsplsstab.Rdata results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo_training_lsplsstab.Rdata")
-system("cp results/cell_type/DEA_cell_types_weighted_force_invitro_P1902_denovo_classification_lplscv.Rdata results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo_classification_lplscv.Rdata")
-system("rm results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo_classification_lpls.Rdata")
+founder_phenotype <- scd$getfeature("founder_phenotype")
+founder_phenotype[
+  b_cells & founder_phenotype %in% "UNK"] <- NA
+scd$setfeature("founder_phenotype", founder_phenotype)
+summary(as.factor(founder_phenotype[b_cells]))
 
-load("results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P1902_denovo.Rdata")
+system("rm results/cell_type/DEA_cell_types_invitro_P3128_denovo*")
+system("cp results/cell_type/DEA_cell_types_invitro_P1902_denovo_training_lsplsstab.Rdata results/cell_type/DEA_cell_types_invitro_P3128_denovo_training_lsplsstab.Rdata")
+system("cp results/cell_type/DEA_cell_types_invitro_P1902_denovo_classification_lplscv.Rdata results/cell_type/DEA_cell_types_invitro_P3128_denovo_classification_lplscv.Rdata")
+system("rm results/cell_type/DEA_cell_types_invitro_P3128_denovo_classification_lpls.Rdata")
+load("results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo.Rdata")
+
+day <- "InVitro"
+experiment <- c("P1902", "P3128")
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "founder_cell_type",
+  features = c(),
+  genes = c(genes_marker, DEA_genes),
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_invitro_P3128_denovo",
+  force =  genes_marker
+)
+system("~/scripts/sms.sh \"PLS done\"")
+traceback()
+
+summary( scd$select(b_cells = b_cells, genes = c(genes_marker, DEA_genes))$getcounts )
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_splsstab_invitro_P3128_denovo.Rdata"
+)
+
 
 devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
@@ -621,34 +647,13 @@ DEA_cell_type_classification <- classification(
 
 save(
   DEA_cell_type_classification,
-  file = "results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P3128_denovo.Rdata"
+  file = "results/cell_type/DEA_cell_types_splsstab_invitro_P3128_denovo.Rdata"
 )
 
-# system("rm results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo*")
-
-
-DEA_cell_type_classification <- classification(
-  scd = scd$select(b_cells = b_cells),
-  feature = "founder_phenotype",
-  features = c(),
-  genes = PLS_genes,
-  ncores = 10,
-  algo = "spls_stab",
-  output_file = "results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo",
-  force = unique(c(genes_marker, "KLRD1", "SELL"))[
-            unique(c(genes_marker, "KLRD1", "SELL")) %in% PLS_genes
-          ]
-)
-
-save(
-  DEA_cell_type_classification,
-  file = "results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P3128_denovo.Rdata"
-)
-
-load("results/cell_type/DEA_cell_types_weighted_force_splsstab_invitro_P3128_denovo.Rdata")
+load("results/cell_type/DEA_cell_types_splsstab_invitro_P3128_denovo.Rdata")
 
 day <- "InVitro"
-experiment <- "P3128"
+experiment <- c("P1902", "P3128")
 b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("experiment") %in% experiment &
   scd$getfeature("QC_good") %in% T &
@@ -663,6 +668,12 @@ scd$setfeature("pDEA_cell_type", cell_type_pgroups)
 save(scd, file = "results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
 
 load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
+day <- "InVitro"
+experiment <- "P3128"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
 genes_list <- c("GZMB", "CX3CR1", "CCL4", "GNLY", "GZMH", "KLRD1", "GZMG",
   "PRF1", "HOPX", "CCL5", "GZMK", "SELL", "IL7R", "LEF1", "TCF7", "LTB",
   "NELL2", "CCR7")
