@@ -313,7 +313,6 @@ DEA_cell_type_classification <- classification(
   force =  genes_marker
 )
 system("~/scripts/sms.sh \"PLS done\"")
-traceback()
 
 summary( scd$select(b_cells = b_cells, genes = c(genes_marker, DEA_genes))$getcounts )
 
@@ -323,6 +322,15 @@ save(
 )
 
 load("results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo.Rdata")
+
+factor_weight <- data.frame(
+  factor = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  weight = DEA_cell_type_classification$classification$model$X.weight)
+factor_weight
+write.csv(
+  factor_weight,
+  file = "results/cell_type/DEA_cell_types_P1902_factor_weight.csv"
+)
 
 day <- "InVitro"
 experiment <- "P1902"
@@ -698,8 +706,15 @@ tmp_infos$DEA_clone_cell_type <- ifelse(
   "MEM",
   "EFF"
 )
+
 tmp_infos$KLRD1 <- scd$select(b_cells = b_cells)$getgene("KLRD1")
+tmp_infos$KLRD1_clone <- unlist(as.list(by(
+  log10(tmp_infos$KLRD1+1), tmp_infos$clonality, median
+))[tmp_infos$clonality])
 tmp_infos$SELL <- scd$select(b_cells = b_cells)$getgene("SELL")
+tmp_infos$SELL_clone <- unlist(as.list(by(
+  log10(tmp_infos$SELL+1), tmp_infos$clonality, median
+))[tmp_infos$clonality])
 tmp_infos$MKI67 <- scd$select(b_cells = b_cells)$getgene("MKI67")
 
 table(tmp_infos$DEA_clone_cell_type)
@@ -723,6 +738,8 @@ ggsave(file = paste0(
   "results/cycling/violing_invitro_P3128_cycling_vs_DEA_cell_type.pdf"
 ))
 
+clone_name <- as.vector(tmp_infos$clonality)[order(tmp_infos$SELL_clone)]
+tmp_infos$clonality <- factor(tmp_infos$clonality, levels = unique(clone_name))
 g <- ggplot(tmp_infos,
    aes(x = clonality,
       y = log10(SELL+1),
@@ -740,6 +757,25 @@ g <- ggplot(tmp_infos,
 print(g)
 ggsave(file = paste0(
   "results/cycling/violing_invitro_P3128_SELL_vs_DEA_cell_type.pdf"
+))
+
+g <- ggplot(tmp_infos,
+   aes(x = clonality,
+      y = log10(KLRD1+1),
+      color = DEA_clone_cell_type)) +
+  geom_violin(alpha = 0.5) +
+  geom_jitter(aes(color = DEA_cell_type)) +
+  theme_bw() +
+  scale_color_manual(
+    values = cell_type_palette(
+      levels(factorize(tmp_infos$DEA_cell_type)))) +
+  labs(x = "clones",
+       y =  "log10(SELL+1)",
+       color = "founder_cell_type",
+       title = day)
+print(g)
+ggsave(file = paste0(
+  "results/cycling/violing_invitro_P3128_KLRD1_vs_DEA_cell_type.pdf"
 ))
 
 infos_M <- scd$getfeatures
