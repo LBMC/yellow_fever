@@ -75,7 +75,6 @@ table(good_pls)
 
 summary(as.factor(scd$select(b_cells = b_cells)$getfeature("founder_phenotype")))
 
-PLS_genes
 system("rm results/cell_type/founder_cell_types_invitro_P1902_denovo*")
 founder_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
@@ -331,6 +330,37 @@ write.csv(
   factor_weight,
   file = "results/cell_type/DEA_cell_types_P1902_factor_weight.csv"
 )
+
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "founder_cell_type",
+  features = c(),
+  genes = c(genes_marker, DEA_genes),
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_invitro_P1902_denovo_noforce",
+  force = c()
+)
+system("~/scripts/sms.sh \"PLS done\"")
+
+summary( scd$select(b_cells = b_cells, genes = c(genes_marker, DEA_genes))$getcounts )
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo_noforce.Rdata"
+)
+
+load("results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo.Rdata")
+
+factor_weight <- data.frame(
+  factor = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  weight = DEA_cell_type_classification$classification$model$X.weight)
+factor_weight
+write.csv(
+  factor_weight,
+  file = "results/cell_type/DEA_cell_types_P1902_noforce_factor_weight.csv"
+)
+
 
 day <- "InVitro"
 experiment <- "P1902"
