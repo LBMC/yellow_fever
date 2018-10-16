@@ -331,12 +331,13 @@ write.csv(
   file = "results/cell_type/DEA_cell_types_P1902_factor_weight.csv"
 )
 
+system("rm results/cell_type/DEA_cell_types_invitro_P1902_denovo_noforce*")
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "founder_cell_type",
   features = c(),
   genes = c(genes_marker, DEA_genes),
-  ncores = 10,
+  ncores = 6,
   algo = "spls_stab",
   output_file = "results/cell_type/DEA_cell_types_invitro_P1902_denovo_noforce",
   force = c()
@@ -350,7 +351,7 @@ save(
   file = "results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo_noforce.Rdata"
 )
 
-load("results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo.Rdata")
+load("results/cell_type/DEA_cell_types_splsstab_invitro_P1903_denovo.Rdata")
 
 factor_weight <- data.frame(
   factor = DEA_cell_type_classification$classification$fit_spls$fit$selected,
@@ -389,6 +390,17 @@ per_genes_barplot(
   color_by = "DEA_cell_type",
   file = paste0(
     "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_invitro_P1902.pdf"),
+  main = paste0("founder_cell_type InVitro P1902")
+)
+
+per_genes_barplot(
+  scd = scd$select(b_cells = b_cells),
+  genes = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  features = c("ccr7", "pDEA_cell_type"),
+  order_by = "pDEA_cell_type",
+  color_by = "DEA_cell_type",
+  file = paste0(
+    "results/cell_type/per_genes_barplot_CB_counts_QC_DEA_invitro_P1902_selected.pdf"),
   main = paste0("founder_cell_type InVitro P1902")
 )
 
@@ -483,6 +495,36 @@ write.csv(
   mbatch_pDEA_cell_type_DEA,
   file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA.csv")
 )
+
+
+system(
+  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_noforce_pDEA_cell_type_DEA")
+)
+
+system(
+  paste0("mkdir -p results/cell_type/mbatch_", day, "_", experiment, "_noforce_pDEA_cell_type_DEA")
+)
+mbatch_pDEA_cell_type_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ (1|batch)",
+  formula_full = "y ~ (1|batch) + pDEA_cell_type",
+  b_cells = b_cells,
+  continuous = "pDEA_cell_type",
+  cpus = 10,
+  v = T,
+  folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_noforce_pDEA_cell_type_DEA")
+)
+save(
+  mbatch_pDEA_cell_type_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_noforce_pDEA_cell_type_DEA.Rdata")
+)
+system("~/scripts/sms.sh \"DEA done\"")
+print(table(is.na(mbatch_pDEA_cell_type_DEA$padj)))
+print(table(mbatch_pDEA_cell_type_DEA$padj < 0.05))
+write.csv(
+  mbatch_pDEA_cell_type_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_noforce_pDEA_cell_type_DEA.csv")
+)
 ############################
 
 load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
@@ -533,8 +575,8 @@ for (alt in c("lesser", "greater")) {
       "DE genes between cell-type
       ", day, "_", experiment, "(zi >= 0.5)")
   }
-  # system( paste0("rm results/cell_type/gene_cov_",
-  #                day, "_", experiment, "_zi0.5_", alt, "_top100*") )
+  system( paste0("rm results/cell_type/gene_cov_",
+                 day, "_", experiment, "_zi0.5_", alt, "_top100*") )
   gene_order <- order_by_factor(
     scd = scd_norm,
     score = scd_norm$getfeature("pDEA_cell_type"),
@@ -662,13 +704,11 @@ DEA_cell_type_classification <- classification(
 system("~/scripts/sms.sh \"PLS done\"")
 traceback()
 
-summary( scd$select(b_cells = b_cells, genes = c(genes_marker, DEA_genes))$getcounts )
 
 save(
   DEA_cell_type_classification,
   file = "results/cell_type/DEA_cell_types_splsstab_invitro_P3128_denovo.Rdata"
 )
-
 
 devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
@@ -682,6 +722,7 @@ DEA_cell_type_classification <- classification(
   output_file = "results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo",
   force = DEA_cell_type_classification$classification$fit_spls$fit$selected
 )
+system("~/scripts/sms.sh \"PLS done\"")
 
 save(
   DEA_cell_type_classification,
@@ -689,6 +730,25 @@ save(
 )
 
 load("results/cell_type/DEA_cell_types_splsstab_invitro_P3128_denovo.Rdata")
+
+load("results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo_noforce.Rdata")
+b_cells <- scd$getfeature("QC_good") %in% T
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "founder_phenotype",
+  features = c(),
+  genes = DEA_cell_type_classification$classification$fit_spls$fit$selected,
+  ncores = 6,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_weighted_force_invitro_P3128_denovo",
+  force = c()
+)
+system("~/scripts/sms.sh \"PLS done\"")
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_splsstab_invitro_P3128_denovo_noforce.Rdata"
+)
 
 day <- "InVitro"
 experiment <- c("P1902", "P3128")
