@@ -1086,6 +1086,103 @@ heatmap_corr_cells <- function(
   return(hmap)
 }
 
+#' correlation heatmap of genes split in two by zi
+#' @param scd is a scRNASeq data object
+#' @param features features of the scd object to display
+#' @param genes_order genes order
+#' @param factor vector indicating which features should be dealt with like a
+#' factor
+#' @param show_legend (default: TRUE) should the legend be displayed
+#' @param title title of the heatmap
+#' @param ncomp (default = 5) number of metagene to compute (PCA)
+#' @param file name of the pdf to save the heatmap
+#' @return return a heatmap object
+#' @examples
+#' @examples
+#' \dontrun{
+#' split_heatmap(
+#'   scd = scd,
+#'   features = c("cell_type", "day"),
+#'   genes = DEG_list,
+#'   title = "cell type heatmap"
+#' )
+#' }
+#' @importFrom ComplexHeatmap Heatmap
+#' @export heatmap_corr_cells
+split_heatmap <- function(
+    scd,
+    features,
+    factor = rep(TRUE, length(features)),
+    genes,
+    genes_order,
+    cells_order,
+    zi_split = 0.5,
+    max_genes = 100,
+    show_legend = TRUE,
+    title = "",
+    pca = FALSE,
+    pCMF = FALSE,
+    ncomp = 4,
+    cpus = 4,
+    dist_name = "manhattan",
+    gene_size = 3,
+    file) {
+  for (alt in c("lesser", "greater")) {
+    DEA_genes <- genes
+    DEA_genes_exp <- expressed(
+      scd = scd$select(
+        genes = DEA_genes
+      ),
+      zi_threshold = zi_split,
+      alt = alt
+    )
+    b_genes <- scd$getgenes %in% DEA_genes_exp
+    scd_norm <- scd$select(
+        genes = DEA_genes_exp
+      )
+
+    hm_title <- paste0(title, " ", length(DEA_genes_exp),
+      "(zi <= ", zi_split, ")")
+    if (alt == "greater") {
+      hm_title <- paste0(title, " ", length(DEA_genes_exp),
+        "(zi >= ", zi_split, ")")
+    }
+    print(dim(scd_norm$getcounts))
+    print(length(cells_order))
+    print(length(genes_order[b_genes]))
+    hm <- heatmap_genes(
+      scd = scd_norm,
+      features = features,
+      cells_order = cells_order,
+      genes_order = order(genes_order[b_genes]),
+      title = hm_title,
+      factor = factor,
+      file = paste0(
+        file, "_zi", zi_split, "_", alt, "_cov.pdf"
+      ),
+      gene_size = gene_size
+    )
+    print(hm)
+
+    hm_corr <- heatmap_corr_genes(
+      scd = scd_norm,
+      features = features,
+      cells_order = cells_order,
+      title = hm_title,
+      factor = c(T, F),
+      file = paste0(
+        file, "_zi", zi_split, "_", alt, "_cov_", dist_name, ".pdf"
+      ),
+      dist_name = "manhattan",
+      pca = F,
+      pCMF = F,
+      ncomp = 5,
+      cpus = 10
+    )
+    print(hm_corr)
+  }
+}
+
 #' genes expression barplot graph
 #'
 #' @param scd is a scRNASeq data object
