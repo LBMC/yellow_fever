@@ -23,6 +23,7 @@ write.csv(
   file = paste0("results/cell_type/cell_type_cells_counts_in_vitro.csv")
 )
 
+genes_to_rm <- read.table("data/Genes_exclude.csv", h = T)
 
 rm(list = ls())
 devtools::load_all("../scRNAtools/", reset = T)
@@ -33,6 +34,92 @@ DEA_genes <- mbatch_day_surface_cell_type_DEA$gene[b_genes]
 length(DEA_genes)
 
 
+# DEA analysis InVitro P1902 at the founder level
+load("results/cycling/cells_counts_QC_cycling_invitro_P1902_P3128.Rdata", v = T)
+scd <- scd$select(genes = scd$getgenes[!scd$getgenes %in% genes_to_rm])
+day <- "InVitro"
+experiment <- "P1902"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+
+system(
+  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_founder_phenotype_DEA")
+)
+system(
+  paste0("mkdir -p results/cell_type/mbatch_", day, "_", experiment, "_founder_phenotype_DEA")
+)
+mbatch_founder_phenotype_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ (1|batch)",
+  formula_full = "y ~ (1|batch) + founder_phenotype",
+  b_cells = b_cells,
+  cpus = 8,
+  v = T,
+  folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_founder_phenotype_DEA")
+)
+save(
+  mbatch_founder_phenotype_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_founder_phenotype_DEA.Rdata")
+)
+system("~/scripts/sms.sh \"DEA done\"")
+print(table(is.na(mbatch_founder_phenotype_DEA$padj)))
+print(table(mbatch_founder_phenotype_DEA$padj < 0.05))
+write.csv(
+  mbatch_founder_phenotype_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_founder_phenotype_DEA.csv")
+)
+
+scd_norm <- scd$select(
+    b_cells = b_cells,
+  )
+clonality <- scd_norm$getfeature("clonality")
+clonality <- factor(
+  clonality,
+  levels = c("A7", "A8", "G6", "G8", "H9", "F3", "E4", "H2", "B4")
+)
+scd_norm$setfeature("clone", clonality)
+
+b_genes <- !is.na(mbatch_founder_phenotype_DEA$padj) &
+  mbatch_founder_phenotype_DEA$padj < 0.05
+DEA_genes <- mbatch_founder_phenotype_DEA$gene[b_genes]
+
+cells_order <- order(scd_norm$getfeature("founder_phenotype"),
+                    scd_norm$getfeature("clone"))
+genes_order <- order_TMP(
+  scd = scd_norm$select(genes = DEA_genes),
+  by = scd_norm$getfeature("founder_phenotype"),
+)
+clone_palette <- function(clonality, other_set = TRUE){
+  clonality_color <- RColorBrewer::brewer.pal(
+    10, "RdYlBu"
+  )[-6]
+  names(clonality_color) <- levels(clonality)
+  return(clonality_color)
+}
+founder_phenotype_palette <- cell_type_palette
+
+
+devtools::load_all("../scRNAtools/", reset = T)
+split_heatmap(
+  scd = scd_norm,
+  genes = DEA_genes,
+  features = c("clone", "founder_phenotype"),
+  title = "hm_CB_counts_QC_founder_phenotype_",
+  factor = c(T, T),
+  genes_order = genes_order,
+  cells_order = cells_order,
+  file = paste0(
+    "results/cell_type/heatmap/hm_CB_counts_QC_", day, "_",
+    experiment, "_founder_phenotype"
+  )
+)
+
+
+###############################################################################
+
+# 1st PLS based on founder_phenotype DEA and annotation
 load("results/cycling/cells_counts_QC_cycling_invitro_P1902_P3128.Rdata", v = T)
 day <- "InVitro"
 experiment <- "P1902"
@@ -43,6 +130,7 @@ b_cells <- scd$getfeature("day") %in% day &
 founder_phenotype <- scd$getfeature("founder_phenotype")
 founder_phenotype[b_cells & scd$getfeature("clonality") %in% "A7"] <- NA
 scd$setfeature("founder_phenotype", founder_phenotype)
+scd <- scd$select(genes = scd$getgenes[!scd$getgenes %in% genes_to_rm])
 
 # load selection off genes and makers to classify on
 genes_PLS <- read.csv("data/genes_PLS.csv")
@@ -255,7 +343,7 @@ mbatch_pfounder_cell_type_DEA <- DEA(
   formula_full = "y ~ (1|batch) + pfounder_cell_type",
   b_cells = b_cells,
   continuous = "pfounder_cell_type",
-  cpus = 8,
+  cpus = 4,
   v = T,
   folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_pfounder_cell_type_DEA")
 )
@@ -273,16 +361,16 @@ write.csv(
 
 # 2nd PLS based on DEA genes
 day <- "InVitro"
-experiment <- "P1902"
-load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
-load(paste0("results/cell_type/mbatch_", day, "_", experiment, "_pfounder_cell_type_DEA.Rdata"))
+experiment <- "P1903"
+load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1903.Rdata")
+load(paste1("results/cell_type/mbatch_", day, "_", experiment, "_pfounder_cell_type_DEA.Rdata"))
 b_genes <- !is.na(mbatch_pfounder_cell_type_DEA$padj) &
-  mbatch_pfounder_cell_type_DEA$padj < 0.05
+  mbatch_pfounder_cell_type_DEA$padj < 1.05
 DEA_genes <- mbatch_pfounder_cell_type_DEA$gene[b_genes]
 b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("experiment") %in% experiment &
   scd$getfeature("QC_good") %in% T &
-  scd$getfeature("cell_number") %in% 1
+  scd$getfeature("cell_number") %in% 2
 length(DEA_genes)
 
 # load selection off genes and makers to classify on
@@ -535,7 +623,6 @@ b_cells <- scd$getfeature("day") %in% day &
   scd$getfeature("QC_good") %in% T &
   scd$getfeature("cell_number") %in% 1
 load(paste0("results/cell_type/mbatch_", day, "_", experiment, "_pDEA_cell_type_DEA.Rdata"))
-
 
 for (alt in c("lesser", "greater")) {
   b_genes <- !is.na(mbatch_pDEA_cell_type_DEA$padj) &
