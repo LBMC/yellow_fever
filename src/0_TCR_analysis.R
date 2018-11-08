@@ -7,7 +7,8 @@ load("results/QC/counts_QC.Rdata")
 
 # check TCR correspondance
 tcr_data <- c()
-for (csv in list.files("data/")[grepl("TCR_*", list.files("data/"))]) {
+for (csv in list.files("data/")[grepl("TCR_.*csv", list.files("data/"))]) {
+  message(csv)
   x <- read.csv(paste0("data/", csv), header = TRUE, sep = ",")
   x <- x[!(x$Clone.Number %in% "Clone Number"),]
   x <- x[!is.na(x$Timepoint),]
@@ -330,49 +331,75 @@ for(antigen in levels(infos$antigen)){
            envir = .GlobalEnv)
   }
 }
-clone_size <- function(data){
+clone_size <- function(data, rm.unique = T){
+  if (rm.unique) {
+    data <- data[as.numeric(as.vector(data$clonality)) < 10000,]
+  }
   data <- table(factorize(data$clonality_p), as.numeric(as.vector(data$day)))
   data <- as.matrix(data)
   for(i in seq_len(ncol(data)-1)){
-    data[data[,i] == 0 & data[,i+1] !=0,i] <- 1
+    data[data[,i] == 0 & data[,i+1] != 0,i] <- 1
   }
   data <- cbind(data,
                 data[,ncol(data)] != 0)
   colnames(data) <- c(paste0("D",colnames(data)[1:(ncol(data)-1)]), "LLC")
   data <- as.data.frame(data)
+  data <- data[, -ncol(data)]
   return(data)
 }
 surival_prob <- function(coefficients){
   coefficients <- as.data.frame(coefficients)
   coefficients$OR <- exp(coefficients[, 1])
   coefficients$proba <- coefficients$OR / (1 + coefficients$OR)
-  for (i in 2:nrow(coefficients)) {
-    coefficients$OR[i] <- exp(coefficients[1, 1]) * exp(coefficients[i, 1])
-    coefficients$proba[i] <- coefficients$OR[i] / (1 + coefficients$OR[i])
-  }
   return(coefficients)
 }
 
 library("reshape2")
+library("mice")
 data <- clone_size(infos_YFV16_A2)
-g <- summary(glm((D720!=0)~D15+D90, data=data, family="binomial"))
+g <- summary(glm((D720!=0)~-1+D15+D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
+g
+data <- clone_size(infos_YFV16_A2, F)
+g <- summary(glm((D720!=0)~-1+D15+D90, data=data, family="binomial"))
+g <- surival_prob(g$coefficients)
+g
 write.csv(g, file = "results/survival/survival_YFV16_A2.csv")
 data <- clone_size(infos_YFV2001_A2)
-g <- summary(glm((D650!=0)~D15+D136, data=data, family="binomial"))
+g <- summary(glm((D650!=0)~-1+D15+D136, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
+g
+data <- clone_size(infos_YFV2001_A2, F)
+g <- summary(glm((D650!=0)~-1+D15+D136, data=data, family="binomial"))
+g <- surival_prob(g$coefficients)
+g
 write.csv(g, file = "results/survival/survival_YFV2001_A2.csv")
 data <- clone_size(infos_YFV5_A2)
-g <- summary(glm((D90!=0)~D15, data=data, family="binomial"))
+g <- summary(glm((D90!=0)~-1+D15, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
+g
+data <- clone_size(infos_YFV5_A2, F)
+g <- summary(glm((D90!=0)~-1+D15, data=data, family="binomial"))
+g <- surival_prob(g$coefficients)
+g
 write.csv(g, file = "results/survival/survival_YFV5_A2.csv")
 data <- clone_size(infos_YFV2001_B7)
-g <- summary(glm((D136!=0)~D15, data=data, family="binomial"))
+g <- summary(glm((D136!=0)~-1+D15, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
+g
+data <- clone_size(infos_YFV2001_B7, F)
+g <- summary(glm((D136!=0)~-1+D15, data=data, family="binomial"))
+g <- surival_prob(g$coefficients)
+g
 write.csv(g, file = "results/survival/survival_YFV2001_B7.csv")
 data <- clone_size(infos_YFV2003_B7)
-g <- summary(glm((D148!=0)~D15+D30+D90, data=data, family="binomial"))
+g <- summary(glm((D148!=0)~-1+D15+D30+D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
+g
+data <- clone_size(infos_YFV2003_B7, F)
+g <- summary(glm((D148!=0)~-1+D15+D30+D90, data=data, family="binomial"))
+g <- surival_prob(g$coefficients)
+g
 write.csv(g, file = "results/survival/survival_YFV2003_B7.csv")
 
 
