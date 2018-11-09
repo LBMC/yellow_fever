@@ -111,7 +111,6 @@ tmp$type <- as.factor(tmp$type)
 tmp$type <- factor(tmp$type, levels = type_levels)
 tmp <- table(tmp$type, tmp$clonality)
 rownames(tmp)
-type_levels
 
 simpson_infos <- simpson_infos[-1, ]
 simpson_infos
@@ -361,7 +360,7 @@ g <- summary(glm((D720!=0)~-1+D15+D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 data <- clone_size(infos_YFV16_A2, F)
-g <- summary(glm((D720!=0)~-1+D15+D90, data=data, family="binomial"))
+g <- summary(glm((D720!=0)~-1+D15+D90+D15:D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 write.csv(g, file = "results/survival/survival_YFV16_A2.csv")
@@ -370,7 +369,7 @@ g <- summary(glm((D650!=0)~-1+D15+D136, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 data <- clone_size(infos_YFV2001_A2, F)
-g <- summary(glm((D650!=0)~-1+D15+D136, data=data, family="binomial"))
+g <- summary(glm((D650!=0)~-1+D15+D136+D15:D136, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 write.csv(g, file = "results/survival/survival_YFV2001_A2.csv")
@@ -402,4 +401,31 @@ g <- surival_prob(g$coefficients)
 g
 write.csv(g, file = "results/survival/survival_YFV2003_B7.csv")
 
+# fisherplot of clone size
+devtools::install_github("chrisamiller/fishplot")
+library("fishplot")
 
+fish_plot <- function(data, timepoints, title, min_size = 2) {
+  frac.table <- as.matrix(data)
+  frac.table <- frac.table[rowSums(frac.table) > min_size, ]
+  frac.table <- apply(frac.table, 2, function(x){
+    x <- x / sum(x) * 100
+  })
+  frac.table <- frac.table[order(frac.table[, 2], frac.table[, 3], frac.table[, 1]), ]
+  parents <- rep(0, nrow(frac.table))
+  fish <- createFishObject(frac.table, parents, timepoints = timepoints)
+  fish <- layoutClones(fish)
+  fish <- setCol(fish, rainbow(nrow(frac.table)))
+  pdf(file = paste0("results/survival/fish_plot", title, ".pdf"),
+      height = 10, width = 10)
+  fishPlot(fish, shape = "spline", title.btm = title,
+            vlines = timepoints,
+            vlab = paste("day", timepoints))
+  dev.off()
+}
+
+data <- clone_size(infos_YFV16_A2)
+fish_plot(data, timepoints=c(15,90,720), "YF16_A2", min_size = 2)
+
+data <- clone_size(infos_YFV2001_A2)
+fish_plot(data, timepoints=c(15,136,650), "YF2001_A2", min_size = 2)
