@@ -1,7 +1,7 @@
 install.packages("vegan")
 
 rm(list=ls())
-setwd("~/projects/yellow_fever/")
+setwd("~/projects/mold/yellow_fever/")
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/counts_QC.Rdata")
 
@@ -14,27 +14,24 @@ for (csv in list.files("data/")[grepl("TCR_.*csv", list.files("data/"))]) {
   x <- x[!is.na(x$Timepoint),]
   tcr_data <- rbind(tcr_data, x)
 }
+
 tcr_data$TCR.Alpha.Chain[tcr_data$TCR.Alpha.Chain == 'none'] <- NA
 tcr_data$TCR.Beta.Chain[tcr_data$TCR.Beta.Chain == 'none'] <- NA
 tcr_data$TCR.Alpha.Chain.n2[tcr_data$TCR.Alpha.Chain.n2 == 'none'] <- NA
-tcr_data$TCR.Beta.Chain.n2[tcr_data$TCR.Beta.Chain.n2 == 'none'] <- NA
 
 tcr_data$TCR.Alpha.Chain <- as.factor(tcr_data$TCR.Alpha.Chain)
 tcr_data$TCR.Beta.Chain <- as.factor(tcr_data$TCR.Beta.Chain)
 tcr_data$TCR.Alpha.Chain.n2 <- as.factor(tcr_data$TCR.Alpha.Chain.n2)
-tcr_data$TCR.Beta.Chain.n2 <- as.factor(tcr_data$TCR.Beta.Chain.n2)
-tcr_data$donor <- as.factor(as.vector(tcr_data$Donor.ID))
+tcr_data$donor <- as.factor(as.vector(tcr_data$Donor_ID))
 tcr_data$clonality <- as.factor(tcr_data$Clone.Number)
 tcr_data$clonality[tcr_data$clonality %in% ""] <- NA
 tcr_data$antigen <- as.factor(as.vector(tcr_data$Epitope))
-tcr_data$Timepoint[tcr_data$Timepoint %in% 908] <- 650
 tcr_data$Timepoint <- as.factor(tcr_data$Timepoint)
 tcr_data$day <- factor(tcr_data$Timepoint,
-                             levels = c(10, 15, 30, 90, 136, 148, 650, 720))
+                             levels = c(10, 15, 30, 90, 136, 148, 605, 720))
 tcr_data$TCRA1 <- as.numeric(tcr_data$TCR.Alpha.Chain)
 tcr_data$TCRB1 <- as.numeric(tcr_data$TCR.Beta.Chain)
 tcr_data$TCRA2 <- as.numeric(tcr_data$TCR.Alpha.Chain.n2)
-tcr_data$TCRB2 <- as.numeric(tcr_data$TCR.Beta.Chain.n2)
 
 # we assign a clone to cells without clones
 
@@ -103,7 +100,7 @@ tmp$time <- "early"
 tmp$time[tmp$day %in% 10] <- "early"
 tmp$time[tmp$day %in% c(15, 30)] <- "peak"
 tmp$time[tmp$day %in% c(90, 136, 148)] <- "late"
-tmp$time[tmp$day %in% c(650, 720)] <- "very_late"
+tmp$time[tmp$day %in% c(605, 720)] <- "very_late"
 tmp$time <- factor(tmp$time, c("early", "peak", "late", "very_late"))
 tmp$type <- paste(tmp$donor, tmp$antigen, tmp$day, sep = "_")
 type_levels <- unique(tmp$type)
@@ -322,14 +319,18 @@ save(simpson_infos, simpson_boots, file="results/survival/rarefication.Rdata")
 write.csv(simpson_infos, file = "results/survival/rarefication.csv")
 
 infos$clonality_p <- paste0(infos$donor, infos$clonality)
+
 for(antigen in levels(infos$antigen)){
+  message(antigen)
   for(donor in levels(infos$donor)){
+    message(donor)
     r_select <- infos$donor %in% donor & infos$antigen %in% antigen
     assign(paste0("infos_", donor, "_", antigen),
            factorize(infos[r_select,]),
            envir = .GlobalEnv)
   }
 }
+
 clone_size <- function(data, rm.unique = T){
   if (rm.unique) {
     data <- data[as.numeric(as.vector(data$clonality)) < 10000,]
@@ -355,47 +356,47 @@ surival_prob <- function(coefficients){
 
 library("reshape2")
 library("mice")
-data <- clone_size(infos_YFV16_A2)
+data <- clone_size(infos_YFV16_A2, F)
 g <- summary(glm((D720!=0)~-1+D15+D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
-data <- clone_size(infos_YFV16_A2, F)
+data <- clone_size(infos_YFV16_A2)
 g <- summary(glm((D720!=0)~-1+D15+D90+D15:D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 write.csv(g, file = "results/survival/survival_YFV16_A2.csv")
-data <- clone_size(infos_YFV2001_A2)
-g <- summary(glm((D650!=0)~-1+D15+D136, data=data, family="binomial"))
+data <- clone_size(infos_YFV2001_A2, F)
+g <- summary(glm((D605!=0)~-1+D15+D136, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
-data <- clone_size(infos_YFV2001_A2, F)
-g <- summary(glm((D650!=0)~-1+D15+D136+D15:D136, data=data, family="binomial"))
+data <- clone_size(infos_YFV2001_A2)
+g <- summary(glm((D605!=0)~-1+D15+D136+D15:D136, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 write.csv(g, file = "results/survival/survival_YFV2001_A2.csv")
-data <- clone_size(infos_YFV5_A2)
-g <- summary(glm((D90!=0)~-1+D15, data=data, family="binomial"))
-g <- surival_prob(g$coefficients)
-g
 data <- clone_size(infos_YFV5_A2, F)
 g <- summary(glm((D90!=0)~-1+D15, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
-write.csv(g, file = "results/survival/survival_YFV5_A2.csv")
-data <- clone_size(infos_YFV2001_B7)
-g <- summary(glm((D136!=0)~-1+D15, data=data, family="binomial"))
+data <- clone_size(infos_YFV5_A2)
+g <- summary(glm((D90!=0)~-1+D15, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
+write.csv(g, file = "results/survival/survival_YFV5_A2.csv")
 data <- clone_size(infos_YFV2001_B7, F)
 g <- summary(glm((D136!=0)~-1+D15, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
+data <- clone_size(infos_YFV2001_B7)
+g <- summary(glm((D136!=0)~-1+D15, data=data, family="binomial"))
+g <- surival_prob(g$coefficients)
+g
 write.csv(g, file = "results/survival/survival_YFV2001_B7.csv")
-data <- clone_size(infos_YFV2003_B7)
+data <- clone_size(infos_YFV2003_B7, F)
 g <- summary(glm((D148!=0)~-1+D15+D30+D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
-data <- clone_size(infos_YFV2003_B7, F)
+data <- clone_size(infos_YFV2003_B7)
 g <- summary(glm((D148!=0)~-1+D15+D30+D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
@@ -426,6 +427,6 @@ fish_plot <- function(data, timepoints, title, min_size = 2) {
 
 data <- clone_size(infos_YFV16_A2)
 fish_plot(data, timepoints=c(15,90,720), "YF16_A2", min_size = 2)
-
 data <- clone_size(infos_YFV2001_A2)
-fish_plot(data, timepoints=c(15,136,650), "YF2001_A2", min_size = 2)
+fish_plot(data, timepoints=c(15,136,605), "YF2001_A2", min_size = 2)
+
