@@ -24,7 +24,7 @@ tcr_data$TCR.Beta.Chain <- as.factor(tcr_data$TCR.Beta.Chain)
 tcr_data$TCR.Alpha.Chain.n2 <- as.factor(tcr_data$TCR.Alpha.Chain.n2)
 tcr_data$donor <- as.factor(as.vector(tcr_data$Donor_ID))
 tcr_data$clonality <- as.factor(tcr_data$Clone.Number)
-tcr_data$clonality[tcr_data$clonality %in% ""] <- NA
+tcr_data$clonality[tcr_data$clonality %in% c("", 0)] <- NA
 tcr_data$antigen <- as.factor(as.vector(tcr_data$Epitope))
 tcr_data$Timepoint <- as.factor(tcr_data$Timepoint)
 tcr_data$day <- factor(tcr_data$Timepoint,
@@ -331,7 +331,7 @@ for(antigen in levels(infos$antigen)){
   }
 }
 
-clone_size <- function(data, rm.unique = T){
+clone_size <- function(data, rm.unique = F){
   if (rm.unique) {
     data <- data[as.numeric(as.vector(data$clonality)) < 10000,]
   }
@@ -356,8 +356,8 @@ surival_prob <- function(coefficients){
 
 library("reshape2")
 library("mice")
-data <- clone_size(infos_YFV16_A2, F)
-g <- summary(glm((D720!=0)~-1+D15+D90, data=data, family="binomial"))
+data <- clone_size(infos_YFV16_A2, T)
+g <- summary(glm((D720!=0)~-1+D15+D90+D15:D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 data <- clone_size(infos_YFV16_A2)
@@ -365,7 +365,7 @@ g <- summary(glm((D720!=0)~-1+D15+D90+D15:D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 write.csv(g, file = "results/survival/survival_YFV16_A2.csv")
-data <- clone_size(infos_YFV2001_A2, F)
+data <- clone_size(infos_YFV2001_A2, T)
 g <- summary(glm((D605!=0)~-1+D15+D136, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
@@ -374,7 +374,7 @@ g <- summary(glm((D605!=0)~-1+D15+D136+D15:D136, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 write.csv(g, file = "results/survival/survival_YFV2001_A2.csv")
-data <- clone_size(infos_YFV5_A2, F)
+data <- clone_size(infos_YFV5_A2, T)
 g <- summary(glm((D90!=0)~-1+D15, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
@@ -383,7 +383,7 @@ g <- summary(glm((D90!=0)~-1+D15, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 write.csv(g, file = "results/survival/survival_YFV5_A2.csv")
-data <- clone_size(infos_YFV2001_B7, F)
+data <- clone_size(infos_YFV2001_B7, T)
 g <- summary(glm((D136!=0)~-1+D15, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
@@ -392,7 +392,7 @@ g <- summary(glm((D136!=0)~-1+D15, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
 write.csv(g, file = "results/survival/survival_YFV2001_B7.csv")
-data <- clone_size(infos_YFV2003_B7, F)
+data <- clone_size(infos_YFV2003_B7, T)
 g <- summary(glm((D148!=0)~-1+D15+D30+D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
@@ -400,7 +400,7 @@ data <- clone_size(infos_YFV2003_B7)
 g <- summary(glm((D148!=0)~-1+D15+D30+D90, data=data, family="binomial"))
 g <- surival_prob(g$coefficients)
 g
-write.csv(g, file = "results/survival/survival_YFV2003_B7.csv")
+write.csv(g, file = "results/survival/survival_YFV2004_B7.csv")
 
 # fisherplot of clone size
 devtools::install_github("chrisamiller/fishplot")
