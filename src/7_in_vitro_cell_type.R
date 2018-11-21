@@ -439,7 +439,7 @@ save(
   file = "results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo_noforce.Rdata"
 )
 
-load("results/cell_type/DEA_cell_types_splsstab_invitro_P1903_denovo.Rdata")
+load("results/cell_type/DEA_cell_types_splsstab_invitro_P1902_denovo.Rdata")
 
 factor_weight <- data.frame(
   factor = DEA_cell_type_classification$classification$fit_spls$fit$selected,
@@ -1227,3 +1227,65 @@ write.csv(
   mbatch_clonality_DEA,
   file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.csv")
 )
+
+##################################### Normalization ###########################
+
+library(BiocParallel)
+library(zinbwave)
+devtools::load_all("../scRNAtools/", reset = T)
+
+load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+genes_to_rm <- read.table("data/Genes_exclude.csv", h = T)
+scd <- scd$select(genes = scd$getgenes[!scd$getgenes %in% genes_to_rm])
+day <- "InVitro"
+experiment <- "P1902"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+
+data <- SummarizedExperiment(
+  assays = list(counts = t(round(as.matrix(scd$select(b_cells = b_cells)$getcounts)))),
+  colData = scd$select(b_cells = b_cells)$getfeatures
+)
+filter <- rowSums(assay(data)>5)>5
+data <- data[filter, ]
+norm_data <- list()
+
+zinb_res <- zinbwave(data,
+                     K = 0,
+                     X = "~batch",
+                     normalizedValues=TRUE,
+                     residuals = TRUE,
+                     BPPARAM=MulticoreParam(4))
+norm_data[["batch"]] <- assay(zinb_res, "normalizedValues")
+
+zinb_res <- zinbwave(data,
+                     K = 0,
+                     X = "~batch + cycling_score",
+                     normalizedValues=TRUE,
+                     residuals = TRUE,
+                     BPPARAM=MulticoreParam(4))
+norm_data[["batch_cycling_score"]] <- assay(zinb_res, "normalizedValues")
+
+zinb_res <- zinbwave(data,
+                     K = 0,
+                     X = "~batch + cycling_score + pDEA_cell_type",
+                     normalizedValues=TRUE,
+                     residuals = TRUE,
+                     BPPARAM=MulticoreParam(4))
+norm_data[["batch_cycling_score_pDEA_cell_type"]] <- assay(zinb_res, "normalizedValues")
+
+save(norm_data,
+     file = "results/cell_type/counts_invitro_P1902_zinbwave_norm.Rdata"
+)
+
+data.frame(prcomp(t(norm_data[["batch_cycling_score_pDEA_cell_type"]]))$x[, 1:2],
+           cell_type=colData(data)$DEA_cell_type,
+           pcell_type=colData(data)$pDEA_cell_type,
+           cycling=colData(data)$cycling,
+           cycling_score=colData(data)$cycling_score,
+           clonality=colData(data)$clonality) %>%
+    ggplot(aes(PC1, PC2, colour=pcell_type, shape=cycling)) +
+    geom_point() +
+    theme_classic()
