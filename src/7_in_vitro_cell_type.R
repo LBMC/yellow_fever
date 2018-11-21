@@ -1146,3 +1146,84 @@ ggsave("results/cell_type/P1902_in_vitro_il7ra_pMEM.pdf",
        width = 11,
        height = 10)
 
+###############################################################################
+############################ Clonality analysis################################
+
+# P1902
+load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
+genes_to_rm <- read.table("data/Genes_exclude.csv", h = T)
+scd <- scd$select(genes = scd$getgenes[!scd$getgenes %in% genes_to_rm])
+day <- "InVitro"
+experiment <- "P1902"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+table(scd$select(b_cells = b_cells)$getfeature("batch"))
+table(as.factor(as.vector(scd$select(b_cells = b_cells)$getfeature("clonality"))))
+
+system(
+  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA")
+)
+system(
+  paste0("mkdir -p results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA")
+)
+mbatch_clonality_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ batch",
+  formula_full = "y ~ batch + (1|clonality)",
+  b_cells = b_cells,
+  cpus = 8,
+  v = T,
+  folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA")
+)
+save(
+  mbatch_clonality_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.Rdata")
+)
+system("~/scripts/sms.sh \"DEA done\"")
+print(table(is.na(mbatch_clonality_DEA$padj)))
+print(table(mbatch_clonality_DEA$padj < 0.05))
+write.csv(
+  mbatch_clonality_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.csv")
+)
+
+# P3128
+load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
+scd <- scd$select(genes = scd$getgenes[!scd$getgenes %in% genes_to_rm])
+day <- "InVitro"
+experiment <- "P3128"
+b_cells <- scd$getfeature("day") %in% day &
+  scd$getfeature("experiment") %in% experiment &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("cell_number") %in% 1
+table(scd$select(b_cells = b_cells)$getfeature("batch"))
+table(as.factor(as.vector(scd$select(b_cells = b_cells)$getfeature("clonality"))))
+
+system(
+  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA")
+)
+system(
+  paste0("mkdir -p results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA")
+)
+mbatch_clonality_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ (1|batch)",
+  formula_full = "y ~ (1|batch) + (1|clonality)",
+  b_cells = b_cells,
+  cpus = 8,
+  v = T,
+  folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA")
+)
+save(
+  mbatch_clonality_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.Rdata")
+)
+system("~/scripts/sms.sh \"DEA done\"")
+print(table(is.na(mbatch_clonality_DEA$padj)))
+print(table(mbatch_clonality_DEA$padj < 0.05))
+write.csv(
+  mbatch_clonality_DEA,
+  file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.csv")
+)
