@@ -369,7 +369,13 @@ DEA_fit <- function(data, formula_null, formula_full, gene_name,
       models_result[["formula_null"]]$residuals[1] <- NA
       models_result[["formula_full"]]$residuals[1] <- NA
       try_left <- 1
-      simplified <- TRUE
+      if (!base::grepl("\\(1\\|(.*)\\)",
+                       formulas[[names(formulas)[2]]], perl = T) &
+          !base::grepl("batch",
+                       formulas[[names(formulas)[2]]], perl = T)
+          ) {
+        simplified <- TRUE
+      }
     }
   }
   models_result[["formulas"]] <- formulas
@@ -612,7 +618,9 @@ ziNB_fit <- function(data, formula, gene_name,
       }
       print(e)
     }
-    if (!zi & !base::grepl("\\(1\\|(.*)\\)", formula, perl = T)) {
+    if (!zi &
+        !base::grepl("\\(1\\|(.*)\\)", formula, perl = T) &
+        !base::grepl("batch", formula, perl = T) ) {
       model <- tryCatch({
         if (v) {
           print(paste0("error: ADMB:NB_fit for ", gene_name,
@@ -775,10 +783,23 @@ zi_test <- function(data, formula = y ~ 1, gene_name,
 }
 
 simplify_formula <- function (formulas, v = F){
-  for (formula in names(formulas)) {
-    formulas[[formula]] <- gsub(
-      "\\(1\\|(.*)\\)", "\\1", formulas[[formula]], perl = T
-    )
+  if (!base::grepl("\\(1\\|(.*)\\)", formulas[[names( formulas )[2]]], perl = T) ) {
+    for (formula in names(formulas)) {
+      print( formulas[[formula]] )
+      formulas[[formula]] <- gsub(
+        "batch", "1", formulas[[formula]], perl = T
+      )
+      print( formulas[[formula]] )
+    }
+  }
+  if (base::grepl("\\(1\\|(.*)\\)", formulas[[names( formulas )[2]]], perl = T) ) {
+    for (formula in names(formulas)) {
+      print( formulas[[formula]] )
+      formulas[[formula]] <- gsub(
+        "\\(1\\|([^+]*)\\)", "\\1", formulas[[formula]], perl = T
+      )
+      print( formulas[[formula]] )
+    }
   }
   return(formulas)
 }
