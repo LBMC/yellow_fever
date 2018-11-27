@@ -596,7 +596,7 @@ ziNB_fit <- function(data, formula, gene_name,
         admb.opts = glmmADMB::admbControl(
           maxfn = 10000,
           imaxf = 10000,
-          maxph = 10
+          maxph = 100
         )
       )
       model[["admb"]] <- TRUE
@@ -616,7 +616,7 @@ ziNB_fit <- function(data, formula, gene_name,
       model <- tryCatch({
         if (v) {
           print(paste0("error: ADMB:NB_fit for ", gene_name,
-                       " trying with MASS"))
+                       " trying with MASS : ", formula))
         }
         MASS::glm.nb(
           as.formula(formula),
