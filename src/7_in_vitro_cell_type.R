@@ -1181,6 +1181,7 @@ save(
   mbatch_clonality_DEA,
   file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.Rdata")
 )
+load(paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.Rdata"))
 system("~/scripts/sms.sh \"DEA done\"")
 print(table(is.na(mbatch_clonality_DEA$padj)))
 print(table(mbatch_clonality_DEA$padj < 0.05))
@@ -1188,6 +1189,8 @@ write.csv(
   mbatch_clonality_DEA,
   file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.csv")
 )
+
+"ACTB"
 
 # P3128
 load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
@@ -1209,8 +1212,8 @@ system(
 )
 mbatch_clonality_DEA <- DEA(
   scd = scd,
-  formula_null = "y ~ (1|batch)",
-  formula_full = "y ~ (1|batch) + (1|clonality)",
+  formula_null = "y ~ batch",
+  formula_full = "y ~ batch + (1|clonality)",
   b_cells = b_cells,
   cpus = 8,
   v = T,
@@ -1293,17 +1296,14 @@ norm_data <- norm_sequence(data)
 save(norm_data,
      file = "results/cell_type/counts_invitro_P1902_zinbwave_norm.Rdata"
 )
-
-# pca
-data.frame(prcomp(t(norm_data[["batch_cycling_score_pDEA_cell_type"]]))$x[, 1:2],
-           cell_type=colData(data)$DEA_cell_type,
-           pcell_type=colData(data)$pDEA_cell_type,
-           cycling=colData(data)$cycling,
-           cycling_score=colData(data)$cycling_score,
-           clonality=colData(data)$clonality) %>%
-    ggplot(aes(PC1, PC2, colour=pcell_type, shape=cycling)) +
-    geom_point() +
-    theme_classic()
+for (norm_type in c("batch", "cycling_score")) {
+  message(norm_type)
+  write.csv(
+    norm_data[[norm_type]],
+    file = paste0("results/cell_type/norm_counts_",
+                  day ,"_", experiment, "_", norm_type, ".csv")
+  )
+}
 
 # p1902 DEG
 load(
@@ -1323,21 +1323,9 @@ for (norm_type in c("batch", "cycling_score")) {
   write.csv(
     norm_data[[norm_type]],
     file = paste0("results/cell_type/norm_counts_",
-                  day ,"_", experiment, "_", norm_type, ".csv")
+                  day ,"_", experiment, "_", norm_type, "_clonality_DEG.csv")
   )
 }
-
-# pca
-x11()
-data.frame(prcomp(t(norm_data[["batch"]]))$x[, 1:2],
-           batch=colData(data)$batch,
-           clonality=colData(data)$clonality,
-           cycling=colData(data)$cycling,
-           cycling_score=colData(data)$cycling_score,
-           clonality=colData(data)$clonality) %>%
-    ggplot(aes(PC1, PC2, colour=as.factor(batch), shape=as.factor(batch))) +
-    geom_point() +
-    theme_classic()
 
 # P3128
 load("results/cell_type/cells_counts_QC_DEA_cell_type_invitro_P1902.Rdata")
@@ -1355,6 +1343,14 @@ norm_data <- norm_sequence(data, c("batch", "cycling_score", "pDEA_cell_type"))
 save(norm_data,
      file = "results/cell_type/counts_invitro_P3128_zinbwave_norm.Rdata"
 )
+for (norm_type in c("batch", "cycling_score")) {
+  message(norm_type)
+  write.csv(
+    norm_data[[norm_type]],
+    file = paste0("results/cell_type/norm_counts_",
+                  day ,"_", experiment, "_", norm_type, ".csv")
+  )
+}
 
 # pca
 data.frame(prcomp(t(norm_data[["batch_cycling_score_pDEA_cell_type"]]))$x[, 1:2],
@@ -1385,7 +1381,7 @@ for (norm_type in c("batch", "cycling_score")) {
   write.csv(
     norm_data[[norm_type]],
     file = paste0("results/cell_type/norm_counts_",
-                  day ,"_", experiment, "_", norm_type, ".csv")
+                  day ,"_", experiment, "_", norm_type, "_clonality_DEG.csv")
   )
 }
 

@@ -47,3 +47,47 @@ for (sex in c("M", "F")) {
   }
 }
 
+library("tidyverse")
+infos <- read_csv("data/2018_12_04_List_Laurent_DOT_DEC2018.csv")
+infos_Genes <- infos %>%
+  dplyr::select(Gene_Group1, Gene_Group2, Gene_Group3) %>%
+  gather(key = "Gene_Group", value = "Gene") %>%
+  filter(!is.na(Gene)) %>%
+  mutate(Gene_Group = as.factor(Gene_Group))
+infos <- infos %>%
+  dplyr::select(Clone_Number, Donor) %>%
+  mutate(Donor = as.factor(Donor))
+
+for ( sexe in infos %>% pull(Donor) %>% levels() ) {
+  days <- c("D90")
+  days_title <- "Day 90 "
+  if ( sexe %in% "M" ) {
+    days <- c("D136", "D605")
+    days_title <- "Day 100+ "
+  }
+  b_cells <- scd$getfeature("QC_good") %in% T &
+    !is.na(scd$getfeature("DEA_cell_type")) &
+    scd$getfeature("day") %in% days &
+    scd$getfeature("sex") %in% sexe
+  clone_list <- infos %>%
+    filter(Donor %in% sexe) %>%
+    pull(Clone_Number)
+  for ( gene_type in infos_Genes %>% pull(Gene_Group) %>% levels() ) {
+    genes_list <- infos_Genes %>%
+      filter(Gene_Group %in% gene_type) %>%
+      pull(Gene)
+    scRNAtools::dotplot(
+      scd$select(b_cells = b_cells),
+      title = paste(days_title, gene_type),
+      clones_order = clone_list,
+      genes_order = genes_list,
+      file = paste0(
+        "results/clonality/cells_counts_QC_dotplot_",
+        gene_type, "_",
+        days_title,
+        "_", sexe, ".pdf"
+      )
+    )
+  }
+}
+
