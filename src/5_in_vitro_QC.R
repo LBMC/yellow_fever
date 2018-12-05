@@ -122,6 +122,9 @@ scd <- scdata$new(
 )
 save(scd, file = "results/QC/cells_counts_QC_in_vitro_P1902_P3128.Rdata")
 
+genes_to_rm <- read.table("data/Genes_exclude.csv", h = T)
+scd <- scd$select(genes = scd$getgenes[!scd$getgenes %in% genes_to_rm])
+day <- "InVitro"
 
 for (experiment in c("P1902", "P3128")) {
   system(paste0(
@@ -140,8 +143,16 @@ for (experiment in c("P1902", "P3128")) {
       "results/tmp/normalization_cells_combat_,", experiment, "_tmp.Rdata"
     )
   )
+  write.csv(
+    scd$select(b_cells = b_cells)$getcounts,
+    file = paste0("results/cell_type/CB_counts_",
+                  day ,"_", experiment, ".csv")
+  )
+  system("~/scripts/sms.sh \"Norm done\"")
 }
 save(scd, file = "results/QC/CB_counts_QC_in_vitro_P1902_P3128.Rdata")
+system("src/dump_dropbox.sh")
+
 load("results/QC/CB_counts_QC_in_vitro_P1902_P3128.Rdata")
 
 summary(scd$select(b_cells = b_cells)$getgene("CCR7"))
