@@ -1190,7 +1190,6 @@ write.csv(
   file = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.csv")
 )
 
-"ACTB"
 
 # P3128
 load("results/cell_type/CB_counts_QC_DEA_cell_type_invitro_P3128.Rdata")
@@ -1305,6 +1304,69 @@ for (norm_type in c("batch", "cycling_score")) {
   )
 }
 
+###############################################################################
+load("results/cell_type/counts_invitro_P1902_zinbwave_norm.Rdata")
+norm_data[["batch"]] %>% dim()
+
+names(norm_data)
+
+tibble(#counts = scd$select(b_cells = b_cells)$getgene("ACTB"),
+       counts_batch = norm_data[["batch"]]["ACTB",],
+       counts_batch_cycling = norm_data[["cycling_score"]]["ACTB",],
+       clonality = scd$select(b_cells = b_cells)$getfeature("clonality")
+       ) %>%
+  gather(counts_batch, counts_batch_cycling, key = "norm", value = "counts") %>%
+  ggplot() +
+  geom_violin(aes(x = clonality, y = counts, fill = norm)) +
+  theme_bw()
+
+tibble(counts = scd$select(b_cells = b_cells)$getgene("ACTB"),
+       counts_batch = norm_data[["batch"]]["ACTB",],
+       counts_batch_cycling = norm_data[["cycling_score"]]["ACTB",],
+       clonality = scd$select(b_cells = b_cells)$getfeature("clonality")
+       ) %>%
+  ggplot() +
+  geom_point(aes(x = counts, y = counts_batch)) +
+  theme_bw()
+
+Sys.setenv("DISPLAY"="localhost:10.0")
+tibble(counts = scd$select(b_cells = b_cells)$getgene("ACTB"),
+       clonality = scd$select(b_cells = b_cells)$getfeature("clonality")
+       ) %>%
+  ggplot() +
+  geom_violin(aes(x = clonality, y = counts, fill = clonality)) +
+  theme_bw()
+
+tibble(counts = scd$select(b_cells = b_cells)$getgene("IL7R"),
+       clonality = scd$select(b_cells = b_cells)$getfeature("clonality")
+       ) %>%
+  ggplot() +
+  geom_violin(aes(x = clonality, y = counts, fill = clonality)) +
+  theme_bw()
+
+scd_test <- scdata$new(
+  info = scd$select(b_cells = b_cells, genes = c("ACTB", "CCR7"))$getfeatures,
+  counts = scd$select(b_cells = b_cells, genes = c("ACTB", "CCR7"))$getcounts
+)
+
+scd_test <- scd$select(genes = c("ACTB", "IL7R"))
+
+devtools::load_all("../scRNAtools/", reset = T)
+system(
+  paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA_test")
+)
+mbatch_clonality_DEA <- DEA(
+  scd = scd_test,
+  formula_null = "y ~ batch",
+  formula_full = "y ~ batch + (1|clonality)",
+  b_cells = b_cells,
+   cpus = 2,
+  v = T,
+  folder_name = paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA_test")
+)
+mbatch_clonality_DEA
+
+###############################################################################
 # p1902 DEG
 load(
   paste0("results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA.Rdata")
