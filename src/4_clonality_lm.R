@@ -3,7 +3,6 @@ devtools::load_all("../scRNAtools/", reset = T)
 load("results/cycling/cells_counts_QC_cycling.Rdata")
 
 system("mkdir -p results/clonality/")
-
 for (sex in c("M", "F")) {
   days <- c("D15", "D136", "D593")
   if (sex %in% "F") {
@@ -59,6 +58,15 @@ for (sex in c("M", "F")) {
     ]
   )
   data_tmp$day <- factor(data_tmp$day, levels = days)
+
+  data_tmp$nday <- as.numeric(data_tmp$day)
+  data_tmp$clonality <- relevel(data_tmp$clonality, "")
+  levels(data_tmp$clonality)
+  model <- lm(pDEA_cell_type ~ nday * clonality, data_tmp)
+  model_coef <- summary(model)$coef
+  write.csv(model_coef, paste0("results/clonality/lm_pDEA_clone_", sex, "_coef.csv"))
+  model_factor <- as.data.frame(anova(model))
+  write.csv(model_factor, paste0("results/clonality/lm_pDEA_clone_", sex, "_factor.csv"))
 
   g <- ggplot() +
   geom_smooth(method="lm", se=F, data=data_tmp, aes(x=day, y=pDEA_cell_type, group=clonality, color=D15_cell_type)) +
