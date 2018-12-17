@@ -1,0 +1,46 @@
+\documentclass[a4paper,12pt]{article}
+
+\begin{document}
+
+The scripts used in this section are part of the scRNAtools R packages avalaible at :
+The analysis itself using the scRNAtools package is available at :
+
+\section{quality filtering \& normalization}
+
+In this section we filter and correct for cell specific effect the counts table produced by Salmon.
+
+We analysed first the *in vivo* data for the male donor (which are the most abundant).
+To filter cells looking like blanks, we use the SVM-bagging algorithm
+This algorithm run multiple SVM classifications between a group of cells labeled as blanks in the data and random sub-sample of unlabeled cells that should contain few cells looking like blanks \cite{mordeletBaggingSVMLearn2014b}.
+We classify each time the full dataset from the fitted SVM and record the results.
+We can then compute the probability of an unlabeled to look like a blank from the number of time that it has been classified as such.
+Finally we run a last SVM classification trained on the 50\% of cells with the highest or lowest probability of looking like a blank to label the cells.
+We removed from the subsequent analyses all the cells labeled as blank by the procedure.
+
+We corrected for cells effect using the SCnorm procedure \cite{bacherSCnormRobustNormalization2017e}.
+We processed each time-point independently to avoid removing any day specific effect.
+
+With less cells for the female donor *in vivo* data, and for the *in vitro* data, we used the SVM model fitted on the male donor the classify these cells.
+We removed from the subsequent analysis all the cells labeled as blank before correcting each time-point independently with SCnorm.
+
+
+\section{cell-type classification \& differential expression analysis}
+
+In this section we describe how we computed the probability for a given cells to be of memory type.
+
+As a starting point of this classification we used
+
+GNLY, GZMH, CCL4, KLRD1, GZMB and ZEB2 has representants of effector type genes.
+LTB, TCF7, CCR7, GZMK and SELL has representants of memory type genes.
+Finally the surface marker protein ccr7 and il7ra commonly used in the literature.
+
+
+
+\cite{durifHighDimensionalClassification2018}
+\cite{fournierADModelBuilder2012, skaugGeneralizedLinearMixed2016}
+
+
+\bibliographystyle{abbrv}
+\bibliography{bibliography}
+
+\end{document}
