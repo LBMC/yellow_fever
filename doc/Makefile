@@ -1,6 +1,8 @@
-all: 1_QC.pdf 2_cell_type.pdf
+all: mat_meth.pdf mat_meth.docx
 
-1_QC.pdf: 1_QC.md
-	R -e 'require("rmarkdown"); rmarkdown::render("1_QC.md")'
-2_cell_type.pdf: 2_cell_type.md
-	R -e 'require("rmarkdown"); rmarkdown::render("2_cell_type.md")'
+mat_meth.pdf: mat_meth.tex
+	xelatex mat_meth.tex
+
+mat_meth.docx: mat_meth.tex bibliography.bib
+	pandoc mat_meth.tex -o mat_meth.docx  --pdf-engine=xelatex --bibliography bibliography.bib
+
