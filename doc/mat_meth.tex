@@ -1,4 +1,5 @@
 \documentclass[a4paper,12pt]{article}
+\usepackage[round]{natbib}
 
 \begin{document}
 
@@ -9,13 +10,13 @@ The analysis itself using the scRNAtools package is available at :
 
 In this section we filter and correct for cell specific effect the counts table produced by Salmon.
 
-We started by analysing the *in vivo* data for the male donor (which are the most abundant).
+We started by analysing the {\it in vivo} data for the male donor (which are the most abundant).
 To filter cells looking like blanks (sequenced wells with no cell in it), we used the SVM-bagging algorithm \cite{mordeletBaggingSVMLearn2014b}.
 This algorithm fit multiple SVM between a group of cells labeled as blanks in the data and random sub-sample of unlabeled cells.
 Under the hypothesis that each random sub-sample should contain few cells looking like blanks, we classify each time the full dataset from the fitted SVM and record the results.
 We can then compute the probability of an unlabeled to look like a blank from the number of time that it has been classified as such.
 Finally we run a last SVM classification trained on the 25\% of cells with the highest and 25\% of the cells with the lowest probability of looking like a blank to label the cells.
-With less cells for the female donor *in vivo* data, and for the *in vitro* data, we used the SVM model fitted on the male donor the classify these cells.
+With less cells for the female donor {\it in vivo} data, and for the {\it in vitro} data, we used the SVM model fitted on the male donor the classify these cells.
 
 We removed from the subsequent analyses all the cells labeled as blank by this procedure.
 We corrected for cells effect using the SCnorm procedure \cite{bacherSCnormRobustNormalization2017e}.
@@ -25,9 +26,9 @@ We processed each time-point independently to avoid removing any day specific ef
 
 In this section we describe how we computed the probability for a given cells to be of memory type.
 
-To classify the cells we started with a manual classification of the male donor *in vivo* cells.
+To classify the cells we started with a manual classification of the male donor {\it in vivo} cells.
 This classification was constructed on the surface marker protein ccr7 and il7ra and identified 101 effector cells and 101 memory cells.
-Our goal was to extend this typology to all the *in vivo* cells and not just extreme ccr7 or il7ra phenotypes.
+Our goal was to extend this typology to all the {\it in vivo} cells and not just extreme ccr7 or il7ra phenotypes.
 For this we trained a logistic PLS model with a sparsity constraint on the following factors \cite{durifHighDimensionalClassification2018}:
 
 \begin{itemize}
@@ -39,8 +40,8 @@ For this we trained a logistic PLS model with a sparsity constraint on the follo
 This procedure is described in detail in the \citep{durifHighDimensionalClassification2018} paper.
 The sparsity constraint selected the surface protein marker ccr7 and il7ra, and the gene CCL4 as sufficient marker for this classification.
 
-We used this first PLS model on the complete male *in vivo* data set to produce a first classification of the male donor *in vivo* cells into memory or effector type.
-This classification was build on the full *in vivo* male data, crossing different batches and time-points, to try to extract a memory signature independent of these two factors.
+We used this first PLS model on the complete male {\it in vivo} data set to produce a first classification of the male donor {\it in vivo} cells into memory or effector type.
+This classification was build on the full {\it in vivo} male data, crossing different batches and time-points, to try to extract a memory signature independent of these two factors.
 
 We then performed a differential expression analysis between the two predicted cell types while accounting for batch and day effects.
 The following procedure describe the way we conduced differential expression analysis throughout the study:
@@ -53,16 +54,16 @@ To account for the large number of batches, we used the generalized linear model
 We then used the 322 differentially expressed genes ($FDR \leq 0.05$) \cite{benjaminiControllingFalseDiscovery1995}, in addition to the 11 genes used before to try to find a memory signature only relying on RNASeq data.
 To achieve this goal, we fitted a second logistic PLS model with a sparsity constraint on these factors and the manually annotated cells.
 The sparsity constraint selected the genes ABI3, CD8A, COTL1, FOXP1, HNRNPA1, LTB, NUCB2, GNLY, GZMH, CCL4, KLRD1, GZMB, ZEB2, TCF7, CCR7, GZMK and SELL as sufficient for this classification.
-We used this model on the whole male *in vivo* data set to compute our final classification.
+We used this model on the whole male {\it in vivo} data set to compute our final classification.
 In addition of using the binary memory or effector classification, we also used the probability of being in the memory group (which is a byproduct of modeling the two groups with a logistic distribution) through the paper.
 This memory probability contains also information when studying cells of intermediary expression type, allowed us to rank the cells.
 
-As for the quality filtering we used the second logistic PLS model fitted on the male *in vivo* data to classify the female *in vivo* data and the male *in vitro* data.
+As for the quality filtering we used the second logistic PLS model fitted on the male {\it in vivo} data to classify the female {\it in vivo} data and the male {\it in vitro} data.
 
 The final list of genes differentially expressed between cell-type was computed using the same likelihood ratio tests as before.
 For each time-point, we compared a model accounting for the memory probability as a continuous factor and the batch effect as a mixed effect to a more only accounting for the batch effect.
 
-\bibliographystyle{abbrv}
+\bibliographystyle{plainnat}
 \bibliography{bibliography}
 
 \end{document}
