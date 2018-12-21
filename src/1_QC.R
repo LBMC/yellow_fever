@@ -134,7 +134,7 @@ system("rm results/tmp/pca_*_QC_tmp.Rdata")
 
 # PCA on cell quality
 load("results/QC/counts_QC_M.Rdata")
-b_cells = scd$getfeature('to_QC')
+
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "QC_good", color_name = "antigen",
   tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata",
@@ -356,6 +356,32 @@ b_cells <- scd$getfeature("QC_good") %in% T
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "is_weird", color_name = "antigen",
   tmp_file = "results/tmp/pca_norm_counts_QC_tmp.Rdata")
+
+b_cells <- scd$getfeature("to_QC") & !scd$getfeature("is_weird") &
+  scd$getfeature("sex") %in% "M"
+pca_out <- ade4::dudi.pca(log1p(scd$select(b_cells = b_cells)$getcounts),
+                    scan = F,
+                    nf = scd$getncells - 1,
+                    scale = TRUE,
+                    center = TRUE)
+prop_of_var <- 100 * pca_out$eig[1:3] / sum(pca_out$eig)
+ggplot(data = data.frame(x = pca_out$l1$RS1,
+                         y = pca_out$l1$RS2,
+                         color = as.vector(scd$select(b_cells = b_cells)$getfeature("QC_good")) %in% "TRUE" &
+                         scd$select(b_cells = b_cells)$getfeature("cell_number") > 0),
+  aes(x = x, y = y, color = color)) +
+  labs(x = paste0("first axe: ",
+                    round(prop_of_var[1], digit = 2),
+                    "% of variance"),
+       y = paste0("second axe: ",
+                    round(prop_of_var[2], digit = 2),
+                    "% of variance"),
+       color = "QC pass"
+       ) +
+  scale_color_manual(values=c("#DF1000", "#2E3191")) +
+  geom_point() +
+  theme_bw()
+ggsave(file = paste0("results/QC/pca_Male_QC.pdf"))
 
 system("rm results/tmp/pca_norm_counts_QC_tmp.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T
