@@ -38,7 +38,10 @@ phenotype_surface_marker <- as.factor(as.vector(phenotype_surface_marker))
 scd$setfeature("phenotype_surface_cell_type", phenotype_surface_marker)
 b_cells <- scd$getfeature("QC_good") %in% T & scd$getfeature("sex") %in% "M"
 
+table(phenotype_surface_marker)
+
 scd$select(b_cells = b_cells)$getncells
+table(scd$select(b_cells = b_cells)$getfeature("phenotype_surface_cell_type"))
 
 ################################################################################
 # classification on surface_marker
