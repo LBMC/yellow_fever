@@ -4,5 +4,7 @@ results/*
 doc/*.pdf
 *.ipynb*
 2018_07_27_results
-*DS_Store
 .DS_Store
+.Rproj.user
+.Rhistory
+.RData
