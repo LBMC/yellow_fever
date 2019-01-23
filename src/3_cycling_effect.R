@@ -1,6 +1,6 @@
 rm(list = ls())
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 system("mkdir -p results/cycling/")
 

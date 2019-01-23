@@ -3,7 +3,7 @@
 
 rm(list = ls())
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 
 # with weights
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
@@ -224,7 +224,7 @@ for (day in c("D15", "D136", "D593")) {
 
 system("mkdir -p results/cell_type/heatmap/")
 DEA_cell_type_palette <- cell_type_palette
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 hm <- heatmap_genes(
   scd = scd$select(b_cells = b_cells, genes = DEA_genes),
   features = c("DEA_cell_type", "day", "pDEA_cell_type"),
@@ -314,7 +314,7 @@ for (day in c("D15", "D136", "D593")) {
 # DEA PLS for the F data
 rm(list = ls())
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 bad_F_cells <- paste0("P1292_", 1097:1192)
@@ -373,7 +373,7 @@ load("results/cell_type/DEA_cell_types_force_splsstab.Rdata")
 PLS_genes <- DEA_cell_type_classification$classification$fit_spls$fit$selected
 PLS_genes <- PLS_genes[!( PLS_genes %in% c("ZEB2") )]
 
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),

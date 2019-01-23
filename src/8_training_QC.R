@@ -1,6 +1,6 @@
 rm(list=ls())
 setwd("~/projects/yellow_fever/")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/QC/counts_QC.Rdata")
 scd$setfeature(
   "experiment",
@@ -57,7 +57,7 @@ save(scd, file = "results/QC/counts_QC_training.Rdata")
 
 # cells effect normalization
 load("results/QC/counts_QC_training.Rdata")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 
 experiment <- "training"
 b_cells <- scd$getfeature("experiment") %in% experiment &

@@ -3,7 +3,7 @@ load("results/cell_type/CB_counts_QC_DEA_cell_type.Rdata")
 b_cells <- scd$getfeature("sex") %in% "M" &
   scd$getfeature("day") %in% c("D15", "D136", "D593")
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 options(warn=1)
 

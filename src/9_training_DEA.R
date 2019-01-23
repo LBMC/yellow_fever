@@ -1,6 +1,6 @@
 rm(list=ls())
 setwd("~/projects/yellow_fever/")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/QC/cells_counts_QC_training.Rdata")
 
 experiment <- "training"

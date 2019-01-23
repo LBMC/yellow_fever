@@ -3,12 +3,12 @@
 
 rm(list=ls())
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_DEA")
 b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type")) & scd$getfeature("sex") %in% "M"
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 scd$select(b_cells = b_cells)$getncells
 mbatch_day_surface_cell_type_DEA <- DEA(
   scd = scd,
@@ -29,7 +29,7 @@ table(is.na(mbatch_day_surface_cell_type_weighted_DEA$padj))
 table(mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05)
 
 b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 DEA_paraload_parameters(
   paraload_file = "results/cell_type/mbatch_day_surface_cell_type_weighted_DEA/paraload.csv",
   scd = scd,

@@ -2,7 +2,7 @@ install.packages("vegan")
 
 rm(list=ls())
 setwd("~/projects/mold/yellow_fever/")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/QC/counts_QC.Rdata")
 
 # check TCR correspondance

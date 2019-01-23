@@ -3,7 +3,7 @@ load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 b_cells <- scd$getfeature("sex") %in% "M" &
   scd$getfeature("day") %in% c("D15", "D136", "D593")
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 
 for (day in c("D15", "D136", "D593")) {
@@ -153,7 +153,7 @@ for (day in c("D15", "D136", "D593")) {
   DEA_genes_inter[[day]] <- mbatch_DEA_cell_type_DEA$gene[b_genes]
 }
 
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("DEA_cell_type")) &
@@ -745,7 +745,7 @@ for (day in c("D15", "D136", "D593")) {
 ## DEA for the F donor
 
 rm(list=ls())
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 bad_F_cells <- paste0("P1292_", 1097:1192)
 scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
@@ -1083,7 +1083,7 @@ for (day in c("D15", "D136")) {
   print(hm_corr)
 }
 
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T &
   !is.na(scd$getfeature("DEA_cell_type")) &
   scd$getfeature("sex") %in% "F"
