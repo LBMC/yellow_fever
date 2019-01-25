@@ -96,10 +96,11 @@ for(antigen in levels(clone$antigen)) {
   }
 }
 clone <- clone %>%
-  right_join(clone %>% group_by(clone) %>% count()) %>%
+  right_join(clone %>% group_by(clone, day) %>% count()) %>%
   mutate(n = replace(n, n == max(n), 1))
 alpha_f <- tibble(donor = NA, day = NA, antigen = NA,
          alpha = NA, alpha_prec = NA)
+clone <- clone %>% filter(!(donor %in% "YFV5" & clone %in% 16407))
 for (i in 1:length(donors)) {
   for (j in 1:length(days)) {
     for (k in 1:length(antigens)) {
@@ -140,12 +141,15 @@ clone <- alpha_f %>%
   ) %>%
   distinct()
 
+clone %>% filter(donor %in% "YFV5", antigen %in% "A2") %>% arrange(desc(n))
+clone %>% arrange(desc(n))
+
 clone %>%
   mutate(percent = as.numeric(as.vector(percent))) %>%
   ggplot() +
   geom_histogram(aes(x = n, group = donor, fill = antigen)) +
-  facet_wrap(~donor + antigen + day)
-ggsave("results/survival/clone_size_histogram.pdf")
+  facet_wrap(~donor + antigen + day, scale = "free_y")
+ggsave("results/survival/clone_size_histogram_scaled.pdf")
 
 par(mfrow=c(1,1))
 clone %>%
@@ -194,7 +198,7 @@ clone %>%
   labs(x = "Fisher's Alpha",
        y = "percentage of CD8+ T cells"
   )
-ggsave("results/survival/fisher_vs_sampling_log10_D15.pdf")
+ggsave("results/survival/fisher_vs_sampling_log10_D15_nobig.pdf")
 
 
 clone %>%
