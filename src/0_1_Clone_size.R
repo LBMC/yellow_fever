@@ -1,6 +1,4 @@
-library("tidyverse")
-library("readxl")
-library("vegan")
+library("tidyverse") library("readxl") library("vegan")
 theme_set(theme_classic())
 pal = "Set1"
 scale_colour_discrete <-  function(palname=pal, ...){
@@ -60,12 +58,13 @@ days <-  clone %>% pull(day) %>% levels()
 antigens <- clone %>% pull(antigen) %>% levels()
 # reconstruct missing clone
 # we create clone that are present at later time-point
-dig_clone <- function(infos, donor, antigen){
+dig_clone <- function(infos, donor, antigen, salt = 0){
   infos$donor <- as.vector(infos$donor)
   infos$day <- as.vector(infos$day)
   infos$antigen <- as.vector(infos$antigen)
   infos$clone <- as.vector(infos$clone)
   r_select <- which(infos$antigen %in% antigen & infos$donor %in% donor)
+  infos$clone[r_select] <- as.numeric( infos$clone[r_select] ) + salt
   infos_tmp <- infos[r_select,]
   infos_tmp$day <- as.numeric(infos_tmp$day)
   infos_tmp <- infos_tmp[order(infos_tmp$day),]
@@ -89,9 +88,11 @@ dig_clone <- function(infos, donor, antigen){
   infos$clone <- as.numeric(infos$clone)
   return(infos)
 }
-for(antigen in levels(clone$antigen)){
-  for(donor in levels(clone$donor)){
-    clone <- dig_clone(clone, donor, antigen)
+salt <- 0
+for(antigen in levels(clone$antigen)) {
+  for(donor in levels(clone$donor)) {
+    clone <- dig_clone(clone, donor, antigen, salt)
+    salt <- salt + nrow(clone)
   }
 }
 clone <- clone %>%
@@ -139,6 +140,12 @@ clone <- alpha_f %>%
   ) %>%
   distinct()
 
+clone %>%
+  mutate(percent = as.numeric(as.vector(percent))) %>%
+  ggplot() +
+  geom_histogram(aes(x = n, group = donor, fill = antigen)) +
+  facet_wrap(~donor + antigen + day)
+ggsave("results/survival/clone_size_histogram.pdf")
 
 par(mfrow=c(1,1))
 clone %>%
