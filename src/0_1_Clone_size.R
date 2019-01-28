@@ -1,4 +1,6 @@
-library("tidyverse") library("readxl") library("vegan")
+library("tidyverse")
+library("readxl")
+library("vegan")
 theme_set(theme_classic())
 pal = "Set1"
 scale_colour_discrete <-  function(palname=pal, ...){
@@ -50,21 +52,25 @@ clone <- clone %>%
   mutate(donor = as.factor(donor),
          day = as.factor(day),
          antigen = as.factor(antigen),
-         clone = replace(clone, clone %in% 0, size_1_name),
+         clone = replace(clone, clone == 0, size_1_name),
          clone = as.factor(clone)
   )
 donors <- clone %>% pull(donor) %>% levels()
 days <-  clone %>% pull(day) %>% levels()
 antigens <- clone %>% pull(antigen) %>% levels()
+clone <- clone %>% filter(donor %in% "YFV5") %>%
+  filter(!(clone == 1)) %>%
+  mutate(donor = paste(donor, "nobig")) %>%
+  bind_rows(clone %>% mutate(donor = as.vector(donor))) %>%
+  mutate(donor = as.factor(donor))
 # reconstruct missing clone
 # we create clone that are present at later time-point
-dig_clone <- function(infos, donor, antigen, salt = 0){
+dig_clone <- function(infos, donor, antigen){
   infos$donor <- as.vector(infos$donor)
   infos$day <- as.vector(infos$day)
   infos$antigen <- as.vector(infos$antigen)
   infos$clone <- as.vector(infos$clone)
   r_select <- which(infos$antigen %in% antigen & infos$donor %in% donor)
-  infos$clone[r_select] <- as.numeric( infos$clone[r_select] ) + salt
   infos_tmp <- infos[r_select,]
   infos_tmp$day <- as.numeric(infos_tmp$day)
   infos_tmp <- infos_tmp[order(infos_tmp$day),]
@@ -91,15 +97,16 @@ dig_clone <- function(infos, donor, antigen, salt = 0){
 salt <- 0
 for(antigen in levels(clone$antigen)) {
   for(donor in levels(clone$donor)) {
-    clone <- dig_clone(clone, donor, antigen, salt)
+    clone <- dig_clone(clone, donor, antigen)
     salt <- salt + nrow(clone)
   }
 }
 clone <- clone %>%
-  right_join(clone %>% group_by(clone, day) %>% count()) %>%
-  mutate(n = replace(n, n == max(n), 1))
+  right_join(clone %>% group_by(donor, clone, day) %>% count()) %>%
+  mutate(n = replace(n, clone == 0, 1))
 alpha_f <- tibble(donor = NA, day = NA, antigen = NA,
          alpha = NA, alpha_prec = NA)
+donors <- clone %>% pull(donor) %>% levels()
 for (i in 1:length(donors)) {
   for (j in 1:length(days)) {
     for (k in 1:length(antigens)) {
@@ -139,6 +146,13 @@ clone <- alpha_f %>%
          clone = as.factor(clone)
   ) %>%
   distinct()
+
+clone %>% filter(donor %in% "YFV5" & day == 15) %>%
+  group_by(clone) %>%
+  count() %>%
+  arrange(desc(nn))
+clone %>% filter(donor %in% "YFV5" & day == 15) %>%
+  arrange(desc(n))
 
 clone %>%
   mutate(percent = as.numeric(as.vector(percent))) %>%
@@ -217,8 +231,8 @@ clone %>%
   filter(day %in% 15) %>%
   distinct() %>%
   mutate(percent = as.numeric(as.vector(percent))) %>%
-  lm(data = ., log10(alpha) ~ antigen) %>%
-  anova()
+  lm(data = ., alpha ~ percent )%>%
+  summary()
 
 clone %>%
   select(alpha, day, percent, antigen) %>%
