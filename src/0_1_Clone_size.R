@@ -159,6 +159,7 @@ clone %>%
   ggplot() +
   geom_histogram(aes(x = n, group = donor, fill = antigen)) +
   facet_wrap(~donor + antigen + day, scale = "free") +
+  scale_y_log10() +
   labs(y = "clone size")
 ggsave("results/survival/clone_size_histogram_scaled.pdf", dpi = 400)
 
