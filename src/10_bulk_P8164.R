@@ -1,6 +1,6 @@
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 genes_to_excludes <- read.table("data/P8164_Bulk_genes_to_exlude.csv", h = T)
 genes_to_excludes <- genes_to_excludes$genes_to_exclude
 
@@ -94,7 +94,7 @@ sum(res$padj < 0.05, na.rm=TRUE)
 DE_genes <- rownames(res)[res$padj < 0.05 & !is.na(res$padj)]
 DE_genes <- DE_genes[!(DE_genes %in% genes_to_excludes)]
 
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 pca_plot(bcd$select(b_cells = b_cells, genes = DE_genes), color="clonality",
   color_name = "clonality", tmp_file = "results/tmp_bulk_pca.Rdata")
 ggsave(
@@ -177,7 +177,7 @@ write.table(DE_genes, file = paste0(results_folder, "/DE_genes_1vsall.csv"))
 # Analysis with Edger
 
 library(edgeR)
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 group <- bcd$getfeature("clonality")
 y <- DGEList(
   counts = t(bcd$select(genes = ERCC(bcd, minus = TRUE))$getcounts),

@@ -1,6 +1,6 @@
 rm(list=ls())
 setwd("~/projects/yellow_fever/")
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/cells_counts_QC.Rdata")
 system("mkdir -p results/cell_type")
 
@@ -87,7 +87,7 @@ save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 ####################### plots of the classification ###########################
 
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
 data_gplot <- data.frame(
   ccr7 = scd$select(b_cells = b_cells)$getfeature("ccr7"),

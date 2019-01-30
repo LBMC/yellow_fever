@@ -3,7 +3,7 @@
 Sys.setenv("DISPLAY"=":1")
 rm(list=ls())
 setwd("~/projects/yellow_fever")
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 
 load("results/cycling/cells_counts_QC_cycling_invitro_P1902_P3128.Rdata")
 b_cells <- scd$getfeature("day") %in% "InVitro" &
@@ -26,7 +26,7 @@ write.csv(
 genes_to_rm <- read.table("data/Genes_exclude.csv", h = T)
 
 rm(list = ls())
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 load("results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata", v = T)
 b_genes <- !is.na(mbatch_day_surface_cell_type_DEA$padj) &
   mbatch_day_surface_cell_type_DEA$padj < 0.05
@@ -101,7 +101,7 @@ clone_palette <- function(clonality, other_set = TRUE){
 founder_phenotype_palette <- cell_type_palette
 
 
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 split_heatmap(
   scd = scd_norm,
   genes = DEA_genes,
@@ -717,7 +717,7 @@ for (alt in c("lesser", "greater")) {
 # DEA PLS for the InVitro P3128 data
 rm(list=ls())
 setwd("~/projects/yellow_fever")
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 
 day <- "InVitro"
 experiment <- "P1902"
@@ -797,7 +797,7 @@ save(
   file = "results/cell_type/DEA_cell_types_splsstab_invitro_P3128_denovo.Rdata"
 )
 
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
@@ -1055,7 +1055,7 @@ for (alt in c("lesser", "greater")) {
     top = min(100, length(DEA_genes_exp))
   )
 
-  devtools::load_all("pkg/", reset = T)
+  devtools::load_all("../scRNAtools/", reset = T)
   system(paste0("rm results/cell_type/gene_cov_",
       day, "_", experiment, "_zi0.5_", alt, "_top100*"))
   gene_order <- order_by_factor(
@@ -1236,7 +1236,7 @@ rm(list = ls())
 library(tidyverse)
 library(BiocParallel)
 library(zinbwave)
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 
 scd_sumarizedexp <- function(scd, b_cells, genes = scd$getgenes) {
   assay_data <- scd$select(b_cells = b_cells, genes = genes)$getcounts %>%
@@ -1351,7 +1351,7 @@ scd_test <- scdata$new(
 
 scd_test <- scd$select(genes = c("ACTB", "IL7R"))
 
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 system(
   paste0("rm -R results/cell_type/mbatch_", day, "_", experiment, "_clonality_DEA_test")
 )

@@ -1,7 +1,7 @@
 rm(list = ls())
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/counts_QC.Rdata")
 bad_F_cells <- paste0("P1292_", 1097:1192)
 scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
@@ -60,7 +60,7 @@ save(scd, file = "results/QC/counts_QC_in_vitro_P1902_P3128.Rdata")
 # cells effect normalization
 rm(list = ls())
 load("results/QC/counts_QC_in_vitro_P1902_P3128.Rdata")
-devtools::load_all("pkg/", reset = T)
+devtools::load_all("../scRNAtools/", reset = T)
 
 day <- "InVitro"
 for (experiment in c("P1902", "P3128")) {
