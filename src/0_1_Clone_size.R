@@ -154,6 +154,10 @@ clone %>% filter(donor %in% "YFV5" & day == 15) %>%
 clone %>% filter(donor %in% "YFV5" & day == 15) %>%
   arrange(desc(n))
 
+clone %>% mutate(Donor = paste(donor, antigen, day, sep = "_")) %>%
+  select(Donor, alpha) %>%
+  distinct()
+
 clone %>%
   mutate(percent = as.numeric(as.vector(percent))) %>%
   ggplot() +
