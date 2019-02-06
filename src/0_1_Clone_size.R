@@ -115,22 +115,36 @@ for (i in 1:length(donors)) {
                day %in% days[j],
                antigen %in% antigens[k]
               ) %>% nrow() > 0 ) {
-        alpha_f_fit <- clone %>%
+        tmp <- clone %>%
           filter(donor %in% donors[i],
                 day %in% days[j],
                 antigen %in% antigens[k]
                 ) %>%
           group_by(clone) %>%
           count() %>%
-          pull(nn) %>%
-          fisherfit()
+          pull(nn)
+        alpha_f_fit <- tmp %>% fisherfit()
         alpha_f <- tibble(donor = donors[i], day = days[j], antigen = antigens[k],
-                alpha = alpha_f_fit$estimate, alpha_prec = alpha_f_fit$estim.prec) %>%
+                alpha = alpha_f_fit$estimate,
+                alpha_prec = alpha_f_fit$estim.prec,
+                shannon = diversity(tmp, index = "shannon"),
+                simpson = diversity(tmp, index = "simpson"),
+                invsimpson = diversity(tmp, index = "invsimpson"),
+                evenness = diversity(tmp, index = "shannon")/log(specnumber(tmp)),
+                specnumber = specnumber(tmp),
+                fisher.alpha = fisher.alpha(tmp),
+                rarification = rarefy(tmp, min(sum(tmp)))
+                ) %>%
           bind_rows(alpha_f)
         }
     }
   }
 }
+
+alpha_f %>% select(-alpha_prec) %>%
+  drop_na() %>%
+  write.csv(file="results/survival/clone_diversity.csv")
+
 clone <- alpha_f %>%
   drop_na() %>%
   mutate(day = as.numeric(as.vector(day))) %>%
@@ -266,3 +280,4 @@ clone %>%
   filter(day %in% c("D15")) %>%
   glm(data = ., antigen ~ n * percent, family = "binomial") %>%
   plot()
+
