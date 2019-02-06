@@ -403,16 +403,24 @@ g
 write.csv(g, file = "results/survival/survival_YFV2004_B7.csv")
 
 # fisherplot of clone size
+save(infos_YFV16_A2, infos_YFV2001_A2, file = "results/survival/infos_data.Rdata")
 devtools::install_github("chrisamiller/fishplot")
 library("fishplot")
+load("results/survival/infos_data.Rdata")
 
 fish_plot <- function(data, timepoints, title, min_size = 2) {
+  colnames(data) <- as.numeric(substring(colnames(data), 2))
   frac.table <- as.matrix(data)
   frac.table <- frac.table[rowSums(frac.table) > min_size, ]
+  print(head(frac.table))
   frac.table <- apply(frac.table, 2, function(x){
     x <- x / sum(x) * 100
   })
-  frac.table <- frac.table[order(frac.table[, 2], frac.table[, 3], frac.table[, 1]), ]
+  print(head(frac.table))
+  print(colSums(frac.table))
+  table_order <- hclust(dist(frac.table))$order
+  # frac.table <- frac.table[order(frac.table[, 2], frac.table[, 3], frac.table[, 1]), ]
+  frac.table <- frac.table[table_order, ]
   parents <- rep(0, nrow(frac.table))
   fish <- createFishObject(frac.table, parents, timepoints = timepoints)
   fish <- layoutClones(fish)
@@ -426,7 +434,6 @@ fish_plot <- function(data, timepoints, title, min_size = 2) {
 }
 
 data <- clone_size(infos_YFV16_A2)
-fish_plot(data, timepoints=c(15,90,720), "YF16_A2", min_size = 2)
+fish_plot(data, timepoints=c(15,90,720), "YF16_A2", min_size = 1)
 data <- clone_size(infos_YFV2001_A2)
-fish_plot(data, timepoints=c(15,136,605), "YF2001_A2", min_size = 2)
-
+fish_plot(data, timepoints=c(15,136,605), "YF2001_A2", min_size = 1)
