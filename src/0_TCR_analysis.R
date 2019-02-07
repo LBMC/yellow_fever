@@ -436,3 +436,32 @@ data <- clone_size(infos_YFV16_A2)
 fish_plot(data, timepoints=c(15,90,720), "YF16_A2", min_size = function(x){any(x > 1)})
 data <- clone_size(infos_YFV2001_A2)
 fish_plot(data, timepoints=c(15,136,605), "YF2001_A2", min_size = function(x){any(x > 1)})
+
+fish_plot <- function(data, timepoints, title, min_size = function(x){any(x > 1)}) {
+  colnames(data) <- as.numeric(substring(colnames(data), 2))
+  frac.table <- as.matrix(data)
+  frac.table <- frac.table[apply(frac.table, 1, min_size ), ]
+  print(head(frac.table))
+  frac.table <- apply(frac.table, 2, function(x){
+    x <- x / sum(x) * 100
+  })
+  print(head(frac.table))
+  print(colSums(frac.table))
+  table_order <- hclust(dist(frac.table))$order
+  frac.table <- frac.table[order(frac.table[, 3], frac.table[, 1], frac.table[, 2]), ]
+  parents <- rep(0, nrow(frac.table))
+  fish <- createFishObject(frac.table, parents, timepoints = timepoints)
+  fish <- layoutClones(fish)
+  fish <- setCol(fish, rainbow(nrow(frac.table)))
+  pdf(file = paste0("results/survival/fish_plot", title, "_3-1-2.pdf"),
+      height = 10, width = 10)
+  fishPlot(fish, shape = "spline", title.btm = title,
+            vlines = timepoints,
+            vlab = paste("day", timepoints))
+  dev.off()
+}
+
+data <- clone_size(infos_YFV16_A2)
+fish_plot(data, timepoints=c(15,90,720), "YF16_A2", min_size = function(x){any(x > 3)})
+data <- clone_size(infos_YFV2001_A2)
+fish_plot(data, timepoints=c(15,136,605), "YF2001_A2", min_size = function(x){any(x > 3)})
