@@ -98,14 +98,14 @@ done
 ")
 
 load("results/counts.Rdata")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg", reset = T)
 scRNAtools::QC_load_bootstraps(
   scd = scd,
   paraload_folder = "results/QC/QC_paraload/counts",
 )
 scRNAtools::QC_classification(
   scd = scd,
-  quant = 0.5
+  quant = 0.80
 )
 print(table(scd$getfeature("QC_good")))
 null_cells <- scd$getcells[rowSums(scd$getcounts) != 0]
@@ -135,11 +135,13 @@ system("rm results/tmp/pca_*_QC_tmp.Rdata")
 # PCA on cell quality
 load("results/QC/counts_QC_M.Rdata")
 
+b_cells <- scd$getfeature("to_QC")
 scRNAtools::pca_plot(
   scd$select(b_cells = b_cells), color = "QC_good", color_name = "antigen",
   tmp_file = "results/tmp/pca_counts_QC_tmp.Rdata",
   main = "all day"
 )
+
 ggsave(file = "results/QC/pca/pca_counts_QC.pdf")
 for (day in c("D15", "D136", "D593")) {
   scRNAtools::pca_plot(
@@ -223,7 +225,9 @@ for (day in c("D15", "D136", "D593")) {
 devtools::load_all("../scRNAtools/", reset = T)
 # system("rm results/tmp/normalization_tmp.Rdata")
 load("results/QC/counts_QC_M.Rdata")
+
 b_cells = scd$getfeature('QC_good') %in% T
+system("rm results/tmp/normalization_tmp.Rdata")
 scd <- normalize(
   scd = scd,
   b_cells = scd$getfeature("QC_good") %in% T,
@@ -283,6 +287,7 @@ for (day in c("D15", "D136", "D593")) {
 # batch & cells effect normalization
 devtools::load_all("../scRNAtools/", reset = T)
 load("results/QC/cells_counts_QC_M.Rdata")
+system("rm results/tmp/normalization_cells_mnnCorrect_tmp.Rdata")
 b_cells = scd$getfeature('QC_good') %in% T
 scd <- normalize(
   scd = scd,
@@ -345,7 +350,7 @@ for (day in c("D15", "D136", "D593")) {
 ############################## weird_D15 analysis #############################
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/QC/CB_counts_QC_M.Rdata")
 
 weird_D15 <- c("P1299_1105", "P1299_1106", "P1299_1111", "P1299_1112", "P1299_1117", "P1299_1129", "P1299_1133", "P1299_1150", "P1299_1151", "P1299_1185", "P1299_1222", "P1299_1263", "P1299_1284", "P1299_1297", "P1299_1299", "P1299_1313", "P1299_1328", "P1299_1336", "P1299_1345", "P1299_1356", "P1299_1364", "P1299_1371", "P1299_1390", "P1299_1397", "P1299_1404", "P1299_1416", "P1299_1429", "P1299_1432", "P1299_1437", "P1299_1445", "P1299_1457", "P1299_1465", "P1299_1466", "P1299_1473", "P1299_1478", "P1299_1770", "P1299_1772", "P1299_1781", "P1299_1795", "P1299_1802", "P1299_1803", "P1299_1810", "P1299_1818", "P1299_1819", "P1299_1826", "P1299_1838", "P1299_1843", "P1299_1847", "P1299_1850", "P1299_1861", "P1299_1881", "P1299_1882", "P1299_1884", "P1299_1908", "P1299_1913", "P1299_1921", "P1299_1922", "P1299_1928", "P1299_1949", "P1299_2012", "P1299_2017", "P1299_2035", "P1299_2052", "P1299_2054", "P1299_2056")
@@ -445,7 +450,7 @@ system("~/scripts/sms.sh \"normalization done\"")
 rm(list=ls())
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/QC/counts_QC_M.Rdata")
 bad_F_cells <- paste0("P1292_", 1097:1192)
 scd <- scd$select(b_cells = !( scd$getfeature("id") %in% bad_F_cells ))
@@ -478,6 +483,12 @@ save(scd, file = "results/QC/counts_QC_F.Rdata")
 
 b_cells = scd$getfeature('sex') %in% "F"
 summary(scd$select(b_cells = b_cells)$getfeature("QC_good"))
+
+
+ggplot(data = data.frame(QC_good = (scd$select(b_cells = b_cells)$getfeature("QC_good")),
+                         QC_score = (scd$select(b_cells = b_cells)$getfeature("QC_score")))) +
+  geom_point(aes(x = QC_good, y = QC_score))
+
 
 table(scd$getfeature('sex'), scd$getfeature("QC_good"))
 
@@ -580,8 +591,7 @@ system("~/scripts/sms.sh \"normalization done\"")
 ################################# F and M data set ############################
 rm(list=ls())
 setwd("~/projects/yellow_fever/")
-library(scRNAtools)
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 bad_F_cells <- paste0("P1292_", 1097:1192)
 
 # merge count data

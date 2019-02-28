@@ -3,10 +3,13 @@ load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 b_cells <- scd$getfeature("sex") %in% "M" &
   scd$getfeature("day") %in% c("D15", "D136", "D593")
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/cell_type/cells_counts_QC_DEA_cell_type.Rdata")
 
 for (day in c("D15", "D136", "D593")) {
+  system(
+    paste0("rm -R results/cell_type/mbatch_", day, "_DEA_cell_type_DEA")
+  )
   system(
     paste0("mkdir -p results/cell_type/mbatch_", day, "_DEA_cell_type_DEA")
   )

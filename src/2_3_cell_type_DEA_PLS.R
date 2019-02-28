@@ -3,7 +3,7 @@
 
 rm(list = ls())
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 
 # with weights
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
@@ -29,9 +29,28 @@ for (marker_type in colnames(genes_PLS)) {
   }
 }
 
+system("rm results/cell_type/DEA_cell_types_force*")
+
 b_cells <- scd$getfeature("QC_good") %in% T &
-  !is.na(scd$getfeature("surface_cell_type")) &
   scd$getfeature("sex") %in% "M"
+id_to_classif <- data.frame(id = scd$select(b_cells = b_cells)$getfeature("id"),
+  select = !is.na(scd$select(b_cells = b_cells)$getfeature("phenotype_surface_cell_type")),
+  type = scd$select(b_cells = b_cells)$getfeature("phenotype_surface_cell_type"),
+  p = scd$select(b_cells = b_cells)$getfeature("psurface_cell_type"),
+  order = order( scd$select(b_cells = b_cells)$getfeature("psurface_cell_type"))
+)
+id_to_classif <- id_to_classif[id_to_classif$order, ]
+id_to_classif <- id_to_classif$id[id_to_classif$select & id_to_classif$type %in% "MEM"][1:5]
+
+sphenotype_surface_cell_type <- scd$getfeature("phenotype_surface_cell_type")
+sphenotype_surface_cell_type[scd$getfeature("id") %in% id_to_classif] <- NA
+scd$setfeature("sphenotype_surface_cell_type", sphenotype_surface_cell_type)
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("phenotype_surface_cell_type")) &
+  scd$getfeature("sex") %in% "M"
+
+devtools::load_all("pkg/", reset = T)
 DEA_cell_type_classification <- classification(
   scd = scd$select(b_cells = b_cells),
   feature = "phenotype_surface_cell_type",
@@ -42,6 +61,7 @@ DEA_cell_type_classification <- classification(
   output_file = "results/cell_type/DEA_cell_types_force",
   force = genes_marker,
 )
+traceback()
 
 save(
   DEA_cell_type_classification,

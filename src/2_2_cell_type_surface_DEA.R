@@ -3,7 +3,7 @@
 
 rm(list=ls())
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 system("mkdir -p results/cell_type/mbatch_day_surface_cell_type_DEA")
@@ -15,7 +15,7 @@ mbatch_day_surface_cell_type_DEA <- DEA(
   formula_null = "y ~ (1|batch) + day",
   formula_full = "y ~ (1|batch) + day + surface_cell_type",
   b_cells = b_cells,
-  cpus = 10,
+  cpus = 12,
   v = T,
   folder_name = "results/cell_type/mbatch_day_surface_cell_type_DEA"
 )
@@ -25,8 +25,8 @@ save(
   file = "results/cell_type/mbatch_day_surface_cell_type_DEA.Rdata"
 )
 system("~/scripts/sms.sh \"DEA done\"")
-table(is.na(mbatch_day_surface_cell_type_weighted_DEA$padj))
-table(mbatch_day_surface_cell_type_weighted_DEA$padj < 0.05)
+table(is.na(mbatch_day_surface_cell_type_DEA$padj))
+table(mbatch_day_surface_cell_type_DEA$padj < 0.05)
 
 b_cells <- scd$getfeature("QC_good") %in% T & !is.na(scd$getfeature("surface_cell_type"))
 devtools::load_all("../scRNAtools/", reset = T)

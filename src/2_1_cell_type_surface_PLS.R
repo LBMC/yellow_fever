@@ -1,6 +1,6 @@
 rm(list=ls())
 setwd("~/projects/yellow_fever/")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/QC/cells_counts_QC.Rdata")
 system("mkdir -p results/cell_type")
 
@@ -73,6 +73,7 @@ scd$setfeature("surface_cell_type", cell_type_groups)
 cell_type_pgroups <- rep(NA, scd$getncells)
 cell_type_pgroups[b_cells] <- surface_cell_type_classification$pgroups
 scd$setfeature("psurface_cell_type", cell_type_pgroups)
+table(scd$select(b_cells = b_cells)$getfeature("surface_cell_type"))
 
 save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 load(file = "results/cell_type/CB_counts_QC_surface_cell_type.Rdata")
@@ -87,7 +88,7 @@ save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 ####################### plots of the classification ###########################
 
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
 data_gplot <- data.frame(
   ccr7 = scd$select(b_cells = b_cells)$getfeature("ccr7"),
