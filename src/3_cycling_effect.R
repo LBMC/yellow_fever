@@ -183,3 +183,22 @@ data_genes[r_select, c_select]
 
 save(cell_cycle_genes, file=paste0(outdir, "cell_cycle_genes.RData"))
 load(paste0(outdir, "cell_cycle_genes.RData"))
+
+library("tidyverse")
+library("readxl")
+
+load(file = "results/cycling/cells_counts_QC_cycling.Rdata")
+infos <- read_xlsx("data/Column_Headers.xlsx")
+infos <- infos %>% colnames()
+infos[1] <- infos[1] %>% tolower()
+infos[3] <- infos[3] %>% tolower()
+
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type"))
+
+infos <- cbind(
+      scd$select(b_cells = b_cells)$getfeatures[, ( infos %>% .[1:10]  )] ,
+      scd$select(b_cells = b_cells)$getcounts[, ( infos %>% .[11:60] )],
+      scd$select(b_cells = b_cells)$getfeatures[, ( infos %>% .[63:73]  )]
+      )
+write.csv(infos, file = "results/cycling/infos_cell_type_formated.csv")
