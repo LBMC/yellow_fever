@@ -35,7 +35,8 @@ classification <- function(
       scd = scd,
       genes = genes,
       features = features,
-      cpus = ncores,
+      file = output_file,
+      cpus = min(6, ncores),
       v = v
     )
   }
@@ -180,47 +181,56 @@ get_weights <- function(scd, genes, cpus = 1, v = TRUE) {
   return(results_unlisted)
 }
 
-weight_genes_features <- function(scd, genes, features, cpus = 1, v = T) {
-  print("scaling genes...")
-  weight <- scRNAtools::get_weights(scd, genes, cpus, v)
-  weighted_counts <- apply(
-    scRNAtools::get_genes(scd, genes),
-    1,
-    FUN = function(x, weight) {
-      x / as.numeric(weight$gene_scale)
-    },
-    weight
-  )
-  weighted_counts <- apply(
-    t(weighted_counts),
-    1,
-    FUN = function(x, weight) {
-      x * as.numeric(weight$gene_weight)
-    },
-    weight
-  )
-  infos <- scd$getfeatures
-  if (length(features) > 0) {
-    print("scaling features...")
-    infos[, features] <- apply(
-      infos[, features],
-      2,
-      FUN = function(x) {
-        scale(as.numeric(as.vector(x)))
-      })
+weight_genes_features <- function(scd, genes, features, file, cpus = 1, v = T) {
+  if (!missing(file) & file.exists(paste0(file, "_weighting.Rdata"))) {
+    print(paste0(file, "_weighting.Rdata found. skipping training step..."))
+    load(paste0(file, "_weighting.Rdata"))
+  } else {
+    print("scaling genes...")
+    weight <- scRNAtools::get_weights(scd, genes, cpus, v)
+    weighted_counts <- apply(
+      scRNAtools::get_genes(scd, genes),
+      1,
+      FUN = function(x, weight) {
+        x / as.numeric(weight$gene_scale)
+      },
+      weight
+    )
+    weighted_counts <- apply(
+      t(weighted_counts),
+      1,
+      FUN = function(x, weight) {
+        x * as.numeric(weight$gene_weight)
+      },
+      weight
+    )
+    infos <- scd$getfeatures
+    if (length(features) > 0) {
+      print("scaling features...")
+      infos[, features] <- apply(
+        infos[, features],
+        2,
+        FUN = function(x) {
+          scale(as.numeric(as.vector(x)))
+        })
+    }
+    genes_na <-apply(t(weighted_counts), 2, FUN = function(x) {
+                      any(is.na(x))
+        })
+    if (any(!genes_na)) {
+      print(paste0("warning: ", genes[genes_na],
+                  " contain NA after weighting, droping them"))
+      print(weight[genes_na,])
+    }
+    scd_new <- scdata$new(
+      infos = infos,
+      counts = t(weighted_counts)[ ,!genes_na]
+    )
+    if (!missing(file)) {
+      save(scd_new, file = paste0(file, "_weighting.Rdata"))
+    }
   }
-  genes_na <-apply(t(weighted_counts), 2, FUN = function(x) {
-                     any(is.na(x))
-      })
-  if (any(!genes_na)) {
-    print(paste0("warning: ", genes[genes_na],
-                 " contain NA after weighting, droping them"))
-    print(weight[genes_na,])
-  }
-  return(scdata$new(
-    infos = infos,
-    counts = t(weighted_counts)[ ,!genes_na]
-  ))
+  return(scd_new)
 }
 
 get_data <- function(scd, b_cells, features, genes, group_by, v = TRUE) {
@@ -545,7 +555,7 @@ logistic_spls_stab_training <- function(by, data, ncores, file, force) {
   return(list(fit = fit))
 }
 
-#' @importFrom plsgenomics logit.spls.stab
+#' @importFrom plsgenomics logit.spls.cv
 logistic_spls_cv_training <- function(by, data, ncores, file, force) {
   if (!missing(file) & file.exists(paste0(file, "_lsplscv.Rdata"))) {
     print(paste0(file, "_lsplscv.Rdata found. skipping training step..."))
@@ -625,8 +635,8 @@ logistic_spls_classification <- function(
       ncomp = fit$ncomp.opt,
       Xtest = data,
       svd.decompose = FALSE,
-      X.center = FALSE,
-      X.scale = FALSE,
+      center.X = FALSE,
+      scale.X = FALSE,
       weighted.center = FALSE
     )
     model$groups_names <- fit$group_by$names
