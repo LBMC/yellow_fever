@@ -96,6 +96,28 @@ for (day in c("D15", "D136", "D593")) {
   print(table(mbatch_pDEA_cell_type_DEA$padj < 0.05, mbatch_DEA_cell_type_DEA$padj < 0.05))
 }
 
+load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
+load(paste0("results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA.Rdata"))
+mbatch_DEA_cell_type_DEA[mbatch_DEA_cell_type_DEA$gene %in% "CCR7", ]
+mbatch_pDEA_cell_type_DEA[mbatch_pDEA_cell_type_DEA$gene %in% "CCR7", ]
+load(paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_logit.Rdata"))
+mbatch_DEA_cell_type_DEA[mbatch_DEA_cell_type_DEA$gene %in% "CCR7", ]
+
+load(paste0("2019_02_15_results/cell_type/mbatch_", day, "_DEA_cell_type_DEA.Rdata"))
+load(paste0("2019_02_15_results/cell_type/mbatch_", day, "_pDEA_cell_type_DEA.Rdata"))
+mbatch_DEA_cell_type_DEA[mbatch_DEA_cell_type_DEA$gene %in% "CCR7", ]
+mbatch_pDEA_cell_type_DEA[mbatch_pDEA_cell_type_DEA$gene %in% "CCR7", ]
+load(paste0("2019_02_15_results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_logit.Rdata"))
+mbatch_DEA_cell_type_DEA[mbatch_DEA_cell_type_DEA$gene %in% "CCR7", ]
+
+ggplot(data = data.frame(
+  count = scd$select(b_cells = b_cells & scd$getfeature("day") %in% "D593")$getgene("CCR7"),
+  cell_type = scd$select(b_cells = b_cells & scd$getfeature("day") %in% "D593")$getfeature("DEA_cell_type")
+  ) ) +
+  geom_histogram(aes(x = count, fill = cell_type)) +
+  theme_classic()
+
+
 for (day in c("D15", "D136", "D593")) {
   system(
     paste0("rm -R results/cell_type/mbatch_", day, "_DEA_cell_type_DEA_logit")
