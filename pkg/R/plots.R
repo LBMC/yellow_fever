@@ -1393,3 +1393,62 @@ dotplot <- function(
     ggsave(height = 9.75, width = 10, file = paste0(file,".pdf"))
   }
 }
+
+
+#' pca of a dataset into the pca of another
+#'
+#' @param data_a first data set
+#' @param data_b second dataset
+#' @param color_a color of the first dataset
+#' @param color_b color of the second dataset
+#' @param main title of the plot
+#' @param name_a name of the first data set
+#' @param name_b name of the second data set
+#' @param file name of the second data set
+#' @param axes (default=c(1,2)) number of PCA axes to plot
+#' @param file path to save the plot (.pdf or .png)
+#' @param size (default=1) size of the points
+#' @examples
+#' \dontrun{
+#' pca_plot_a_space(
+#'   data_a = scd$select(b_cells = scd$getfeatures("cell_number") > 1),
+#'   data_b = scd$select(b_cells = scd$getfeatures("cell_number") == 1),
+#'   title = "bulk vs single cell"
+#' )
+#' }
+#' @import ggplot2
+#' @export pca_plot_a_space
+pca_plot_a_space <- function(data_a, data_b, color_a, color_b, main="", name_a="", name_b="", file, axes=c(1,2), size=1){
+  c_select_a <- which(colnames(data_a) %in% intersect(colnames(data_a),
+                                                      colnames(data_b)))
+  c_select_b <- which(colnames(data_b) %in% intersect(colnames(data_a),
+                                                      colnames(data_b)))
+  svd_a <- svd(data_a[,c_select_a])
+  m <- as.matrix(data_b[,c_select_b])
+  u <- m %*% svd_a$v
+  v <- t(m %*% svd_a$v) %*% m
+  svd_b <- list(u = u,
+              v = v)
+  svd_b$d <- diag(diag(t(svd_b$u) %*% svd_b$u)) / sum(diag(t(svd_b$u) %*% svd_b$u))
+  data <- svd_a$u %*% diag(svd_a$d)
+  data <- as.data.frame(as.matrix(data))
+  data <- rbind(data, svd_b$u)
+  colnames(data) <- paste0("PC", 1:ncol(data))
+  rownames(data) <- c(rownames(data_a), rownames(data_b))
+  x <- data.frame(x=data[,axes[1]],
+                  y=data[,axes[2]],
+                  by=as.factor(c(as.vector(color_a),
+                               as.vector(color_b))),
+                  shape=as.factor(c(rep(name_a, nrow(data_a)),
+                                    rep(name_b, nrow(data_b)))))
+  g <- ggplot(data = x, aes(x=x, y=y, color=by, shape=shape)) +
+  geom_point(size=size, alpha=1) +
+  theme_bw() +
+  labs(title=main,
+     x = "PC1",
+     y = "PC2")
+  print(g)
+  if(!missing(file)) {
+    ggsave(paste0(file, ".pdf"),width = 20, height = 15, units = "cm", dpi = 1200)
+  }
+}
