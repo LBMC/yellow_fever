@@ -1,7 +1,7 @@
 rm(list = ls())
 setwd("~/projects/yellow_fever")
-devtools::load_all("../scRNAtools/", reset = T)
-load("results/cycling/cells_counts_QC_cycling.Rdata")
+devtools::load_all("pkg/", reset = T)
+load("cycling/cells_counts_QC_cycling.Rdata")
 
 system("mkdir -p results/clonality/")
 
@@ -62,7 +62,6 @@ for (sex in c("M", "F")) {
       color = "clone",
       fill = "clone") +
     theme(
-      axis.text.y = element_blank(),
       panel.grid.minor = element_blank(),
       panel.grid.major = element_blank(),
       panel.background = element_blank(),
@@ -84,7 +83,6 @@ for (sex in c("M", "F")) {
     labs(title = "D15",
       x = "Memory score") +
     theme(
-      axis.text.y = element_blank(),
       panel.grid.minor = element_blank(),
       panel.grid.major = element_blank(),
       panel.background = element_blank(),
@@ -149,7 +147,6 @@ for (sex in c("M", "F")) {
       color = "clone",
       fill = "clone") +
     theme(
-      axis.text.y = element_blank(),
       panel.grid.minor = element_blank(),
       panel.grid.major = element_blank(),
       panel.background = element_blank(),
@@ -170,7 +167,6 @@ for (sex in c("M", "F")) {
     labs(title = "D100+",
       x = "Memory score") +
     theme(
-      axis.text.y = element_blank(),
       panel.grid.minor = element_blank(),
       panel.grid.major = element_blank(),
       panel.background = element_blank(),
