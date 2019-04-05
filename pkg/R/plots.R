@@ -1408,6 +1408,7 @@ dotplot <- function(
 #' @param axes (default=c(1,2)) number of PCA axes to plot
 #' @param file path to save the plot (.pdf or .png)
 #' @param size (default=1) size of the points
+#' @param colors_pal (optional) named vector of colors
 #' @examples
 #' \dontrun{
 #' pca_plot_a_space(
@@ -1418,7 +1419,7 @@ dotplot <- function(
 #' }
 #' @import ggplot2
 #' @export pca_plot_a_space
-pca_plot_a_space <- function(data_a, data_b, color_a, color_b, main="", name_a="", name_b="", file, axes=c(1,2), size=1){
+pca_plot_a_space <- function(data_a, data_b, color_a, color_b, main="", name_a="", name_b="", file, axes=c(1,2), size=1, color_pal){
   c_select_a <- which(colnames(data_a) %in% intersect(colnames(data_a),
                                                       colnames(data_b)))
   c_select_b <- which(colnames(data_b) %in% intersect(colnames(data_a),
@@ -1447,6 +1448,10 @@ pca_plot_a_space <- function(data_a, data_b, color_a, color_b, main="", name_a="
   labs(title=main,
      x = "PC1",
      y = "PC2")
+  if (!missing(color_pal)) {
+    g <- g + scale_color_manual(breaks = names(color_pal),
+                                values = color_pal)
+  }
   print(g)
   if(!missing(file)) {
     ggsave(paste0(file, ".pdf"),width = 20, height = 15, units = "cm", dpi = 1200)
