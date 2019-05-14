@@ -889,3 +889,81 @@ vuong_test <- function (m1, m2, digits = getOption("digits"), v = F){
     names(out) <- c("Vuong z-statistic", "H_A", "p-value")
     return(as.numeric(as.vector(pval[3])))
 }
+
+
+#' up_down param information from DEA results
+#'
+#' @param folder_name name of the folder where to find the DEA results
+#' @return a data.frame() with the farameters of the DEA
+#' @examples
+#' \dontrun {
+#'
+#'   b_cells <- scd$getfeature("QC_good") %in% T &
+#'     !is.na(scd$getfeature("DEA_cell_type")) &
+#'     scd$getfeature("day") %in% day
+#'   dea_parameters <- up_down(
+#'     folder_name = paste0("results/cell_type/mbatch_", day, "_DEA_cell_type_DEA")
+#'   )
+#'
+#' }
+#' @export up_down
+up_down <- function(folder_name) {
+  f_DEA_fit <- paste0(folder_name, "/DEA_fit/")
+  f_DEA_LRT <- paste0(folder_name, "/DEA_LRT/")
+  DEA_fits <- list.files(f_DEA_fit)
+  DEA_LRTs <- list.files(f_DEA_LRT)
+  fits_coefs <- NA
+  for ( DEA_fit in DEA_fits ) {
+    fits_coefs <- add_coef(data = fits_coefs,
+                           file = paste0(f_DEA_fit, DEA_fit))
+  }
+  fits_coefs$pvalue <- NA
+  for ( DEA_LRT in DEA_LRTs ) {
+    fits_coefs <- add_pvalue(data = fits_coefs,
+                           file = paste0(f_DEA_LRT, DEA_LRT))
+  }
+  fits_coefs$padj <- stats::p.adjust(
+    fits_coefs$pvalue,
+    method = "BH"
+  )
+  return(fits_coefs)
+}
+
+add_coef <- function(data, file) {
+  load(file)
+  if ( length(models_result[["formula_full"]][["residuals"]]) > 1 ) {
+    coef <- NA
+    if ( "b" %in% names(models_result[["formula_full"]])) {
+      coefs <- as.data.frame(
+        t(models_result[["formula_full"]][["b"]])
+      )
+    } else {
+      coefs <- as.data.frame(
+        t(models_result[["formula_full"]][["coefficients"]])
+      )
+    }
+    rownames(coefs) <- gene_name
+    if (is.data.frame(data)) {
+      data <- rbind(coefs, data)
+    } else {
+      data <- coefs
+    }
+  }
+  return(data)
+}
+
+add_pvalue <- function(data, file) {
+  load(file)
+  if (gene_name %in% rownames(data)) {
+    if ("Pr(>Chi)" %in% names(LRT_result)) {
+      data[gene_name, "pvalue"] <- LRT_result[["Pr(>Chi)"]][2]
+    } else {
+      if ("Pr..Chi." %in% names(LRT_result)) {
+        data[gene_name, "pvalue"] <- LRT_result[["Pr..Chi."]][2]
+      } else {
+        data[gene_name, "pvalue"] <- NA
+      }
+    }
+  }
+  return(data)
+}
