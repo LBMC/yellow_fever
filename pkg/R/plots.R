@@ -315,6 +315,109 @@ check_gene <- function(scd, gene, condition, file, transform=TRUE){
 #' check_gene(scd, "genes_a", "sexe")
 #' }
 #' @import ggplot2
+#' @export mds_plot
+mds_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
+  wrap=NULL, file, main = "", axes, res=FALSE, rainbow=FALSE, heatcolor=FALSE,
+  is_contour, label=NULL, genes_list, arrow=FALSE, color_name="day",
+  return_data = FALSE, color_scale = NULL, tmp_file, FUN = function(x){log(x+1)}) {
+  if (!missing(tmp_file) & file.exists(tmp_file)) {
+    print("tmp file found skipping pca...")
+    load(tmp_file)
+  } else {
+    pca_out <- cmdscale(
+      dist(ascb(scd$getcounts), method="manhattan"),
+      eig = TRUE,
+      k = 2
+    )
+    pca_data <- data.frame(x = pca_out$points[, 1],
+                           y = pca_out$points[, 2],
+                           axes = "MDS axes 1 and 2")
+    if (!is.null(color)){
+      if (is.numeric(scd$getfeature(color))){
+        if (mean(scd$getfeature(color)[pca_data$x <= mean(pca_data$x)]) > mean(scd$getfeature(color))){
+          pca_data$x <- - pca_data$x
+          pca_data$y <- - pca_data$y
+        }
+      }
+    }
+    if (!missing(tmp_file)){
+      save(pca_out, pca_data, file = tmp_file)
+    }
+  }
+  x_lab <- paste0(
+    "first axe")
+  y_lab <- paste0(
+    "second axe")
+  if (missing(axes)){
+    g <- plot_2_axes(
+      scd,
+      x = pca_data$x,
+      y = pca_data$y,
+      color = color,
+      shape = shape,
+      size = size,
+      alpha = alpha,
+      wrap = wrap,
+      main = main,
+      x_lab = x_lab,
+      y_lab = y_lab,
+      file = file,
+      is_contour = is_contour,
+      label = label,
+      display = FALSE,
+      color_name = color_name,
+      color_scale = color_scale)
+  }else{
+    for (axe in axes){
+      pca_data_sup <- data.frame(
+        x = pca_out$l1[[paste0("RS", axe[1])]],
+        y = pca_out$l1[[paste0("RS", axe[2])]],
+        axes = paste0("axes ", axe[1], " and ", axe[2]))
+      pca_data <- rbind(pca_data, pca_data_sup)
+    }
+    g <- plot_2_axes(
+      scd,
+      x = pca_data$x,
+      y = pca_data$y,
+      color = color,
+      shape = shape,
+      size = size,
+      alpha = alpha,
+      wrap = wrap,
+      main = main,
+      x_lab = x_lab,
+      y_lab = y_lab,
+      wrap = pca_data$axes,
+      file = file,
+      rainbow = rainbow,
+      heatcolor = heatcolor,
+      is_contour = is_contour,
+      display = FALSE,
+      color_name = color_name,
+      color_scale = color_scale)
+  }
+  if (arrow | !missing(genes_list)){
+    g <- scRNAtools::draw_arrow_dudi(g, pca_out, genes_list)
+  }
+  print(g)
+  if (return_data){
+    return(pca_out)
+  }
+}
+#' display single or multiple genes as violin plot
+#'
+#' @param scd is a scRNASeq data object
+#' @param gene gene name to display
+#' @param condition condition to compare (must be features of scd)
+#' @param file output file where to save the graph (optional)
+#' @param transform (bool) use anscomb transform or raw counts
+#' @return a list() with the number of time each cells is classied as 'good' (
+#' non is_blank looking) or 'bad' (blank looking)
+#' @examples
+#' \dontrun{
+#' check_gene(scd, "genes_a", "sexe")
+#' }
+#' @import ggplot2
 #' @importFrom ade4 dudi.pca
 #' @export pca_plot
 pca_plot <- function(scd, color=NULL, shape=NULL, size=NULL, alpha=NULL,
