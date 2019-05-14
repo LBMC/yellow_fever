@@ -1,7 +1,7 @@
 rm(list=ls())
 setwd("~/projects/yellow_fever/")
 library(scRNAtools)
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 
 system("perl -pi -e 's/[pP](\\d*_\\d*)/P\\1/g' data/Summary_SSEQ.csv")
 system("perl -pi -e 's/P1306/P1316/g' data/Summary_SSEQ.csv")
@@ -651,3 +651,137 @@ ggplot(data = data, aes(x = QC_score, y = QC_score, color = id %in% outlier)) +
   geom_point()
 
 summary(data[data$id %in% outlier,])
+
+
+###############################################################################
+############################ Jeff normalization ###############################
+
+library("tidyverse")
+setwd("~/projects/mold/yellow_fever/")
+devtools::load_all("pkg/", reset = T)
+system("perl -pi -e 's/[pP](\\d*_\\d*)/P\\1/g' data/2019_05_09_Samples_for_Matrix_InVivo.csv")
+samples <- read_csv("data/2019_05_09_Samples_for_Matrix_InVivo.csv")
+genes <- read_csv("data/2019_05_09_Jeff_overlap_MB7_FAll.txt")
+load(file = "results/counts.Rdata")
+
+length(samples$Sample_ID)
+table(scd$getfeature("id") %in% samples$Sample_ID)
+samples$Sample_ID[!samples$Sample_ID %in% scd$getfeature("id")]
+
+scd_norm <- normalize(
+  scd = scd$select(b_cells = scd$getfeature("id") %in% samples$Sample_ID,
+                   genes = genes$x),
+  b_cells = TRUE,
+  method = "SCnorm",
+  cpus = 4,
+  tmp_file = paste0("results/tmp/normalization_scnorm_jeff_selection_tmp.Rdata")
+)
+
+save(scd_norm,
+     file = "results/QC/cells_counts_Jeff.Rdata"
+)
+
+load("results/QC/cells_counts_Jeff.Rdata")
+load("results/cycling/cells_counts_QC_cycling.Rdata")
+
+infos_M <- scd$getfeatures
+rownames(infos_M) <- infos_M$id
+infos_M <- apply(infos_M, 2, as.vector)
+counts_M <- scd_norm$getcounts
+normalized_counts <- merge(x = infos_M, y = counts_M, by = "row.names", all.y = TRUE)
+normalized_counts <- t(normalized_counts)
+write.csv(
+  normalized_counts,
+  file = paste0("results/QC/cells_counts_Jeff.csv")
+)
+
+dim(infos_M)
+
+load(file = "results/QC/cells_counts_Jeff.Rdata")
+scRNAtools::pca_plot(
+  scd_norm, color = "day", color_name = "clonality",
+  shape = "sex",
+  tmp_file = "results/tmp/pca_cells_counts_Jeff.Rdata")
+ggsave(file = "results/QC/pca/pca_cells_counts_Jeff.pdf")
+
+scRNAtools::mds_plot(
+  scd_norm, color = "day", color_name = "clonality",
+  shape = "sex",
+  tmp_file = "results/tmp/mds_cells_counts_Jeff.Rdata")
+ggsave(file = "results/QC/pca/mds_cells_counts_Jeff.pdf")
+
+library("umap")
+scd_umap <- umap(ascb(scd_norm$getcounts))
+ggplot(data.frame(
+        x = scd_umap$layout[, 1],
+        y = scd_umap$layout[, 2],
+        day = scd_norm$getfeature("day"),
+        sex = scd_norm$getfeature("sex"),
+        antigen = scd_norm$getfeature("antigen"),
+        batch = scd_norm$getfeature("batch")
+      )
+  ) +
+  geom_point(aes(x = x,
+                 y = y,
+                 color = as.factor(batch),
+                 shape = day
+                )) +
+  theme_bw()
+ggsave(file = "results/QC/pca/umap_cells_counts_Jeff.pdf")
+
+scd_norm <- normalize(
+  scd = scd$select(b_cells = scd$getfeature("id") %in% samples$Sample_ID),
+  b_cells = TRUE,
+  method = "SCnorm",
+  cpus = 1,
+  tmp_file = paste0("results/tmp/normalization_jeff_all_tmp.Rdata")
+)
+
+save(scd_norm,
+     file = "results/QC/cells_counts_all_Jeff.Rdata"
+)
+
+load("results/cycling/cells_counts_QC_cycling.Rdata")
+load("results/QC/cells_counts_all_Jeff.Rdata")
+
+infos_M <- scd$getfeatures
+rownames(infos_M) <- infos_M$id
+infos_M <- apply(infos_M, 2, as.vector)
+counts_M <- scd_norm$getcounts
+normalized_counts <- merge(x = infos_M, y = counts_M, by = "row.names", all.y = TRUE)
+normalized_counts <- t(normalized_counts)
+write.csv(
+  normalized_counts,
+  file = paste0("results/QC/cells_counts_all_Jeff.csv")
+)
+
+load(file = "results/QC/cells_counts_all_Jeff.Rdata")
+scRNAtools::pca_plot(
+  scd_norm, color = "day", color_name = "clonality",
+  shape = "sex",
+  tmp_file = "results/tmp/pca_cells_counts_all_Jeff.Rdata")
+ggsave(file = "results/QC/pca/pca_cells_counts_all_Jeff.pdf")
+
+scRNAtools::mds_plot(
+  scd_norm, color = "day", color_name = "clonality",
+  shape = "sex",
+  tmp_file = "results/tmp/mds_cells_counts_all_Jeff.Rdata")
+ggsave(file = "results/QC/pca/mds_cells_counts_all_Jeff.pdf")
+
+library("umap")
+scd_umap <- umap(ascb(scd_norm$getcounts))
+ggplot(data.frame(
+        x = scd_umap$layout[, 1],
+        y = scd_umap$layout[, 2],
+        day = scd_norm$getfeature("day"),
+        sex = scd_norm$getfeature("sex"),
+        antigen = scd_norm$getfeature("antigen")
+      )
+  ) +
+  geom_point(aes(x = x,
+                 y = y,
+                 color = day,
+                 shape = sex
+                )) +
+  theme_bw()
+ggsave(file = "results/QC/pca/umap_cells_counts_all_Jeff.pdf")
