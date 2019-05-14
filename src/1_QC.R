@@ -688,14 +688,19 @@ infos_M <- scd$getfeatures
 rownames(infos_M) <- infos_M$id
 infos_M <- apply(infos_M, 2, as.vector)
 counts_M <- scd_norm$getcounts
-normalized_counts <- merge(x = infos_M, y = counts_M, by = "row.names", all.y = TRUE)
+infos_M <- infos_M[rownames(infos_M) %in% rownames(counts_M), ]
+counts_M <- counts_M[rownames(counts_M) %in% rownames(infos_M), ]
+dim(infos_M)
+dim(counts_M)
+normalized_counts <- cbind(infos_M[match(rownames(infos_M), rownames(counts_M)), ],
+                           counts_M
+)
 normalized_counts <- t(normalized_counts)
 write.csv(
   normalized_counts,
   file = paste0("results/QC/cells_counts_Jeff.csv")
 )
 
-dim(infos_M)
 
 load(file = "results/QC/cells_counts_Jeff.Rdata")
 scRNAtools::pca_plot(
@@ -748,7 +753,13 @@ infos_M <- scd$getfeatures
 rownames(infos_M) <- infos_M$id
 infos_M <- apply(infos_M, 2, as.vector)
 counts_M <- scd_norm$getcounts
-normalized_counts <- merge(x = infos_M, y = counts_M, by = "row.names", all.y = TRUE)
+infos_M <- infos_M[rownames(infos_M) %in% rownames(counts_M), ]
+counts_M <- counts_M[rownames(counts_M) %in% rownames(infos_M), ]
+dim(infos_M)
+dim(counts_M)
+normalized_counts <- cbind(infos_M[match(rownames(infos_M), rownames(counts_M)), ],
+                           counts_M
+)
 normalized_counts <- t(normalized_counts)
 write.csv(
   normalized_counts,
