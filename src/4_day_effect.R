@@ -172,6 +172,103 @@ write.csv(
   file = paste0("results/days/ud_batch_DEA_cell_type_days_B7_DEA.csv")
 )
 
+# Male donor B7, D15 vs D136 for MEM
+days <- c("D15", "D136")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("day") %in% days &
+  scd$getfeature("sex") %in% "M" &
+  scd$getfeature("DEA_cell_type") %in% "MEM"
+
+table(scd$select(b_cells = b_cells)$getfeature("day"),
+      scd$select(b_cells = b_cells)$getfeature("batch"))
+
+mbatch_days_B7_MEM_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ (1|batch)",
+  formula_full = "y ~ (1|batch) + day",
+  b_cells = b_cells,
+  cpus = 11,
+  v = T,
+  folder_name = paste0("results/days/mbatch_DEA_days_B7_MEM_DEA")
+)
+save(
+  mbatch_days_B7_MEM_DEA,
+  file = paste0("results/days/mbatch_DEA_days_B7_MEM_DEA.Rdata")
+)
+system("~/scripts/sms.sh \"DEA done\"")
+load(file = paste0("results/days/mbatch_DEA_days_B7_MEM_DEA.Rdata"))
+print(table(is.na(mbatch_days_B7_MEM_DEA$padj)))
+print(table(mbatch_days_B7_MEM_DEA$padj < 0.05))
+write.csv(
+  mbatch_days_B7_MEM_DEA,
+  file = paste0("results/days/mbatch_DEA_days_B7_MEM_DEA.csv")
+)
+
+ud_mbatch_day_B7_MEM_DEA <- up_down(
+  folder_name = paste0("results/days/mbatch_DEA_days_B7_MEM_DEA")
+)
+test_genes <- c("TSC22D3",
+                "CXCR4",
+                "NFKBIA",
+                "MKI67"
+                )
+head(ud_mbatch_day_B7_MEM_DEA)
+ud_mbatch_day_B7_MEM_DEA[test_genes, ]
+write.csv(
+  ud_mbatch_day_B7_MEM_DEA,
+  file = paste0("results/days/ud_mbatch_DEA_days_B7_MEM_DEA.csv")
+)
+
+# Male donor B7, D15 vs D136 for EFF
+days <- c("D15", "D136")
+b_cells <- scd$getfeature("QC_good") %in% T &
+  !is.na(scd$getfeature("DEA_cell_type")) &
+  scd$getfeature("day") %in% days &
+  scd$getfeature("sex") %in% "M" &
+  scd$getfeature("DEA_cell_type") %in% "EFF"
+
+table(scd$select(b_cells = b_cells)$getfeature("day"),
+      scd$select(b_cells = b_cells)$getfeature("batch"))
+
+mbatch_days_B7_EFF_DEA <- DEA(
+  scd = scd,
+  formula_null = "y ~ (1|batch)",
+  formula_full = "y ~ (1|batch) + day",
+  b_cells = b_cells,
+  cpus = 11,
+  v = T,
+  folder_name = paste0("results/days/mbatch_DEA_days_B7_EFF_DEA")
+)
+save(
+  mbatch_days_B7_EFF_DEA,
+  file = paste0("results/days/mbatch_DEA_days_B7_EFF_DEA.Rdata")
+)
+system("~/scripts/sms.sh \"DEA done\"")
+load(file = paste0("results/days/mbatch_DEA_days_B7_EFF_DEA.Rdata"))
+print(table(is.na(mbatch_days_B7_EFF_DEA$padj)))
+print(table(mbatch_days_B7_EFF_DEA$padj < 0.05))
+write.csv(
+  mbatch_days_B7_EFF_DEA,
+  file = paste0("results/days/mbatch_DEA_days_B7_EFF_DEA.csv")
+)
+
+ud_mbatch_day_B7_EFF_DEA <- up_down(
+  folder_name = paste0("results/days/mbatch_DEA_days_B7_EFF_DEA")
+)
+test_genes <- c("TSC22D3",
+                "CXCR4",
+                "NFKBIA",
+                "MKI67"
+                )
+head(ud_mbatch_day_B7_EFF_DEA)
+ud_mbatch_day_B7_EFF_DEA[test_genes, ]
+write.csv(
+  ud_mbatch_day_B7_EFF_DEA,
+  file = paste0("results/days/ud_mbatch_DEA_days_B7_EFF_DEA.csv")
+)
+
+
 ### Female donor
 
 days <- c("D15", "D90")
