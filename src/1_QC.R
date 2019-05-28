@@ -664,10 +664,16 @@ samples <- read_csv("data/2019_05_09_Samples_for_Matrix_InVivo.csv")
 genes <- read_csv("data/2019_05_09_Jeff_overlap_MB7_FAll.txt")
 load(file = "results/counts.Rdata")
 
+bad_F_cells <- paste0("P1292_", 1097:1192)
+good_F_cells <- paste0("P1373_", 1097:1192)
+samples <- samples[!(samples$Sample_ID %in% bad_F_cells), ]
+samples <- rbind(samples, data.frame(Sample_ID = good_F_cells))
+
+
 length(samples$Sample_ID)
 table(scd$getfeature("id") %in% samples$Sample_ID)
 samples$Sample_ID[!samples$Sample_ID %in% scd$getfeature("id")]
-
+system("rm results/tmp/normalization_scnorm_jeff_selection_tmp.Rdata")
 scd_norm <- normalize(
   scd = scd$select(b_cells = scd$getfeature("id") %in% samples$Sample_ID,
                    genes = genes$x),
@@ -686,7 +692,6 @@ load("results/cycling/cells_counts_QC_cycling.Rdata")
 
 infos_M <- scd$getfeatures
 rownames(infos_M) <- infos_M$id
-infos_M <- apply(infos_M, 2, as.vector)
 counts_M <- scd_norm$getcounts
 infos_M <- infos_M[rownames(infos_M) %in% rownames(counts_M), ]
 counts_M <- counts_M[rownames(counts_M) %in% rownames(infos_M), ]
@@ -695,6 +700,7 @@ dim(counts_M)
 normalized_counts <- cbind(infos_M[match(rownames(infos_M), rownames(counts_M)), ],
                            counts_M
 )
+normalized_counts <- apply(normalized_counts, 2, as.vector)
 normalized_counts <- t(normalized_counts)
 write.csv(
   normalized_counts,
@@ -734,6 +740,7 @@ ggplot(data.frame(
   theme_bw()
 ggsave(file = "results/QC/pca/umap_cells_counts_Jeff.pdf")
 
+system("rm results/tmp/normalization_jeff_all_tmp.Rdata")
 scd_norm <- normalize(
   scd = scd$select(b_cells = scd$getfeature("id") %in% samples$Sample_ID),
   b_cells = TRUE,
@@ -751,16 +758,18 @@ load("results/QC/cells_counts_all_Jeff.Rdata")
 
 infos_M <- scd$getfeatures
 rownames(infos_M) <- infos_M$id
-infos_M <- apply(infos_M, 2, as.vector)
 counts_M <- scd_norm$getcounts
 infos_M <- infos_M[rownames(infos_M) %in% rownames(counts_M), ]
 counts_M <- counts_M[rownames(counts_M) %in% rownames(infos_M), ]
+
 dim(infos_M)
 dim(counts_M)
 normalized_counts <- cbind(infos_M[match(rownames(infos_M), rownames(counts_M)), ],
                            counts_M
 )
+normalized_counts <- apply(normalized_counts, 2, as.vector)
 normalized_counts <- t(normalized_counts)
+
 write.csv(
   normalized_counts,
   file = paste0("results/QC/cells_counts_all_Jeff.csv")
