@@ -2,7 +2,7 @@
 # classification on DEA genes for surface_cell_type
 
 rm(list = ls())
-setwd("~/projects/yellow_fever")
+setwd("~/projects/mold/yellow_fever")
 devtools::load_all("pkg/", reset = T)
 
 # with weights
@@ -192,7 +192,16 @@ ggplot(data = data_gplot, aes(x = ccr7, y = il7ra, color = cell_type)) +
   scale_color_manual(
     values = scRNAtools::cell_type_palette(levels(data_gplot$cell_type))
   ) +
-  theme_bw()
+  theme_bw()+
+  theme(
+      panel.background = element_rect(fill = "transparent"), # bg of the panel
+      plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+      panel.grid.major = element_blank(), # get rid of major grid
+      panel.grid.minor = element_blank(), # get rid of minor grid
+      legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+      legend.box.background = element_rect(fill = "transparent") # get rid of legend panel bg
+    )
+ggsave(file = "results/cell_type/counts_QC_DEA_cell_type_169.pdf", width=16, height=8.5, scale=0.5)
 ggsave(file = "results/cell_type/counts_QC_DEA_cell_type.pdf")
 
 ggplot(data = data_gplot, aes(x = pcell_type)) +

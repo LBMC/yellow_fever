@@ -1,5 +1,5 @@
 rm(list=ls())
-setwd("~/projects/yellow_fever/")
+setwd("~/projects/mold/yellow_fever/")
 devtools::load_all("pkg/", reset = T)
 load("results/QC/cells_counts_QC.Rdata")
 system("mkdir -p results/cell_type")
@@ -90,6 +90,7 @@ save(scd, file = "results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 load("results/cell_type/cells_counts_QC_surface_cell_type.Rdata")
 devtools::load_all("pkg/", reset = T)
 b_cells <- scd$getfeature("QC_good") %in% T
+length(levels(as.factor(scd$select(b_cells = b_cells)$getfeature("batch"))))
 data_gplot <- data.frame(
   ccr7 = scd$select(b_cells = b_cells)$getfeature("ccr7"),
   il7ra = scd$select(b_cells = b_cells)$getfeature("il7ra"),
@@ -111,7 +112,16 @@ ggplot() +
     aes(x = ccr7, y = il7ra, color = cell_type)) +
   geom_point(data = data_gplot[data_gplot$cell_type != "unknown", ],
     aes(x = ccr7, y = il7ra, color = cell_type)) +
-  theme_bw()
+  theme_bw() +
+  theme(
+      panel.background = element_rect(fill = "transparent"), # bg of the panel
+      plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+      panel.grid.major = element_blank(), # get rid of major grid
+      panel.grid.minor = element_blank(), # get rid of minor grid
+      legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+      legend.box.background = element_rect(fill = "transparent") # get rid of legend panel bg
+    )
+ggsave(file = "results/cell_type/counts_cells_phenotype_surface_cell_type_169.pdf", width=16, height=8.5, scale=0.5)
 ggsave(file = "results/cell_type/counts_cells_phenotype_surface_cell_type.pdf")
 data_gplot <- data.frame(
   ccr7 = scd$select(b_cells = b_cells)$getfeature("ccr7"),
@@ -129,7 +139,16 @@ ggplot(data = data_gplot, aes(x = ccr7, y = il7ra, color = cell_type)) +
   scale_color_manual(
     values = scRNAtools::cell_type_palette(levels(data_gplot$cell_type))
   ) +
-  theme_bw()
+  theme_bw() +
+  theme(
+      panel.background = element_rect(fill = "transparent"), # bg of the panel
+      plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+      panel.grid.major = element_blank(), # get rid of major grid
+      panel.grid.minor = element_blank(), # get rid of minor grid
+      legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+      legend.box.background = element_rect(fill = "transparent") # get rid of legend panel bg
+    )
+ggsave(file = "results/cell_type/counts_cells_surface_cell_type_169.pdf", width=16, height=8.5, scale=0.5)
 ggsave(file = "results/cell_type/counts_cells_surface_cell_type.pdf")
 
 ggplot(data = data_gplot, aes(x = pcell_type)) +

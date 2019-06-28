@@ -1290,7 +1290,7 @@ data <- rbind(
     il7ra = as.numeric(as.vector(scd_data$il7ra)),
     pMEM = scd_data$psurface_cell_type,
     day = factor(scd_data$day, levels = c("D15", "D136", "D593")),
-    classification = "PLS from manual"
+    classification = "sPLS"
   )
 )
 data <- rbind(
@@ -1300,7 +1300,7 @@ data <- rbind(
     il7ra = as.numeric(as.vector(scd_data$il7ra)),
     pMEM = scd_data$pDEA_cell_type,
     day = factor(scd_data$day, levels = c("D15", "D136", "D593")),
-    classification = "PLS from DEA"
+    classification = "DEA sPLS"
   )
 )
 
@@ -1309,7 +1309,16 @@ ggplot(data = data,
   scale_y_log10() +
   geom_jitter(height = 0) +
   facet_wrap(~day) +
-  theme_bw()
+  theme_bw() +
+  theme(
+      panel.background = element_rect(fill = "transparent"), # bg of the panel
+      plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+      panel.grid.major = element_blank(), # get rid of major grid
+      panel.grid.minor = element_blank(), # get rid of minor grid
+      legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+      legend.box.background = element_rect(fill = "transparent") # get rid of legend panel bg
+    )
+ggsave(file = "results/cell_type/M_in_vivo_ccr7_pMEM_169.pdf", width=16, height=8.5, scale=0.5)
 ggsave("results/cell_type/M_in_vivo_ccr7_pMEM.pdf",
        width = 11,
        height = 10)
