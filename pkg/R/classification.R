@@ -602,8 +602,8 @@ logistic_spls_stab_classification <- function(
     force = force
   )
   if (length(fit_pls$group_by$by) != length(fit$fit$group_by$by)) {
-    fit_pls$group_by <- fit$group_by
-    fit_pls$fit$group_by <- fit$group_by
+    fit_pls$group_by$by <- fit$fit$group_by$by
+    fit_pls$fit$group_by$by <- fit$fit$group_by$by
   }
   model <- logistic_pls_cv_classification(
     fit = fit_pls$fit,
