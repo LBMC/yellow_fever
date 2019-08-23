@@ -2,7 +2,7 @@ install.packages("vegan")
 
 rm(list=ls())
 setwd("~/projects/mold/yellow_fever/")
-devtools::load_all("../scRNAtools/", reset = T)
+devtools::load_all("pkg/", reset = T)
 load("results/QC/counts_QC.Rdata")
 
 # check TCR correspondance
@@ -431,6 +431,15 @@ fish_plot <- function(data, timepoints, title, min_size = function(x){any(x > 1)
             vlab = paste("day", timepoints))
   dev.off()
 }
+clone %>%
+  filter(donor=="Donor A") %>%
+  filter(antigen=="A2") %>%
+  pull(donor)
+
+fish_plot(data %>% filter(donor=="Donor A", antigen=="A2"), timepoints=c(15,136,605), "Donor A A2", min_size = function(x){any(x > 1)})
+
+data <- clone_size(infos_YFV2001_A2)
+data
 
 data <- clone_size(infos_YFV16_A2)
 fish_plot(data, timepoints=c(15,90,720), "YF16_A2", min_size = function(x){any(x > 1)})
@@ -460,6 +469,8 @@ fish_plot <- function(data, timepoints, title, min_size = function(x){any(x > 1)
             vlab = paste("day", timepoints))
   dev.off()
 }
+
+clone
 
 data <- clone_size(infos_YFV16_A2)
 fish_plot(data, timepoints=c(15,90,720), "YF16_A2", min_size = function(x){any(x > 3)})

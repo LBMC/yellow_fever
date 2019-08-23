@@ -1,6 +1,9 @@
+rm(list=ls())
+setwd("~/projects/mold/yellow_fever")
 library("tidyverse")
 library("readxl")
 library("vegan")
+library("broom")
 theme_set(theme_classic())
 pal = "Set1"
 scale_colour_discrete <-  function(palname=pal, ...){
@@ -11,31 +14,34 @@ scale_fill_discrete <-  function(palname=pal, ...){
 }
 
 # read frequency sampling data
-freq_resp <- read_xlsx("data/2019_01_25_Frequency_Responses_Fig1_jmup.xlsx") %>%
+freq_resp <- read_xlsx("data/2019_08_22_Frequency_Responses_Fig1_jmup.xlsx") %>%
   as_tibble() %>%
-  rename(day = "% of Total CD8") %>%
   gather(key = "donor", value = "percent", -"day") %>%
-  separate(donor, into = c("donor", "antigen"), sep = " ") %>%
+  separate(donor, into = c("donor", "antigen"), sep = "_") %>%
   drop_na() %>%
   mutate(day = strsplit(day, "D") %>% unlist() %>% as.numeric() %>% .[!is.na(.)])
+freq_resp
 # read clone data
-clone <- read_xlsx("data/2019_01_22_Table_S1 copy.xlsx", sheet = 1) %>%
+clone <- read_xlsx("data/2019_08_22_Table_S1_Aug20.xlsx", sheet = 1) %>%
   as_tibble() %>%
-  rename(donor = "Donor_ID",
-         day = Timepoint,
-         antigen = Epitope,
-         clone = "Clone Number"
+  rename(donor="Donor_ID",
+         day="Timepoint",
+         antigen="Epitope",
+         clone="clone_id"
   ) %>%
+  mutate(day = strsplit(day, "D") %>% unlist() %>% as.numeric() %>% .[!is.na(.)]) %>%
   mutate(day = replace(day, day %in% "605", "593"),
          day = as.numeric(day)) %>%
   select(donor, day, antigen, clone)
+clone
 for (i in 2:6) {
-  clone <- read_xlsx("data/2019_01_22_Table_S1 copy.xlsx", sheet = i) %>%
+  print(i)
+  clone <- read_xlsx("data/2019_08_22_Table_S1_Aug20.xlsx", sheet = i) %>%
     as_tibble() %>%
     rename(donor = "Donor_ID",
-          day = Timepoint,
-          antigen = Epitope,
-          clone = "Clone Number"
+          day = "Timepoint",
+          antigen = "Epitope",
+          clone = "clone_id"
     ) %>%
     mutate(day = replace(day, day %in% "605", "593"),
            day = as.numeric(day)) %>%
@@ -55,6 +61,7 @@ clone <- clone %>%
          clone = replace(clone, clone == 0, size_1_name),
          clone = as.factor(clone)
   )
+clone
 donors <- clone %>% pull(donor) %>% levels()
 days <-  clone %>% pull(day) %>% levels()
 antigens <- clone %>% pull(antigen) %>% levels()
@@ -63,6 +70,7 @@ clone <- clone %>% filter(donor %in% "YFV5") %>%
   mutate(donor = paste(donor, "nobig")) %>%
   bind_rows(clone %>% mutate(donor = as.vector(donor))) %>%
   mutate(donor = as.factor(donor))
+clone
 # reconstruct missing clone
 # we create clone that are present at later time-point
 dig_clone <- function(infos, donor, antigen){
@@ -122,7 +130,7 @@ for (i in 1:length(donors)) {
                 ) %>%
           group_by(clone) %>%
           count() %>%
-          pull(nn)
+          pull(n)
         alpha_f_fit <- tmp %>% fisherfit()
         alpha_f <- tibble(donor = donors[i], day = days[j], antigen = antigens[k],
                 alpha = alpha_f_fit$estimate,
@@ -281,3 +289,73 @@ clone %>%
   glm(data = ., antigen ~ n * percent, family = "binomial") %>%
   plot()
 
+clone %>%
+  filter(donor=="Donor A" & antigen=="A2") %>%
+  select(donor, day, n) %>%
+  mutate
+  glm(data = ., n~day, family = "binomial") %>%
+  summary()
+
+clone_size <- function(clone, select_donor, select_antigen){
+  data <- clone %>%
+    filter(donor==select_donor & antigen==select_antigen) %>%
+    select(day, clone, n)
+  result <- tibble(clone = data %>% pull(clone) %>% unique())
+  for(nday in data %>% arrange(day) %>% pull(day) %>% unique()){
+    cday <- paste0("D", nday)
+    result <- result %>% add_column(!!(cday) := 0)
+    for (clone_number in result %>% pull(clone)) {
+      n <- data %>%
+        filter(clone==clone_number & day==as.numeric(nday)) %>%
+        pull(n)
+      if (length(n) != 0) {
+        result[result$clone == clone_number, cday] <- n
+        prev_col <- ( result %>% ncol() )-1
+        if(result[result$clone == clone_number, prev_col ] == 0) {
+          result[result$clone == clone_number, prev_col ] <- 1
+        }
+      }
+    }
+  }
+  return(result)
+}
+clone_size(clone=clone, select_donor="Donor A", select_antigen="A2") %>%
+  glm(data = ., (D593!=0)~-1+D15*D136, family = "binomial") %>%
+  tidy() %>%
+  rename(`z value`="statistic",
+         `Pr(|>z|)`="p.value"
+  ) %>%
+  mutate(OR = exp(estimate),
+         proba = OR / (1 + OR)
+  ) %>%
+  write.csv(file="results/survival/DonorA_A2_survival_analysis.csv")
+
+
+library("fishplot")
+fish_plot <- function(data, timepoints, title, min_size = function(x){any(x > 1)}) {
+  colnames(data) <- as.numeric(substring(colnames(data), 2))
+  frac.table <- as.matrix(data)
+  frac.table <- frac.table[apply(frac.table, 1, min_size ), ]
+  print(head(frac.table))
+  frac.table <- apply(frac.table, 2, function(x){
+    x <- x / sum(x) * 100
+  })
+  print(head(frac.table))
+  print(colSums(frac.table))
+  table_order <- hclust(dist(frac.table))$order
+  frac.table <- frac.table[order(frac.table[, 3], frac.table[, 2], frac.table[, 1]), ]
+  parents <- rep(0, nrow(frac.table))
+  fish <- createFishObject(frac.table, parents, timepoints = timepoints)
+  fish <- layoutClones(fish)
+  fish <- setCol(fish, rainbow(nrow(frac.table)))
+  pdf(file = paste0("results/survival/fish_plot", title, "_3-2-1.pdf"),
+      height = 10, width = 10)
+  fishPlot(fish, shape = "spline", title.btm = title,
+            vlines = timepoints,
+            vlab = paste("day", timepoints))
+  dev.off()
+}
+
+data <- clone_size(clone=clone, select_donor="Donor A", select_antigen="A2") %>%
+  select(D15, D136, D593)
+fish_plot(data, timepoints=c(15,136,593), "Donor A A2", min_size = function(x){any(x > 3)})

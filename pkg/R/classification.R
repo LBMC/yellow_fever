@@ -594,6 +594,7 @@ logistic_spls_stab_classification <- function(
   ))
   print("training PLS with selected genes...")
   print(fit$fit$selected)
+  print(str(fit$fit$group_by))
   fit_pls <- logistic_pls_cv_training(
     by = fit$fit$group_by,
     data = data_train[, fit$fit$selected],
@@ -694,12 +695,15 @@ logistic_pls_stab_training <- function(by, data, ncores, file, force) {
   return(logistic_pls_cv_training(data, by, ncores, file, force))
 }
 
-#' @importFrom plsgenomics mrpls.cv
+#' @importFrom plsgenomics rpls.cv
 logistic_pls_cv_training <- function(by, data, ncores, file, force){
   if (!missing(file) & file.exists(paste0(file, "_lplscv.Rdata"))) {
     print(paste0(file, "_lplscv.Rdata found. skipping training step..."))
     load(paste0(file, "_lplscv.Rdata"))
   } else {
+    print(dim(data))
+    print(length(by$by))
+    print(str(by))
     fit <- plsgenomics::rpls.cv(
       Xtrain = data,
       Ytrain = by$by,
