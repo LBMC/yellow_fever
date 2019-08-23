@@ -1,7 +1,51 @@
 rm(list = ls())
-setwd("~/projects/yellow_fever")
+setwd("~/projects/mold/yellow_fever")
 devtools::load_all("pkg/", reset = T)
-load("cycling/cells_counts_QC_cycling.Rdata")
+load("results/cycling/cells_counts_QC_cycling.Rdata")
+
+library("tidyverse")
+library("readxl")
+
+clone <- read_xlsx("data/2019_08_22_Table_S1_Aug20.xlsx", sheet = 1) %>%
+  as_tibble() %>%
+  rename(donor="Donor_ID",
+         day="Timepoint",
+         antigen="Epitope",
+         clone="clone_id",
+         id = "Sample_ID"
+  ) %>%
+  mutate(day = strsplit(day, "D") %>% unlist() %>% as.numeric() %>% .[!is.na(.)]) %>%
+  mutate(day = replace(day, day %in% "605", "593"),
+         day = as.numeric(day)) %>%
+  select(id, donor, day, antigen, clone)
+for (i in 2:6) {
+  print(i)
+  clone <- read_xlsx("data/2019_08_22_Table_S1_Aug20.xlsx", sheet = i) %>%
+    as_tibble() %>%
+    rename(donor = "Donor_ID",
+          day = "Timepoint",
+          antigen = "Epitope",
+          clone = "clone_id",
+          id = "Sample_ID"
+    ) %>%
+    mutate(day = replace(day, day %in% "605", "593"),
+           day = as.numeric(day)) %>%
+    select(id, donor, day, antigen, clone) %>%
+    bind_rows(clone)
+}
+features <- scd$getfeatures
+features$clonality <- as.vector(features$clonality)
+for (cell_id in features$id){
+  clone_id <- clone %>%
+    filter(id == cell_id) %>%
+    pull(clone)
+  if (length(clone_id) != 0) {
+    features[features$id %in% cell_id, "clonality"] <- clone_id
+  }
+}
+features$clonality <- as.factor(features$clonality)
+scd$setfeature("clonality", features$clonality)
+
 
 system("mkdir -p results/clonality/")
 
@@ -41,6 +85,12 @@ for (sex in c("M", "F")) {
     tmp_infos$wilcox_pval[r_select] <-
       wilcox.test(tmp_infos$pDEA_cell_type[!r_select], tmp_infos$pDEA_cell_type[r_select])$p.value
   }
+  tmp_infos %>%
+    as_tibble() %>%
+    select(clonality, wilcox_pval) %>%
+    drop_na() %>%
+    distinct(clonality, .keep_all = TRUE) %>%
+    write_csv(paste0("results/clonality/pMEM_density_by_clone_D15_", sex, ".csv"))
   tmp_infos$wilcox_pval <- paste("wilcox p-value :",
     signif(tmp_infos$wilcox_pval,
       digits = 3))
@@ -126,6 +176,12 @@ for (sex in c("M", "F")) {
       wilcox.test(tmp_infos$pDEA_cell_type[!r_select],
                   tmp_infos$pDEA_cell_type[r_select])$p.value
   }
+  tmp_infos %>%
+    as_tibble() %>%
+    select(clonality, wilcox_pval) %>%
+    drop_na() %>% 
+    distinct(clonality, .keep_all = TRUE) %>%
+    write_csv(paste0("results/clonality/pMEM_density_by_clone_D100+_", sex, ".csv"))
   tmp_infos$wilcox_pval <- paste("wilcox p-value :",
     signif(tmp_infos$wilcox_pval,
       digits = 3))
