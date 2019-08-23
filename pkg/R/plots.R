@@ -1559,4 +1559,5 @@ pca_plot_a_space <- function(data_a, data_b, color_a, color_b, main="", name_a="
   if(!missing(file)) {
     ggsave(paste0(file, ".pdf"),width = 20, height = 15, units = "cm", dpi = 1200)
   }
+  return(svd_a)
 }
