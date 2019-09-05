@@ -153,6 +153,28 @@ alpha_f %>% select(-alpha_prec) %>%
   drop_na() %>%
   write.csv(file="results/survival/clone_diversity.csv")
 
+alpha_f %>% select(-alpha_prec) %>%
+  drop_na() %>%
+  mutate(day = as.numeric(day),
+         response = paste(donor, antigen)) %>%
+  lm(alpha ~ -1 + day + donor, data = .) %>%
+  summary()
+
+# test for alpha decreasse through time accounting for response effect
+library(lme4)
+library(pbkrtest)
+alpha_regression <- alpha_f %>% select(-alpha_prec) %>%
+  drop_na() %>%
+  mutate(day = as.numeric(day),
+         response = paste(donor, antigen)) %>%
+  lmer(log(alpha) ~ day + (1|response), data = .)
+alpha_regression %>% summary() %>% coef() %>% as_tibble() %>%
+  rename("estimate" = "Estimate",
+         "st.error" = "Std. Error",
+         "t.value" = "t value") %>%
+  mutate(df = get_ddf_Lb(alpha_regression, fixef(alpha_regression)),
+         pvalue = (1 - pt(t.value, df, lower.tail = F)))
+
 clone <- alpha_f %>%
   drop_na() %>%
   mutate(day = as.numeric(as.vector(day))) %>%
