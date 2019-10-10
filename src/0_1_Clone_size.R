@@ -387,3 +387,7 @@ fish_plot <- function(data, timepoints, title, min_size = function(x){any(x > 1)
 data <- clone_size(clone=clone, select_donor="Donor A", select_antigen="A2") %>%
   select(D15, D136, D593)
 fish_plot(data, timepoints=c(15,136,593), "Donor A A2", min_size = function(x){any(x > 3)})
+
+data <- clone_size(clone=clone, select_donor="Donor D", select_antigen="A2") %>%
+  select(D15, D90, D720)
+fish_plot(data, timepoints=c(15,90,720), "Donor D A2", min_size = function(x){any(x > 3)})
