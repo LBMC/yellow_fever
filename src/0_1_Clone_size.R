@@ -314,7 +314,6 @@ clone %>%
 clone %>%
   filter(donor=="Donor A" & antigen=="A2") %>%
   select(donor, day, n) %>%
-  mutate
   glm(data = ., n~day, family = "binomial") %>%
   summary()
 
@@ -365,16 +364,23 @@ fish_plot <- function(data, timepoints, title, min_size = function(x){any(x > 1)
   print(head(frac.table))
   print(colSums(frac.table))
   table_order <- hclust(dist(frac.table))$order
-  frac.table <- frac.table[order(frac.table[, 3], frac.table[, 2], frac.table[, 1]), ]
+  # frac.table <- frac.table[order(frac.table[, 3], frac.table[, 2], frac.table[, 1]), ]
+  frac.table <-
+    frac.table[order(frac.table[, 3] - frac.table[, 1]),]
   parents <- rep(0, nrow(frac.table))
-  fish <- createFishObject(frac.table, parents, timepoints = timepoints)
+  fish <-
+    createFishObject(frac.table, parents, timepoints = timepoints)
   fish <- layoutClones(fish)
   fish <- setCol(fish, rainbow(nrow(frac.table)))
   pdf(file = paste0("results/survival/fish_plot", title, "_3-2-1.pdf"),
       height = 10, width = 10)
-  fishPlot(fish, shape = "spline", title.btm = title,
-            vlines = timepoints,
-            vlab = paste("day", timepoints))
+  fishPlot(
+    fish,
+    shape = "spline",
+    title.btm = title,
+    vlines = timepoints,
+    vlab = paste("day", timepoints)
+  )
   dev.off()
 }
 
