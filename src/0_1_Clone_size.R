@@ -366,7 +366,7 @@ fish_plot <- function(data, timepoints, title, min_size = function(x){any(x > 1)
   table_order <- hclust(dist(frac.table))$order
   # frac.table <- frac.table[order(frac.table[, 3], frac.table[, 2], frac.table[, 1]), ]
   frac.table <-
-    frac.table[order(frac.table[, 3] - frac.table[, 1]),]
+    frac.table[order(frac.table[, 3] > 0, frac.table[, 3] - frac.table[, 1]),]
   parents <- rep(0, nrow(frac.table))
   fish <-
     createFishObject(frac.table, parents, timepoints = timepoints)
