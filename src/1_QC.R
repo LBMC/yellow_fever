@@ -1,5 +1,5 @@
 rm(list=ls())
-setwd("~/projects/yellow_fever/")
+setwd("~/projects/mold/yellow_fever/")
 library(scRNAtools)
 devtools::load_all("pkg/", reset = T)
 
@@ -56,6 +56,24 @@ scRNAtools::pca_plot(
 load("results/tmp/pca_counts_tmp.Rdata", v = T)
 scd$select(b_cells = b_cells)$getfeatures[order(pca_data$y, decreasing = T)[1:2],]
 ggsave(file = "results/QC/pca/pca_counts_outliers.pdf")
+
+#### For P1856 data ####
+scd <- scRNAtools::load_data_salmon(
+  infos = "data/2020_01_22_P1856_Meta.csv",
+  counts = "data/salmon_output/P1856/",
+  feature = "counts",
+  tximport_obj = "results/tmp/tmp_tximport_P1856",
+  infos_sep = ","
+)
+scd$setfeature(
+  "sequencing",
+  "paired"
+)
+scd$setfeature(
+  "to_QC",
+  T
+)
+save(scd, file = paste0("results/count_P1856.Rdata"))
 
 ############################# QC from M #######################################
 load("results/counts.Rdata")
@@ -805,3 +823,101 @@ ggplot(data.frame(
                 )) +
   theme_bw()
 ggsave(file = "results/QC/pca/umap_cells_counts_all_Jeff.pdf")
+
+
+################################################################################
+# QC of P1856 data
+
+rm(list=ls())
+setwd("~/projects/mold/yellow_fever/")
+library(scRNAtools)
+devtools::load_all("pkg/", reset = T)
+load("results/QC/counts_QC_F.Rdata")
+bad_F_cells <- paste0("P1292_", 1097:1192)
+scd_old <- scd
+load("results/count_P1856.Rdata")
+scd$setfeature("QC_score", 0.5)
+scd$setfeature("to_QC", T) 
+scd$setfeature("batch", "P1856") 
+scd$setfeature("cell_number", 1) 
+colnames(scd_old$getfeatures)
+for( feat in colnames(scd_old$getfeatures) ){
+  if (!(feat %in% colnames(scd$getfeatures))){
+    scd$setfeature(feat, NA)
+  }
+}
+scd_old$setfeature("donor", NA)
+
+scd <- scdata$new(
+  infos = rbind(
+    scd_old$getfeatures,
+    scd$getfeatures
+  ),
+  counts = rbind(
+    scd_old$getcounts,
+    scd$getcounts[, colnames(scd$getcounts) %in% colnames(scd_old$getcounts)]
+  )
+)
+
+table(scd$getfeature("to_QC"), scd$getfeature("batch"))
+table(scd$getfeature("to_QC"), scd$getfeature("sex"))
+
+scRNAtools::QC_classification(
+  scd = scd,
+  is_blank = scd$getfeature("QC_score") < 0.5
+)
+save(scd, file = "results/QC/counts_QC_P1856.Rdata")
+
+b_cells <- scd$getfeature("batch") %in% "P1856"
+summary(scd$select(b_cells = b_cells)$getfeature("QC_good"))
+
+
+ggplot(data = data.frame(QC_good = (scd$select(b_cells = b_cells)$getfeature("QC_good")),
+                         QC_score = (scd$select(b_cells = b_cells)$getfeature("QC_score")))) +
+  geom_point(aes(x = QC_good, y = QC_score))
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "QC_good", color_name = "antigen",
+  tmp_file = "results/tmp/pca_counts_P1856_tmp.Rdata",
+  main = "all day"
+)
+
+# cells effect normalization
+load("results/QC/counts_QC_P1856.Rdata")
+b_cells = scd$getfeature("QC_good") %in% T
+scd <- normalize(
+  scd = scd,
+  b_cells = b_cells,
+  method = "SCnorm",
+  cpus = 4,
+  tmp_file = paste0("results/tmp/normalization_P1856_tmp.Rdata")
+)
+save(scd, file = "results/QC/cells_counts_QC_P1856.Rdata")
+load(file = "results/QC/cells_counts_QC_P1856.Rdata")
+
+scRNAtools::pca_plot(
+  scd$select(b_cells = b_cells), color = "clonality", color_name = "clonality",
+  tmp_file = "results/tmp/pca_cells_QC_P1856_tmp.Rdata",
+  main = "all day"
+)
+ggsave(file = "results/QC/pca/pca_cells_counts_P1856_QC_good.pdf")
+
+# batch effect normalization
+load(file = "results/QC/cells_counts_QC_P1856.Rdata")
+devtools::load_all("../scRNAtools/", reset = T)
+b_cells = scd$getfeature("QC_good") %in% T
+
+scd <- normalize(
+  scd = scd,
+  b_cells = b_cells,
+  method = "ComBat",
+  cpus = 5,
+  tmp_file = paste0("results/tmp/normalization_cells_ComBat_P1856_tmp.Rdata")
+)
+save(scd, file = "results/QC/CB_counts_QC_1856.Rdata")
+
+data_counts <- scd$select(b_cells = b_cells & scd$getfeature("batch") %in% "P1856")$getcounts
+write.csv(data_counts, "results/QC/CB_counts_QC_1856.csv")
+
+data_infos <- scd$select(b_cells = b_cells & scd$getfeature("batch") %in% "P1856")$getfeatures
+write.csv(data_infos, "results/QC/CB_counts_QC_1856_infos.csv")
