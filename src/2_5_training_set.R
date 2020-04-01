@@ -87,6 +87,100 @@ write.csv(training_cells_infos, file = "results/cell_type/training_DEA_cell_type
 table(training_cells_infos$DEA_cell_type, training_cells_infos$phenotype_surface_marker)
 
 ###############################################################################
+# DEA PLS for the training data withou the Naive cells
+library("tidyverse")
+library("readxl")
+
+training_cells <- read_xlsx("data/2019_09_27_Prac_Plate_Minus_Naive.xlsx", sheet = 1) %>%
+  as_tibble(phenotype_surface_cell_type = as.factor(phenotype_surface_cell_type),
+            phenotype_surface_marker = as.factor(phenotype_surface_marker))
+load(file = "results/cell_type/cells_counts_QC_DEA_cell_type_M.Rdata")
+b_cells_training <- scd$getfeature("id") %in% training_cells$id
+gene_expressed <- rowSums(scd$select(b_cells = b_cells_training)$getcounts > 0)
+training_cells <- training_cells %>% filter(
+  training_cells$id %in% names(gene_expressed)[gene_expressed > 1000])
+
+scd <- normalize(
+  scd = scd,
+  b_cells = b_cells_training,
+  method = "SCnorm",
+  cpus = 4,
+  tmp_file = paste0("results/tmp/normalization_training_noNaive_tmp.Rdata")
+)
+save(scd, file = "results/QC/cells_counts_QC_training_noNaive.Rdata")
+load(file = "results/QC/cells_counts_QC_training_noNaive.Rdata")
+
+load("results/QC/cells_counts_QC_training_noNaive.Rdata")
+b_cells_training <- scd$getfeature("id") %in% training_cells$id
+table(b_cells_training)
+
+b_cells <- !is.na(scd$getfeature("phenotype_surface_cell_type")) &
+  scd$getfeature("QC_good") %in% T &
+  scd$getfeature("sex") %in% "M"
+b_cells <- scd$getfeature("id") %in% training_cells$id
+table(b_cells)
+
+phenotype_surface_cell_type <- scd$getfeature("phenotype_surface_cell_type")
+phenotype_surface_cell_type[b_cells] <- training_cells$phenotype_surface_cell_type
+scd$setfeature("phenotype_surface_cell_type", phenotype_surface_cell_type)
+
+system("cp results/cell_type/DEA_cell_types_force_training_lsplsstab.Rdata results/cell_type/DEA_cell_types_force_Mtraining_training_noNaive_lsplsstab.Rdata")
+system("cp results/cell_type/DEA_cell_types_force_classification_lplscv.Rdata results/cell_type/DEA_cell_types_force_Mtraining_noNaive_classification_lplscv.Rdata")
+system("rm results/cell_type/DEA_cell_types_force_Mtraining_noNaive_weighting.Rdata")
+system("rm results/cell_type/DEA_cell_types_force_Mtraining_noNaive_classification_lpls.Rdata")
+
+load("results/cell_type/DEA_cell_types_force_splsstab.Rdata")
+PLS_genes <- DEA_cell_type_classification$classification$fit_spls$fit$selected
+
+table(b_cells)
+scd$setfeature("surface_cell_type", rep(NA, scd$getncells))
+scd$select(b_cells=b_cells)$getfeature("surface_cell_type")
+
+devtools::load_all("pkg/", reset = T)
+DEA_cell_type_classification <- classification(
+  scd = scd$select(b_cells = b_cells),
+  feature = "surface_cell_type",
+  features = c(),
+  genes = PLS_genes,
+  ncores = 10,
+  algo = "spls_stab",
+  output_file = "results/cell_type/DEA_cell_types_force_Mtraining_noNaive",
+  force = PLS_genes
+)
+traceback()
+
+save(
+  DEA_cell_type_classification,
+  file = "results/cell_type/DEA_cell_types_force_splsstab_Mtraining_noNaive.Rdata"
+)
+
+load("results/cell_type/DEA_cell_types_force_splsstab_Mtraining_noNaive.Rdata")
+
+load(file = "results/cell_type/cells_counts_QC_DEA_cell_type_M.Rdata")
+b_cells_b <- scd$select(b_cells = b_cells)$getfeature("id") %in% training_cells
+infos_M <- scd$getfeatures
+
+DEA_cell_type_classification$classification$fit_spls$fit$selected
+cell_type_groups <- rep(NA, scd$getncells)
+cell_type_groups[b_cells_training] <- DEA_cell_type_classification$groups[b_cells_b]
+scd$setfeature("DEA_cell_type", cell_type_groups)
+cell_type_pgroups <- rep(NA, scd$getncells)
+cell_type_pgroups[b_cells_training] <- DEA_cell_type_classification$pgroups[b_cells_b]
+scd$setfeature("pDEA_cell_type", cell_type_pgroups)
+infos_M[b_cells, ] <- scd$select(b_cells = b_cells)$getfeatures
+
+scd <- scdata$new(
+  infos = infos_M,
+  counts = scd$getcounts
+)
+save(scd, file = "results/cell_type/cells_counts_QC_DEA_cell_type_training.Rdata")
+
+training_cells_infos <- scd$select(b_cells = b_cells_training)$getfeatures
+write.csv(training_cells_infos, file = "results/cell_type/training_DEA_cell_type.csv")
+table(training_cells_infos$DEA_cell_type, training_cells_infos$phenotype_surface_marker)
+
+###############################################################################
+# figures
 load("results/cell_type/cells_counts_QC_DEA_cell_type_training.Rdata")
 
 training_cells <- paste0("P1299_", 1001:1088)
