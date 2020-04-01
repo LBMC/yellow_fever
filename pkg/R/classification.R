@@ -317,6 +317,7 @@ multinomial_spls_stab_training <- function(by, data, ncores, file, force) {
     print(paste0(file, "_msplsstab.Rdata found. skipping training step..."))
     load(paste0(file, "_msplsstab.Rdata"))
   } else {
+    print(paste0(file, "_msplsstab.Rdata not found. training step..."))
     fit <- plsgenomics::multinom.spls.stab(
       X = data,
       Y = by$by,
@@ -346,6 +347,7 @@ multinomial_spls_cv_training <- function(by, data, ncores, file, force) {
     print(paste0(file, "_msplscv.Rdata found. skipping training step..."))
     load(paste0(file, "_msplscv.Rdata"))
   } else {
+    print(paste0(file, "_msplscv.Rdata not found. training step..."))
     fit <- plsgenomics::multinom.spls.cv(
       X = data,
       Y = by$by,
@@ -478,6 +480,7 @@ multinomial_pls_cv_training <- function(by, data, ncores, file, force){
     print(paste0(file, "_mplscv.Rdata found. skipping training step..."))
     load(paste0(file, "_mplscv.Rdata"))
   } else {
+    print(paste0(file, "_mplscv.Rdata not found. training step..."))
     fit <- plsgenomics::mrpls.cv(
       Xtrain = data,
       Ytrain = by$by,
@@ -507,6 +510,7 @@ multinomial_pls_cv_classification <- function(
     print(paste0(file, "_mpls.Rdata found. skipping classification step..."))
     load(paste0(file, "_mpls.Rdata"))
   } else {
+    print(paste0(file, "_mpls.Rdata not found. training step..."))
     model <- plsgenomics::mrpls(
       Xtrain = data_train,
       Ytrain = fit$group_by$by,
@@ -532,6 +536,7 @@ logistic_spls_stab_training <- function(by, data, ncores, file, force) {
     print(paste0(file, "_lsplsstab.Rdata found. skipping training step..."))
     load(paste0(file, "_lsplsstab.Rdata"))
   } else {
+    print(paste0(file, "_lsplsstab.Rdata not found. training step..."))
     fit <- plsgenomics::logit.spls.stab(
       X = data,
       Y = by$by,
@@ -561,6 +566,7 @@ logistic_spls_cv_training <- function(by, data, ncores, file, force) {
     print(paste0(file, "_lsplscv.Rdata found. skipping training step..."))
     load(paste0(file, "_lsplscv.Rdata"))
   } else {
+    print(paste0(file, "_lsplscv.Rdata not found. training step..."))
     fit <- plsgenomics::logit.spls.cv(
       X = data,
       Y = by$by,
@@ -628,6 +634,7 @@ logistic_spls_classification <- function(
     print(paste0(file, "_lspls.Rdata found. skipping classification step..."))
     load(paste0(file, "_lspls.Rdata"))
   } else {
+    print(paste0(file, "_lspls.Rdata not found. training step..."))
     model <- plsgenomics::logit.spls(
       Xtrain = data_train,
       Ytrain = fit$by,
@@ -701,6 +708,7 @@ logistic_pls_cv_training <- function(by, data, ncores, file, force){
     print(paste0(file, "_lplscv.Rdata found. skipping training step..."))
     load(paste0(file, "_lplscv.Rdata"))
   } else {
+    print(paste0(file, "_lplscv.Rdata not found. training step..."))
     print(dim(data))
     print(length(by$by))
     print(str(by))
@@ -733,6 +741,7 @@ logistic_pls_cv_classification <- function(
     print(paste0(file, "_lpls.Rdata found. skipping classification step..."))
     load(paste0(file, "_lpls.Rdata"))
   } else {
+    print(paste0(file, "_lpls.Rdata not found. training step..."))
     print(dim(data))
     print(dim(data_train))
     model <- plsgenomics::rpls(
