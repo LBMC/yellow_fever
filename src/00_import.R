@@ -45,8 +45,8 @@ cell_id <- list.files(
     replacement = "P\\1_\\2"
   ) %>%
   stringr::str_replace(
-    pattern = "output/(.).*(\\d+)_S.*$",
-    replacement = "P999\\1_\\2"
+    pattern = "output/(.).*_(\\d+)_S(\\d+).*$",
+    replacement = "P999\\1_\\2\\3"
   )
 
 # build singleCellExperiment object
@@ -63,6 +63,7 @@ sce <- SingleCellExperiment::SingleCellExperiment(
     infos = tx2g$Transcript[match(rownames(counts$counts), tx2g$Gene)]
   )
 )
+sce <- sce[, !(cell_id %>% duplicated())]
 save(sce, file = "results/sce_raw.Rdata")
 
 # add cells annotation from annotation file
