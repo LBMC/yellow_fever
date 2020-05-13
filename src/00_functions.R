@@ -7,14 +7,15 @@ library(broom.mixed)
 library(DHARMa)
 library(glmmTMB)
 library(parallel)
+library(pbmcapply)
 library(plsgenomics)
 
 anscombe <- function(x){
-  2 * sqrt(x + 3 / 8)
+  2.0 * sqrt(x + 3.0 / 8.0)
 }
 
 ascb <- function(x){
-  anscombe(x) - 1.224745
+  anscombe(x) - anscombe(0.0)
 }
 
 logspace <- function(d1, d2, n) {
@@ -54,18 +55,20 @@ QC_predict <- function(fit, sce, assay_name = "logcounts") {
 }
 QC_score <- function(sce, assay_name = "logcounts", ncell_name = "cell_number",
                      run = ncol(sce), ncpus = 6){
-  parallel::mclapply(as.list(1:run), FUN = function(x, sce, assay_name, ncell_name){
-    message(x)
-    QC_predict(
-      fit = QC_fit(
+  pbmcapply::pbmclapply(
+    as.list(1:run),
+    FUN = function(x, sce, assay_name, ncell_name){
+      message(x)
+      QC_predict(
+        fit = QC_fit(
+          sce = sce,
+          assay_name = assay_name,
+          ncell_name = ncell_name
+        ),
         sce = sce,
-        assay_name = assay_name,
-        ncell_name = ncell_name
-      ),
-      sce = sce,
-      assay_name = assay_name)
-  }, sce = sce, assay_name = assay_name, ncell_name = ncell_name,
-  mc.cores = ncpus) %>% 
+        assay_name = assay_name)
+    }, sce = sce, assay_name = assay_name, ncell_name = ncell_name,
+    mc.cores = ncpus) %>% 
     do.call(cbind, .) %>% 
     rowMeans(. - 1)
 }
@@ -153,10 +156,9 @@ DEA <- function(sce,
                 test, formula, zi_formula = formula, zi_threshold = 0.05,
                 assay_name = "counts",
                 cpus = 4){
-  results <- parallel::mclapply(
+  results <- pbmcapply::pbmclapply(
     rownames(sce),
     FUN = function(x, sce, assay_name, test, formula, zi_formula, zi_threshold){
-      print(x)
       LRT_zi_nb(
         data = DEA_data(
           x = x,
@@ -202,39 +204,68 @@ scale_zi_nb <- function(data) {
     )
   zi_prop <- ifelse(
     "betazi" %in% names(model$fit$par),
-    exp(model$fit$par["betazi"]),
-    0)
-  data$count <- (data$count / sigma(model)) * (1 - zi_prop)
+    boot::inv.logit(model$fit$par["betazi"]),
+    0.0)
+  scaling <-
+    exp(model$fit$par["beta"]) + exp(model$fit$par["beta"])^2 / sigma(model)
+  scaling <- ifelse(
+    scaling != 0.0,
+    scaling,
+    1.0)
+  data$count <- (data$count / scaling) * (1.0 - zi_prop)
   return(data)
+}
+
+scale_zi_nb_sce <- function(sce,
+                            genes = rownames(sce),
+                            assay_name = "counts",
+                            cpus = 4) {
+  pbmcapply::pbmclapply(
+    as.list((names(genes) <- genes)),
+    function(x, sce, assay_name){
+      tibble(count = assay(sce, assay_name)[x, ]) %>%
+        scale_zi_nb() %>%
+        plyr::rename(x = ., replace = c("count" = x))
+    },
+    sce = sce,
+    assay_name = assay_name,
+    mc.cores = cpus
+  ) %>%
+    do.call(bind_cols, .)
 }
 
 # classification function
 
-PLS_scaling <- function(sce, genes, features, assay_name = "counts", cpus = 4) {
-  cbind(
-    scale(colData(sce)[features]),
-    parallel::mclapply(
-      as.list(genes),
-      function(x, sce, assay_name){
-        tibble(count = assay(sce, assay_name)[x, ]) %>% 
-          scale_zi_nb() %>% 
-          plyr::rename(x = ., replace = c("count" = x))
-      },
+PLS_scaling <- function(sce, genes, features = NULL, assay_name = "counts", cpus = 4) {
+  if (length(colnames(colData(sce)[features])) == 0) {
+    scale_zi_nb_sce(
       sce = sce,
+      genes = genes,
       assay_name = assay_name,
-      mc.cores = cpus
+      cpus = cpus
     ) %>% 
-      do.call(cbind, .)
+      ascb() %>%
+      as.matrix() %>%
+      t() %>%
+      SingleCellExperiment::SingleCellExperiment(assays = list(counts = .)) %>%
+      return()
+  }
+  cbind(
+    scale_zi_nb_sce(
+      sce = sce,
+      genes = genes,
+      assay_name = assay_name,
+      cpus = cpus
+    ),
+    scale(colData(sce)[features])
   ) %>%
-    ascb() %>% 
-    as.matrix() %>% 
-    t() %>% 
-    SingleCellExperiment::SingleCellExperiment(
-      assays = list(counts = .)
-    )
+    ascb() %>%
+    as.matrix() %>%
+    t() %>%
+    SingleCellExperiment::SingleCellExperiment(assays = list(counts = .))
 }
 
-PLS_filter <- function(sce,  group_by, genes , features,
+PLS_filter <- function(sce,  group_by, genes , features = NULL,
                        assay_name = "counts",
                        altExp_name = "PLS_scaled",
                        cpus = 4){
@@ -243,6 +274,7 @@ PLS_filter <- function(sce,  group_by, genes , features,
     colData(altExp(sce, altExp_name))$group_predict <- NA
     colData(altExp(sce, altExp_name))$group_predict <- 
       !apply(assay(altExp(sce, altExp_name), "counts"), 2, anyNA)
+    assay(altExp(sce, altExp_name), "counts") %>% t() %>% summary() %>% print()
     return(sce)
   }
   altExp(sce, altExp_name) <- PLS_scaling(
@@ -253,10 +285,10 @@ PLS_filter <- function(sce,  group_by, genes , features,
       cpus = cpus
     )
   colData(altExp(sce, altExp_name))$group_name <- group_by
-  colData(altExp(sce, altExp_name))$group_train <- 
+  colData(altExp(sce, altExp_name))$group_train <-
     !is.na(group_by) &
     !apply(assay(altExp(sce, altExp_name), "counts"), 2, anyNA)
-  colData(altExp(sce, altExp_name))$group_by <- 
+  colData(altExp(sce, altExp_name))$group_by <-
     as.numeric(as.factor(group_by)) - 1
   return(sce)
 }
@@ -264,7 +296,7 @@ PLS_filter <- function(sce,  group_by, genes , features,
 PLS_fit <- function(sce,
                     group_by,
                     genes,
-                    features,
+                    features = NULL,
                     assay_name = "counts",
                     altExp_name = "PLS_scaled",
                     force = c(),
@@ -273,7 +305,7 @@ PLS_fit <- function(sce,
   sce <- PLS_filter(
     sce = sce,
     group_by = group_by,
-    genes = genes,
+    genes = c(genes, force) %>% unique(),
     features = features,
     assay_name = assay_name,
     altExp_name = altExp_name,
@@ -286,7 +318,7 @@ PLS_fit <- function(sce,
           ],
           "counts") %>%
         as.matrix() %>%
-        t() %>% 
+        t() %>%
     plsgenomics::logit.spls.stab(
       X = .,
       Y = colData(
@@ -309,21 +341,31 @@ PLS_fit <- function(sce,
       verbose = TRUE
     )
   print("training PLS with selected genes...")
-  print(stability.selection(fit_sparse)$selected.predictors)
   rowData(altExp(sce, altExp_name))$predictor <-
-    rownames(altExp(sce, altExp_name)) %in% 
+    rownames(altExp(sce, altExp_name)) %in%
     stability.selection(fit_sparse)$selected.predictors
   rowData(altExp(sce, altExp_name))$predictor_force <-
-    rowData(altExp(sce, altExp_name))$predictor |
-    rownames(altExp(sce, altExp_name)) %in% force
+    rownames(altExp(sce, altExp_name)) %in%
+    c(
+      stability.selection(fit_sparse)$selected.predictors,
+      force
+    )
+  rowData(altExp(sce, altExp_name))$predictor %>% table() %>% print()
+  rowData(altExp(sce, altExp_name))$predictor_force %>% table() %>% print()
+  print(rownames(altExp(sce, altExp_name))[
+      rowData(altExp(sce, altExp_name))$predictor
+    ])
+  print(rownames(altExp(sce, altExp_name))[
+      rowData(altExp(sce, altExp_name))$predictor_force
+    ])
   fit <- assay(
       altExp(sce, altExp_name)[
           rowData(altExp(sce, altExp_name))$predictor_force,
           colData(altExp(sce, altExp_name))$group_train
         ],
         "counts") %>%
-      as.matrix() %>% 
-      t() %>% 
+      as.matrix() %>%
+      t() %>%
     plsgenomics::rpls.cv(
       Xtrain = .,
       Ytrain = colData(
@@ -388,8 +430,8 @@ PLS_predict <- function(fit, sce, group_by, genes, features,
           colData(altExp(sce, altExp_name))$group_train
         ],
         "counts") %>%
-      t() %>% 
-      as.matrix() %>% 
+      t() %>%
+      as.matrix() %>%
     plsgenomics::rpls(
       Ytrain = colData(altExp(sce, altExp_name))$group_by[
         colData(altExp(sce, altExp_name))$group_train],
@@ -397,24 +439,24 @@ PLS_predict <- function(fit, sce, group_by, genes, features,
       Lambda = fit$fit$Lambda,
       ncomp = fit$fit$ncomp,
       Xtest = assay(altExp(sce, altExp_name)[
-            rowData(altExp(sce, altExp_name))$predictor,
+            rowData(altExp(sce, altExp_name))$predictor_force,
             colData(altExp(sce, altExp_name))$group_predict
           ],
-          "counts") %>% 
-        as.matrix() %>% 
+          "counts") %>%
+        as.matrix() %>%
         t()
     )
-  group_names <- colData(altExp(sce, altExp_name)) %>% 
-    as_tibble() %>% 
-    drop_na() %>% 
-    select(group_name, group_by) %>% 
+  group_names <- colData(altExp(sce, altExp_name)) %>%
+    as_tibble() %>%
+    drop_na() %>%
+    select(group_name, group_by) %>%
     unique()
   colData(sce) <- colData(sce) %>%
-    cbind(.,  
+    cbind(.,
       tibble(rownames = rownames(colData(sce))) %>%
       mutate(
         rownames = as.vector(rownames)
-      ) %>% 
+      ) %>%
       left_join(
         tibble(
           rownames = rownames(model$proba.test),
