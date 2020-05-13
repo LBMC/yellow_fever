@@ -1,9 +1,8 @@
-library(tidyverse)
-library(SingleCellExperiment)
-library(SummarizedExperiment)
+source("src/00_functions.R")
 
 load(file = "results/sce_annot.Rdata", verbose = T)
 
+# We move the ERCC data to an altExp in the sce object
 altExp(sce, "ERCC") <- sce[stringr::str_detect(rownames(sce), "ERCC-\\d+"), ]
 sce <- sce[!stringr::str_detect(rownames(sce), "ERCC-\\d+"), ]
 # 92 ERCC
@@ -19,6 +18,8 @@ sce <- scater::addPerCellQC(
   sce,
   exprs_values = "counts_raw"
 )
+
+# add quality metric for the ERCC
 altExp(sce, "ERCC") <- scater::addPerFeatureQC(
   altExp(sce, "ERCC"),
   exprs_values = "counts_raw"
@@ -29,6 +30,8 @@ altExp(sce, "ERCC") <- scater::addPerCellQC(
   altExp(sce, "ERCC"),
   exprs_values = "counts_raw"
 )
+
+# QC plots
 
 colData(sce) %>% 
   as_tibble() %>% 
@@ -77,6 +80,7 @@ colData(sce) %>%
   labs(y = "genes detected",
        x = "counts sum")
 
+# knee plot
 bcrank <- DropletUtils::barcodeRanks(assays(sce)$counts_raw[rowData(sce)$detected, ])
 colData(sce)
 tibble(
@@ -93,7 +97,6 @@ tibble(
   theme_bw() +
   labs(x = "expressed genes",
        y = "rank")
-  
 
 # arbitraty cell filter
 weird_D15 <- c("P1299_1105", "P1299_1106", "P1299_1111", "P1299_1112", "P1299_1117", "P1299_1129", "P1299_1133", "P1299_1150", "P1299_1151", "P1299_1185", "P1299_1222", "P1299_1263", "P1299_1284", "P1299_1297", "P1299_1299", "P1299_1313", "P1299_1328", "P1299_1336", "P1299_1345", "P1299_1356", "P1299_1364", "P1299_1371", "P1299_1390", "P1299_1397", "P1299_1404", "P1299_1416", "P1299_1429", "P1299_1432", "P1299_1437", "P1299_1445", "P1299_1457", "P1299_1465", "P1299_1466", "P1299_1473", "P1299_1478", "P1299_1770", "P1299_1772", "P1299_1781", "P1299_1795", "P1299_1802", "P1299_1803", "P1299_1810", "P1299_1818", "P1299_1819", "P1299_1826", "P1299_1838", "P1299_1843", "P1299_1847", "P1299_1850", "P1299_1861", "P1299_1881", "P1299_1882", "P1299_1884", "P1299_1908", "P1299_1913", "P1299_1921", "P1299_1922", "P1299_1928", "P1299_1949", "P1299_2012", "P1299_2017", "P1299_2035", "P1299_2052", "P1299_2054", "P1299_2056")
@@ -101,58 +104,10 @@ sce <- sce[, !(colData(sce)$id %in% weird_D15)]
 bad_F_cells <- str_c("P1292_", 1097:1192)
 sce <- sce[, !(colData(sce)$id %in% bad_F_cells)]
 
+# we add a logcounts matrix
 logcounts(sce) <- log1p(assays(sce)$counts_raw)
 
 # svm bagging QC analysis for Male invivo data
-
-QC_sample <- function(is_good) {
-  c(
-    base::sample(
-      which(is_good),
-      size = sum(!is_good),
-      replace = T
-    ),
-    which(!is_good)
-  )
-}
-QC_fit <- function(sce, assay_name = "logcounts", ncell_name = "cell_number") {
-  is_good <- colData(sce)[[ncell_name]] > 0
-  select_sample <- QC_sample(is_good)
-  suppressWarnings(
-    e1071::svm(
-      x = t(assays(sce)[[assay_name]][, select_sample]),
-      y = as.factor(is_good[select_sample]),
-      kernel = "linear",
-      class.weights = 100 / table(is_good),
-      type = "C-classification",
-      scale = TRUE
-  ))
-}
-QC_predict <- function(fit, sce, assay_name = "logcounts") {
-  stats::predict(
-    fit,
-    t(assays(sce)[[assay_name]]),
-    na.action = na.fail
-  ) %>%
-    as.numeric()
-}
-QC_score <- function(sce, assay_name = "logcounts", ncell_name = "cell_number",
-                     run = ncol(sce), ncpus = 6){
-  parallel::mclapply(as.list(1:run), FUN = function(x, sce, assay_name, ncell_name){
-    message(x)
-    QC_predict(
-      fit = QC_fit(
-        sce = sce,
-        assay_name = assay_name,
-        ncell_name = ncell_name
-      ),
-      sce = sce,
-      assay_name = assay_name)
-  }, sce = sce, assay_name = assay_name, ncell_name = ncell_name,
-  mc.cores = ncpus) %>% 
-    do.call(cbind, .) %>% 
-    rowMeans(. - 1)
-}
 
 # we work on the male in vivo data
 colData(sce)$to_QC <- colData(sce) %>% 
@@ -202,6 +157,9 @@ colData(sce)$QC_good <- QC_predict(
   ),
   sce = sce) != 1
 
+save(sce, file = "results/sce_QC_all.Rdata")
+load(file = "results/sce_QC_all.Rdata")
+
 colData(sce)[colData(sce)$to_QC, ] %>% 
   as_tibble() %>% 
   ggplot(aes(x = sum, y = detected)) +
@@ -245,11 +203,8 @@ tibble(
        x = "rank")
 
 sce <- sce[, colData(sce)$QC_good]
+
 # we filter the genes
-rownames(sce) <- rowData(sce)$gene
-
-dim(sce[])
-
 x = seq(from = -3, to = 2, length.out = 1000)
 poisson_model <- tibble(
   log_mean = x,
@@ -274,7 +229,7 @@ rowData(sce) %>%
   annotation_logticks() +
   labs(y = "genes detected",
        x = "counts sum")
-
+ %>% as.matrix()
 rowData(sce) %>% 
   as_tibble() %>% 
   mutate(log_mean = log10(gene_mean),
@@ -298,3 +253,5 @@ table(rowData(sce)$QC_good)
 sce <- sce[rowData(sce)$QC_good, ]
 
 save(sce, file = "results/sce_QC.Rdata")
+load(file = "results/sce_QC.Rdata")
+
