@@ -1,4 +1,4 @@
-library(tidyverse)
+source("src/00_functions.R")
 
 data_dir <- "data/salmon_output/"
 
@@ -12,15 +12,18 @@ tx2g <- list.files(
   readr::read_tsv() %>%
   dplyr::select(Name) %>%
   dplyr::rename(Transcript = Name) %>%
-  dplyr::mutate(Gene = Transcript %>% sapply(
-    function(x) {
-      ifelse(
-        stringr::str_detect(x, "\\|"),
-        stringr::str_split(x, "\\|", simplify = T)[1, 2],
-        x
-      )
-    }
-  ))
+  dplyr::mutate(
+    Gene = Transcript %>% sapply(
+      function(x) {
+        ifelse(
+          stringr::str_detect(x, "\\|"),
+          stringr::str_split(x, "\\|", simplify = T)[1, 2],
+          x
+        )
+      }
+    ),
+    Gene = str_replace(Gene, "(.*)\\.\\d*", "\\1"),
+    )
 
 # import counts
 counts <- list.files(
@@ -31,9 +34,13 @@ counts <- list.files(
   tximport::tximport(
     files = .,
     type = "salmon",
+    txIn = T,
+    txOut = F,
     tx2gene = tx2g,
     importer = data.table::fread
     )
+save(counts, file = "results/tximport_raw.Rdata")
+load(file = "results/tximport_raw.Rdata")
 
 # read cell id from file paths
 cell_id <- list.files(
@@ -52,8 +59,7 @@ cell_id <- list.files(
 # build singleCellExperiment object
 sce <- SingleCellExperiment::SingleCellExperiment(
   assays = list(
-    counts_raw = counts$counts %>% Matrix::Matrix(sparse = T),
-    abundance_raw = counts$abundance %>% Matrix::Matrix(sparse = T)
+    counts_raw = counts$counts %>% Matrix::Matrix(sparse = T)
   ),
   colData = data.frame(
     id = cell_id
@@ -63,12 +69,11 @@ sce <- SingleCellExperiment::SingleCellExperiment(
     infos = tx2g$Transcript[match(rownames(counts$counts), tx2g$Gene)]
   )
 )
+colnames(sce) <- cell_id
 sce <- sce[, !(cell_id %>% duplicated())]
 save(sce, file = "results/sce_raw.Rdata")
 
 # add cells annotation from annotation file
-library(SingleCellExperiment)
-library(SummarizedExperiment)
 load("results/sce_raw.Rdata", verbose = T)
 
 colData(sce) <- colData(sce) %>%
@@ -86,7 +91,7 @@ colData(sce) <- colData(sce) %>%
   ) %>% 
   DataFrame()
 
-# add gene name info
+# add common gene name
 rowData(sce) <- rowData(sce) %>% 
   as_tibble() %>% 
   dplyr::mutate(gene = infos %>% sapply(
@@ -101,3 +106,5 @@ rowData(sce) <- rowData(sce) %>%
   DataFrame
 
 save(sce, file = "results/sce_annot.Rdata")
+load(file = "results/sce_annot.Rdata")
+

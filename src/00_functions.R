@@ -1,6 +1,7 @@
 library(tidyverse)
 library(SingleCellExperiment)
 library(SummarizedExperiment)
+library(sctransform)
 library(broom)
 library(broom.mixed)
 library(DHARMa)
@@ -18,6 +19,55 @@ ascb <- function(x){
 
 logspace <- function(d1, d2, n) {
   return(exp(log(10) * seq(d1, d2, length.out = n)))
+}
+
+QC_sample <- function(is_good) {
+  c(
+    base::sample(
+      which(is_good),
+      size = sum(!is_good),
+      replace = T
+    ),
+    which(!is_good)
+  )
+}
+QC_fit <- function(sce, assay_name = "logcounts", ncell_name = "cell_number") {
+  is_good <- colData(sce)[[ncell_name]] > 0
+  select_sample <- QC_sample(is_good)
+  suppressWarnings(
+    e1071::svm(
+      x = t(assays(sce)[[assay_name]][, select_sample]),
+      y = as.factor(is_good[select_sample]),
+      kernel = "linear",
+      class.weights = 100 / table(is_good),
+      type = "C-classification",
+      scale = TRUE
+  ))
+}
+QC_predict <- function(fit, sce, assay_name = "logcounts") {
+  stats::predict(
+    fit,
+    t(assays(sce)[[assay_name]]),
+    na.action = na.fail
+  ) %>%
+    as.numeric()
+}
+QC_score <- function(sce, assay_name = "logcounts", ncell_name = "cell_number",
+                     run = ncol(sce), ncpus = 6){
+  parallel::mclapply(as.list(1:run), FUN = function(x, sce, assay_name, ncell_name){
+    message(x)
+    QC_predict(
+      fit = QC_fit(
+        sce = sce,
+        assay_name = assay_name,
+        ncell_name = ncell_name
+      ),
+      sce = sce,
+      assay_name = assay_name)
+  }, sce = sce, assay_name = assay_name, ncell_name = ncell_name,
+  mc.cores = ncpus) %>% 
+    do.call(cbind, .) %>% 
+    rowMeans(. - 1)
 }
 
 test_zi <- function(model_nozi, model_zi, threshold = 0.05){
@@ -137,7 +187,11 @@ DEA <- function(sce,
 get_genes_pval <- function(results) {
   lapply(results,
        FUN = function(x){
-         x$LRT$p.value[2]
+         if ("LRT" %in% names(x)) {
+           return(x$LRT$p.value[2])
+         } else {
+           return(NA)
+         }
        }) %>% do.call(c, .)
 }
 
@@ -213,6 +267,7 @@ PLS_fit <- function(sce,
                     features,
                     assay_name = "counts",
                     altExp_name = "PLS_scaled",
+                    force = c(),
                     cpus = 4) {
   print("scaling data...")
   sce <- PLS_filter(
@@ -258,9 +313,12 @@ PLS_fit <- function(sce,
   rowData(altExp(sce, altExp_name))$predictor <-
     rownames(altExp(sce, altExp_name)) %in% 
     stability.selection(fit_sparse)$selected.predictors
+  rowData(altExp(sce, altExp_name))$predictor_force <-
+    rowData(altExp(sce, altExp_name))$predictor |
+    rownames(altExp(sce, altExp_name)) %in% force
   fit <- assay(
       altExp(sce, altExp_name)[
-          rowData(altExp(sce, altExp_name))$predictor,
+          rowData(altExp(sce, altExp_name))$predictor_force,
           colData(altExp(sce, altExp_name))$group_train
         ],
         "counts") %>%
@@ -326,7 +384,7 @@ PLS_predict <- function(fit, sce, group_by, genes, features,
     cpus = cpus
   )
   model <- assay(altExp(sce, altExp_name)[
-          rowData(altExp(sce, altExp_name))$predictor,
+          rowData(altExp(sce, altExp_name))$predictor_force,
           colData(altExp(sce, altExp_name))$group_train
         ],
         "counts") %>%
