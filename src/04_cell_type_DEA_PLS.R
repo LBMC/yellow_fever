@@ -231,6 +231,8 @@ sce_hm <- sce
 sce_DEA_hm <- sce[
   rowData(sce_DEA_hm)$gene %in% c(
     "GZMB",
+    
+    
     "CX3CR1",
     "CCL4",
     "GNLY",
@@ -261,3 +263,13 @@ plotHeatmap(
   symmetric = TRUE,
   zlim = c(-5, 5)
 ) 
+
+colData(sce) %>% 
+  as_tibble() %>% 
+  mutate(pMEM = ifelse(PLS_DEA_cell_type %in% "EFF", 0, 1),
+         pMEM = ifelse(is.na(PLS_DEA_cell_type), NA, pMEM)
+         ) %>% 
+  write_csv(path = "results/sce_DEA_DEA_cell_type_cellData.csv")
+rowData(sce) %>% 
+  as_tibble(rownames = "id") %>% 
+  write_csv(path = "results/sce_DEA_DEA_cell_type_geneData.csv")
