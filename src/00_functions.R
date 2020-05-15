@@ -1,3 +1,19 @@
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install(version = "3.11")
+# BiocManager::install(c(
+#   "tidyverse",
+#   "SingleCellExperiment",
+#   "SummarizedExperiment",
+#   "sctransform",
+#   "broom",
+#   "broom.mixed",
+#   "DHARMa",
+#   "glmmTMB",
+#   "parallel",
+#   "pbmcapply",
+#   "plsgenomics",
+#   "scater"))
 library(tidyverse)
 library(SingleCellExperiment)
 library(SummarizedExperiment)
