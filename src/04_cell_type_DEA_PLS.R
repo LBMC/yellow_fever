@@ -116,7 +116,7 @@ load(file = "results/04_DEA.Rdata", verbose = T)
 
 rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo <- NA
 rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo[sce$male_invivo] <- 
-  get_genes_pval(DEA_DEA_cell_type)
+  get_genes_pval(DEA_DEA_cell_type, sce)
 
 rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo %>% 
   is.na() %>% 
@@ -135,13 +135,17 @@ DEA_DEA_cell_type_fixed <- DEA(
 
 save(DEA_DEA_cell_type_fixed, file = "results/04_DEA_fixed.Rdata")
 
-get_genes_pval(DEA_DEA_cell_type_fixed) %>%
+get_genes_pval(DEA_DEA_cell_type_fixed, sce[
+  rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo %>% is.na(),
+]) %>%
   is.na() %>%
   table()
 
 rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo[
   rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo %>% is.na()
-] <- get_genes_pval(DEA_DEA_cell_type_fixed)
+] <- get_genes_pval(DEA_DEA_cell_type_fixed, sce[
+  rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo %>% is.na(),
+])
 
 rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo %>% 
   is.na() %>% 
@@ -155,6 +159,26 @@ rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo_adj <- p.adjust(
 
 save(sce, file = "results/sce_DEA_DEA_cell_type.Rdata")
 load(file = "results/sce_DEA_DEA_cell_type.Rdata")
+
+
+rowData(sce) %>% 
+  as_tibble() %>% 
+  filter(gene == "CCR7") %>% 
+  select(starts_with("pval"))
+
+
+test <- DEA(
+  sce[
+    rowData(sce)$gene %in% "CCR7",
+    sce$male_invivo
+  ],
+  test = "~ p_PLS_DEA_cell_type",
+  formula = "count ~ p_PLS_DEA_cell_type + day + (1|batch)",
+  assay_name = "counts_vst",
+  cpus = 10
+)
+test
+get_genes_pval(test)
 
 sce <- logNormCounts(sce, exprs_values = "counts_vst")
 sce_DEA <- runPCA(sce[

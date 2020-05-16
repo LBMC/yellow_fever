@@ -99,7 +99,7 @@ assay(sce[
 
 rowData(sce)$pval_DEA_p_PLS_surface_cell_type_male_invivo <- NA
 rowData(sce)$pval_DEA_p_PLS_surface_cell_type_male_invivo <- 
-  get_genes_pval(DEA_surface_cell_type)
+  get_genes_pval(DEA_surface_cell_type, sce)
 
 rowData(sce)$pval_DEA_p_PLS_surface_cell_type_male_invivo %>% 
   is.na() %>% 
@@ -118,13 +118,17 @@ DEA_surface_cell_type_fixed <- DEA(
 
 save(DEA_surface_cell_type_fixed, file = "results/03_DEA_fixed.Rdata")
 
-get_genes_pval(DEA_surface_cell_type_fixed) %>%
+get_genes_pval(DEA_surface_cell_type_fixed, sce[
+  rowData(sce)$pval_DEA_p_PLS_surface_cell_type_male_invivo %>% is.na(),
+]) %>%
   is.na() %>%
   table()
 
 rowData(sce)$pval_DEA_p_PLS_surface_cell_type_male_invivo[
   rowData(sce)$pval_DEA_p_PLS_surface_cell_type_male_invivo %>% is.na()
-] <- get_genes_pval(DEA_surface_cell_type_fixed)
+] <- get_genes_pval(DEA_surface_cell_type_fixed, sce[
+  rowData(sce)$pval_DEA_p_PLS_surface_cell_type_male_invivo %>% is.na(),
+])
 
 rowData(sce)$pval_DEA_p_PLS_surface_cell_type_male_invivo %>% 
   is.na() %>% 

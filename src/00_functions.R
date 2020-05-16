@@ -225,7 +225,7 @@ DEA <- function(sce,
   return(results)
 }
 
-get_genes_pval <- function(results) {
+get_genes_pval <- function(results, sce) {
   lapply(results,
        FUN = function(x){
          if ("LRT" %in% names(x)) {
@@ -233,7 +233,14 @@ get_genes_pval <- function(results) {
          } else {
            return(NA)
          }
-       }) %>% do.call(c, .)
+       }) %>%
+    do.call(c, .) %>% 
+    tibble(
+      id = names(.),
+      pval = .
+    ) %>% 
+    right_join(tibble(id = rownames(sce))) %>%
+    pull(pval)
 }
 
 scale_zi_nb <- function(data) {
