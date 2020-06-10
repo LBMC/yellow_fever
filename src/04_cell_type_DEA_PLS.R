@@ -115,8 +115,8 @@ save(DEA_DEA_cell_type, file = "results/04_DEA.Rdata")
 load(file = "results/04_DEA.Rdata", verbose = T)
 
 rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo <- NA
-rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo[sce$male_invivo] <- 
-  get_genes_pval(DEA_DEA_cell_type, sce)
+rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo <- 
+  get_genes_pval(DEA_DEA_cell_type, sce[, sce$male_invivo])
 
 rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo %>% 
   is.na() %>% 
@@ -134,6 +134,7 @@ DEA_DEA_cell_type_fixed <- DEA(
 )
 
 save(DEA_DEA_cell_type_fixed, file = "results/04_DEA_fixed.Rdata")
+load(file = "results/04_DEA_fixed.Rdata", verbose = T)
 
 get_genes_pval(DEA_DEA_cell_type_fixed, sce[
   rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo %>% is.na(),
@@ -158,6 +159,15 @@ rowData(sce)$pval_DEA_p_PLS_DEA_cell_type_male_invivo_adj <- p.adjust(
 
 
 save(sce, file = "results/sce_DEA_DEA_cell_type.Rdata")
+colData(sce) %>% 
+  as_tibble() %>% 
+  mutate(pMEM = ifelse(PLS_DEA_cell_type %in% "EFF", 0, 1),
+         pMEM = ifelse(is.na(PLS_DEA_cell_type), NA, pMEM)
+         ) %>% 
+  write_csv(path = "results/sce_DEA_DEA_cell_type_cellData.csv")
+rowData(sce) %>% 
+  as_tibble(rownames = "id") %>% 
+  write_csv(path = "results/sce_DEA_DEA_cell_type_geneData.csv")
 load(file = "results/sce_DEA_DEA_cell_type.Rdata")
 
 
@@ -165,20 +175,6 @@ rowData(sce) %>%
   as_tibble() %>% 
   filter(gene == "CCR7") %>% 
   select(starts_with("pval"))
-
-
-test <- DEA(
-  sce[
-    rowData(sce)$gene %in% "CCR7",
-    sce$male_invivo
-  ],
-  test = "~ p_PLS_DEA_cell_type",
-  formula = "count ~ p_PLS_DEA_cell_type + day + (1|batch)",
-  assay_name = "counts_vst",
-  cpus = 10
-)
-test
-get_genes_pval(test)
 
 sce <- logNormCounts(sce, exprs_values = "counts_vst")
 sce_DEA <- runPCA(sce[
@@ -250,13 +246,9 @@ colData(sce_DEA) %>%
   labs(y = "t-SNE1",
        x = "t-SNE2")
 
-sce_hm <- sce
-
 sce_DEA_hm <- sce[
-  rowData(sce_DEA_hm)$gene %in% c(
+  rowData(sce)$gene %in% c(
     "GZMB",
-    
-    
     "CX3CR1",
     "CCL4",
     "GNLY",
@@ -277,7 +269,6 @@ sce_DEA_hm <- sce[
   ),
   sce$male_invivo]
 rownames(sce_DEA_hm) <- rowData(sce_DEA_hm)$gene
-
 plotHeatmap(
   sce_DEA_hm,
   features = rownames(sce_DEA_hm),
@@ -288,12 +279,109 @@ plotHeatmap(
   zlim = c(-5, 5)
 ) 
 
-colData(sce) %>% 
-  as_tibble() %>% 
-  mutate(pMEM = ifelse(PLS_DEA_cell_type %in% "EFF", 0, 1),
-         pMEM = ifelse(is.na(PLS_DEA_cell_type), NA, pMEM)
-         ) %>% 
-  write_csv(path = "results/sce_DEA_DEA_cell_type_cellData.csv")
-rowData(sce) %>% 
-  as_tibble(rownames = "id") %>% 
-  write_csv(path = "results/sce_DEA_DEA_cell_type_geneData.csv")
+sce_DEA_hm <- sce[
+  rowData(sce)$gene %in% c(
+    "GZMB",
+    "CX3CR1",
+    "CCL4",
+    "GNLY",
+    "GZMH",
+    "KLRD1",
+    "GZMG",
+    "PRF1",
+    "HOPX",
+    "CCL5",
+    "GZMK",
+    "SELL",
+    "IL7R",
+    "LEF1",
+    "TCF7",
+    "LTB",
+    "NELL2",
+    "CCR7"
+  ),
+  sce$female_invivo]
+rownames(sce_DEA_hm) <- rowData(sce_DEA_hm)$gene
+plotHeatmap(
+  sce_DEA_hm,
+  features = rownames(sce_DEA_hm),
+  order_columns_by = "p_PLS_DEA_cell_type",
+  colour_columns_by = c("p_PLS_DEA_cell_type", "manual_cell_type", "day"),
+  center = TRUE,
+  symmetric = TRUE,
+  zlim = c(-5, 5)
+) 
+
+
+
+sce_DEA_hm <- sce[
+  rowData(sce)$gene %in% c(
+    "GZMB",
+    "CX3CR1",
+    "CCL4",
+    "GNLY",
+    "GZMH",
+    "KLRD1",
+    "GZMG",
+    "PRF1",
+    "HOPX",
+    "CCL5",
+    "GZMK",
+    "SELL",
+    "IL7R",
+    "LEF1",
+    "TCF7",
+    "LTB",
+    "NELL2",
+    "CCR7"
+  ),
+  sce$YVF2003_D1401]
+rownames(sce_DEA_hm) <- rowData(sce_DEA_hm)$gene
+plotHeatmap(
+  sce_DEA_hm,
+  features = rownames(sce_DEA_hm),
+  order_columns_by = "p_PLS_DEA_cell_type",
+  colour_columns_by = c("p_PLS_DEA_cell_type", "manual_cell_type", "day"),
+  center = TRUE,
+  symmetric = TRUE,
+  zlim = c(-5, 5)
+) 
+
+sce_DEA_hm <- sce[
+  rowData(sce)$gene %in% c(
+    "GZMB",
+    "CX3CR1",
+    "CCL4",
+    "GNLY",
+    "GZMH",
+    "KLRD1",
+    "GZMG",
+    "PRF1",
+    "HOPX",
+    "CCL5",
+    "GZMK",
+    "SELL",
+    "IL7R",
+    "LEF1",
+    "TCF7",
+    "LTB",
+    "NELL2",
+    "CCR7"
+  ),
+  sce$day %in% c("D15", "D90", "D1401", "D136", "D593")]
+rownames(sce_DEA_hm) <- rowData(sce_DEA_hm)$gene
+sce_DEA_hm$day_F <- NA
+sce_DEA_hm$day_M <- NA
+sce_DEA_hm$sex[sce_DEA_hm$day %in% "D1401"] <- "F"
+sce_DEA_hm$day_F[sce_DEA_hm$sex %in% "F"] <- sce_DEA_hm$day[sce_DEA_hm$sex %in% "F"]
+sce_DEA_hm$day_M[sce_DEA_hm$sex %in% "M"] <- sce_DEA_hm$day[sce_DEA_hm$sex %in% "M"]
+plotHeatmap(
+  sce_DEA_hm,
+  features = rownames(sce_DEA_hm),
+  order_columns_by = "p_PLS_DEA_cell_type",
+  colour_columns_by = c("p_PLS_DEA_cell_type", "day_F", "day_M"),
+  center = TRUE,
+  symmetric = TRUE,
+  zlim = c(-5, 5)
+) 
+
