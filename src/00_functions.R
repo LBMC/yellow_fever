@@ -13,6 +13,9 @@
 #   "parallel",
 #   "pbmcapply",
 #   "plsgenomics",
+#   "SparseM",
+#   "DropletUtils",
+#   "Rtsne",
 #   "scater"))
 library(tidyverse)
 library(SingleCellExperiment)
@@ -26,11 +29,30 @@ library(parallel)
 library(pbmcapply)
 library(plsgenomics)
 library(scater)
+library(plyr)
 
+#' compute anscombe transform
+#' compute the anscombe transform of x (sqrt(x + 3/8))
+#' @param x a vector of numeric
+#' @return x a vector of numeric
+#' @examples
+#' \dontrun {
+#' anscombe(1:10)
+#' }
+#' @export anscombe
 anscombe <- function(x){
   2.0 * sqrt(x + 3.0 / 8.0)
 }
 
+#' compute anscombe transform shifted to zero
+#' compute the anscombe transform of x (anscombe(x) + anscombe(0)
+#' @param x a vector of numeric
+#' @return x a vector of numeric
+#' @examples
+#' \dontrun {
+#' anscombe(1:10)
+#' }
+#' @export ascb
 ascb <- function(x){
   anscombe(x) - anscombe(0.0)
 }
@@ -61,6 +83,15 @@ cell_type_palette <- function(cell_type){
   return(cell_types_color)
 }
 
+#' compute anscombe transform shifted to zero
+#' compute the anscombe transform of x (anscombe(x) + anscombe(0)
+#' @param x a vector of numeric
+#' @return x a vector of numeric
+#' @examples
+#' \dontrun {
+#' anscombe(1:10)
+#' }
+#' @export ascb
 QC_sample <- function(is_good) {
   c(
     base::sample(
@@ -71,6 +102,16 @@ QC_sample <- function(is_good) {
     which(!is_good)
   )
 }
+
+#' compute anscombe transform shifted to zero
+#' compute the anscombe transform of x (anscombe(x) + anscombe(0)
+#' @param x a vector of numeric
+#' @return x a vector of numeric
+#' @examples
+#' \dontrun {
+#' anscombe(1:10)
+#' }
+#' @export ascb
 QC_fit <- function(sce, assay_name = "logcounts", ncell_name = "cell_number") {
   is_good <- colData(sce)[[ncell_name]] > 0
   select_sample <- QC_sample(is_good)
@@ -84,6 +125,15 @@ QC_fit <- function(sce, assay_name = "logcounts", ncell_name = "cell_number") {
       scale = TRUE
   ))
 }
+#' compute anscombe transform shifted to zero
+#' compute the anscombe transform of x (anscombe(x) + anscombe(0)
+#' @param x a vector of numeric
+#' @return x a vector of numeric
+#' @examples
+#' \dontrun {
+#' anscombe(1:10)
+#' }
+#' @export ascb
 QC_predict <- function(fit, sce, assay_name = "logcounts") {
   stats::predict(
     fit,
@@ -243,6 +293,20 @@ get_genes_pval <- function(results, sce) {
     pull(pval)
 }
 
+#' scaling for for scRNASeq data
+#' Helper function that scale the genes expression matrix for the PLS function
+#' scale a scRNA genes counts vector by dividing by the estimate of a glmmTMB 
+#' nbinom2 variance estimate and if a zero inflation is detected by multipling
+#' by the proportion of counts outside the dirac in zero
+#' @param data a data.frame with a *count* column
+#' @return a data.frame with a *count* column
+#' @examples
+#' \dontrun {
+#'scaled_counts <- scale_zi_nb(
+#'  data
+#')
+#' }
+#' @import tidyverse boot
 scale_zi_nb <- function(data) {
   model <- fit_zi_nb(
       data = data,
@@ -262,6 +326,24 @@ scale_zi_nb <- function(data) {
   return(data)
 }
 
+#' scaling for for scRNASeq data
+#' Helper function that scale the genes expression matrix for the PLS function
+#' apply the function scale_zi_nb on a list of genes
+#' @param sce SingleCellExperiment object
+#' @param genes vector of gene name to scale (rownames of sce)
+#' @param assay_name (default: "counts") name of the assay of genes counts to use
+#' @param cpus (default: 4) number of cpus to use
+#' @return a matrix with the result of the scaling 
+#' @examples
+#' \dontrun {
+#'scaled_counts <- scale_zi_nb_sce(
+#'  sce = sce,
+#'  genes = rownames(sce),
+#'  assay_name = "counts",
+#'  cpus = 10
+#')
+#' }
+#' @import plsgenomics pbmcappl SingleCellExperiment Matrix tidyverse
 scale_zi_nb_sce <- function(sce,
                             genes = rownames(sce),
                             assay_name = "counts",
@@ -282,6 +364,10 @@ scale_zi_nb_sce <- function(sce,
 
 # classification function
 
+#' classification for scRNASeq data
+#' Helper function that scale the genes expression matrix for the PLS function
+#' @examples
+#' @import plsgenomics pbmcappl SingleCellExperiment Matrix tidyverse
 PLS_scaling <- function(sce, genes, features = NULL, assay_name = "counts", cpus = 4) {
   if (length(colnames(colData(sce)[features])) == 0) {
     scale_zi_nb_sce(
@@ -311,6 +397,10 @@ PLS_scaling <- function(sce, genes, features = NULL, assay_name = "counts", cpus
     SingleCellExperiment::SingleCellExperiment(assays = list(counts = .))
 }
 
+#' classification for scRNASeq data
+#' Helper function that compute the X and Xtest matrix for the PLS function
+#' @examples
+#' @import plsgenomics pbmcappl SingleCellExperiment Matrix tidyverse
 PLS_filter <- function(sce,  group_by, genes , features = NULL,
                        assay_name = "counts",
                        altExp_name = "PLS_scaled",
@@ -320,7 +410,6 @@ PLS_filter <- function(sce,  group_by, genes , features = NULL,
     colData(altExp(sce, altExp_name))$group_predict <- NA
     colData(altExp(sce, altExp_name))$group_predict <- 
       !apply(assay(altExp(sce, altExp_name), "counts"), 2, anyNA)
-    assay(altExp(sce, altExp_name), "counts") %>% t() %>% summary() %>% print()
     return(sce)
   }
   altExp(sce, altExp_name) <- PLS_scaling(
@@ -339,6 +428,12 @@ PLS_filter <- function(sce,  group_by, genes , features = NULL,
   return(sce)
 }
 
+#' classification for scRNASeq data
+#' copy of the plsgenomics:logit.spls.stab function using pbmcapply to display
+#' a progress bar
+#' @examples
+#' @import plsgenomics pbmcappl 
+#' @export plsgenomics_logit_spls_stab
 plsgenomics_logit_spls_stab <- function (X, Y, lambda.ridge.range, lambda.l1.range, ncomp.range, 
           adapt = TRUE, maxIter = 100, svd.decompose = TRUE, ncores = 1, 
           nresamp = 100, center.X = TRUE, scale.X = FALSE, weighted.center = TRUE, 
@@ -495,17 +590,42 @@ plsgenomics_logit_spls_stab <- function (X, Y, lambda.ridge.range, lambda.l1.ran
   tmp_qLambda <- data.frame(tmp_qLambda)
   colnames(tmp_qLambda) <- c("lambdaL1", "lambdaL2", "ncomp", 
                              "id.samp", "qLambda")
-  qLambda <- ddply(tmp_qLambda, c("lambdaL1", "lambdaL2", "ncomp"), 
+  qLambda <- plyr::ddply(tmp_qLambda, c("lambdaL1", "lambdaL2", "ncomp"), 
                    function(x) colMeans(x[c("qLambda")], na.rm = TRUE))
   o.qLambda <- order(qLambda$qLambda)
   qLambda <- qLambda[o.qLambda, ]
-  probs_lambda <- ddply(grid.resampling, c("lambdaL1", "lambdaL2", 
+  probs_lambda <- plyr::ddply(grid.resampling, c("lambdaL1", "lambdaL2", 
                                            "ncomp"), function(x) colMeans(x[cnames], na.rm = TRUE))
   probs_lambda <- probs_lambda[o.qLambda, ]
   return(list(q.Lambda = qLambda, probs.lambda = probs_lambda, 
               p = p))
 }
 
+#' classification for scRNASeq data
+#'
+#' @param sce SingleCellExperiment object
+#' @param group_by factor definifing the training group, with NA for the cells to classify
+#' @param genes genes names to use
+#' @param features colData() of sce to use
+#' @param assay_name (default: "counts") name of the assay of genes counts to use
+#' @param altExp_name (default: "PLS_scaled") name of the altExp to store the scaled data for the PLS
+#' @param force vector of genes names to force the usage of for the classification
+#' @param cpus (default: 4) number of cpus to use
+#' @return a list() with the result of the classification
+#' @examples
+#' \dontrun {
+#'model <- PLS_fit(
+#'  sce = sce,
+#'  group_by = sce$manual_cell_type,
+#'  genes = genes_PLS %>% pull(genes) %>% na.omit(),
+#'  features = genes_PLS %>% pull(proteins) %>% na.omit() %>% unique(),
+#'  assay_name = "counts_vst",
+#'  altExp_name = "PLS_surface_cell_type",
+#'  cpus = 10
+#')
+#' }
+#' @import plsgenomics tidyverse SingleCellExperiment Matrix
+#' @export PLS_fit
 PLS_fit <- function(sce,
                     group_by,
                     genes,
@@ -563,8 +683,6 @@ PLS_fit <- function(sce,
       stability.selection(fit_sparse)$selected.predictors,
       force
     )
-  rowData(altExp(sce, altExp_name))$predictor %>% table() %>% print()
-  rowData(altExp(sce, altExp_name))$predictor_force %>% table() %>% print()
   print(rownames(altExp(sce, altExp_name))[
       rowData(altExp(sce, altExp_name))$predictor
     ])
@@ -612,8 +730,8 @@ PLS_fit <- function(sce,
 #' @examples
 #' \dontrun {
 #'model <- PLS_predict(
-#'  sce = fit$sce,
 #'  fit = fit,
+#'  sce = fit$sce,
 #'  group_by = sce$manual_cell_type,
 #'  genes = genes_PLS %>% pull(genes) %>% na.omit(),
 #'  features = genes_PLS %>% pull(proteins) %>% na.omit() %>% unique(),
@@ -622,7 +740,7 @@ PLS_fit <- function(sce,
 #'  cpus = 10
 #')
 #' }
-#' @import plsgenomics
+#' @import plsgenomics tidyverse SingleCellExperiment Matrix
 #' @export PLS_predict
 PLS_predict <- function(fit, sce, group_by, genes, features,
                         assay_name = "counts",
