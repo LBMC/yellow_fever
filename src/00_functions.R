@@ -25,6 +25,7 @@ library(broom)
 library(broom.mixed)
 library(DHARMa)
 library(glmmTMB)
+library(lmtest)
 library(parallel)
 library(pbmcapply)
 library(plsgenomics)
@@ -205,6 +206,16 @@ residuals_zi_nb <- function(model) {
   )
 }
 
+drop_term <- function(formula, test) {
+  formula %>%  
+    str_remove(fixed(str_remove(test, "\\s*~\\s*"))) %>% 
+    str_replace("(~)\\s*[+-:*]", "\\1") %>% 
+    str_replace("[:]\\s*([+-])", "\\1") %>% 
+    str_replace("([+-])\\s*[:]", "\\1") %>% 
+    str_replace("([+-:])\\s*[+-:]\\s*", "\\1") %>% 
+    str_remove("\\s*[+-:*]\\s*$")
+}
+
 LRT_zi_nb <- function(data, test, formula, zi_formula = formula, threshold = 0.05){
   model <- fit_zi_nb(
     data = data,
@@ -212,14 +223,21 @@ LRT_zi_nb <- function(data, test, formula, zi_formula = formula, threshold = 0.0
     zi_formula = zi_formula,
     threshold = threshold
   )
+  model0 <- fit_zi_nb(
+    data = data,
+    formula = drop_term(formula, test),
+    zi_formula = drop_term(zi_formula, test),
+    threshold = threshold
+  )
   list(
     parameters = model %>%
       broom.mixed::tidy(),
-    LRT = model %>%
-      stats::drop1(as.formula(test), test = "Chisq") %>%
+    LRT = anova(model0, model) %>%
       broom.mixed::tidy(),
     residuals = model %>%
-      residuals_zi_nb()
+      residuals_zi_nb(),
+    model = model,
+    model0 = model0
   )
 }
 
@@ -230,13 +248,14 @@ DEA_data <- function(x, sce, assay_name, formula, zi_formula){
       count = as.vector(assay(sce, assay_name)[x, ]),
       gene_name = x
     ) %>% 
-    select(
+    dplyr::select(
       any_of(
         str_split(
           str_c(formula, zi_formula),
-          "[ ~+()|]"
+          "[ 1~+()|]"
         )[[1]]
-      ), gene_name
+      ),
+      gene_name
     ) %>%
     drop_na()
 }
