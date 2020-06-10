@@ -80,6 +80,7 @@ colData(sce) %>%
   labs(y = "genes detected",
        x = "counts sum")
 
+
 # knee plot
 bcrank <- DropletUtils::barcodeRanks(assays(sce)$counts_raw[rowData(sce)$detected, ])
 colData(sce)
@@ -160,6 +161,39 @@ colData(sce)$QC_good <- QC_predict(
 save(sce, file = "results/sce_QC_all.Rdata")
 load(file = "results/sce_QC_all.Rdata")
 
+# file name for Joana
+
+data_dir <- "data/salmon_output/"
+cell_id <- tibble(
+    file_name = list.files(
+      path = data_dir,
+      pattern = ".*quant\\.sf",
+      recursive = T
+    ),
+    id = list.files(
+      path = data_dir,
+      pattern = ".*quant\\.sf",
+      recursive = T
+    ) %>%
+    stringr::str_replace(
+      pattern = ".*[_/]P(\\d+)_(\\w{0,1}\\d+)[_/].*$",
+      replacement = "P\\1_\\2"
+    ) %>%
+    stringr::str_replace(
+      pattern = "output/(.).*_(\\d+)_S(\\d+).*$",
+      replacement = "P999\\1_\\2\\3"
+    )
+  )
+colData(sce) <- colData(sce) %>% 
+  as_tibble() %>% 
+  left_join(cell_id, by = "id") %>%
+  filter(!(id %>% duplicated())) %>% 
+  DataFrame()
+colData(sce) %>% 
+  as_tibble() %>% 
+  write_csv(path = "results/sce_QC_cellData.csv")
+# end file name for Joana
+
 colData(sce)[colData(sce)$to_QC, ] %>% 
   as_tibble() %>% 
   ggplot(aes(x = sum, y = detected)) +
@@ -168,6 +202,21 @@ colData(sce)[colData(sce)$to_QC, ] %>%
   scale_x_log10() +
   scale_y_log10() +
   theme_bw() +
+  annotation_logticks() +
+  labs(y = "genes detected",
+       x = "counts sum")
+
+sce$to_QC[sce$day %in% "D1401"] %>% table()
+
+colData(sce) %>% 
+  as_tibble() %>% 
+  ggplot(aes(x = sum, y = detected)) +
+  geom_point(aes(color = QC_good)) +
+  geom_density_2d(size = 0.3) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_bw() +
+  facet_wrap(~experiment) +
   annotation_logticks() +
   labs(y = "genes detected",
        x = "counts sum")
@@ -185,18 +234,29 @@ colData(sce) %>%
   labs(y = "genes detected",
        x = "counts sum")
 
+colData(sce) %>% 
+  as_tibble() %>% 
+  ggplot(aes(x = detected)) +
+  geom_histogram() +
+  facet_wrap(~experiment) +
+  theme_bw() +
+  labs(x = "genes detected")
+  
+
 bcrank <- DropletUtils::barcodeRanks(assays(sce)$counts_raw[rowData(sce)$detected, ])
 tibble(
   rank = rank(-colSums(assays(sce)$counts_raw[rowData(sce)$detected, ] > 0)),
   expressed = colSums(assays(sce)$counts_raw[rowData(sce)$detected, ] > 0),
   rank_cutoff = max(bcrank$rank[bcrank$total > metadata(bcrank)[["inflection"]]]),
   cell_number = colData(sce)$cell_number,
-  QC_good = colData(sce)$QC_good
+  QC_good = colData(sce)$QC_good,
+  experiment = sce$experiment,
   ) %>%
   distinct() %>%
   ggplot(aes(x = rank, y = expressed)) +
   geom_vline(aes(xintercept = rank_cutoff), col = "red") +
   geom_point(aes(color = QC_good)) +
+  facet_wrap(~experiment) +
   geom_line() +
   theme_bw() +
   labs(y = "expressed genes",
@@ -229,7 +289,7 @@ rowData(sce) %>%
   annotation_logticks() +
   labs(y = "genes detected",
        x = "counts sum")
- %>% as.matrix()
+
 rowData(sce) %>% 
   as_tibble() %>% 
   mutate(log_mean = log10(gene_mean),
