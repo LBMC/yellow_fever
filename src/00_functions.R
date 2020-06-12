@@ -235,9 +235,7 @@ LRT_zi_nb <- function(data, test, formula, zi_formula = formula, threshold = 0.0
     LRT = anova(model0, model) %>%
       broom.mixed::tidy(),
     residuals = model %>%
-      residuals_zi_nb(),
-    model = model,
-    model0 = model0
+      residuals_zi_nb()
   )
 }
 
