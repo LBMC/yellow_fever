@@ -1,36 +1,46 @@
-# if (!requireNamespace("BiocManager", quietly = TRUE))
-#     install.packages("BiocManager")
-# BiocManager::install(version = "3.11")
-# BiocManager::install(c(
-#   "tidyverse",
-#   "SingleCellExperiment",
-#   "SummarizedExperiment",
-#   "sctransform",
-#   "broom",
-#   "broom.mixed",
-#   "DHARMa",
-#   "glmmTMB",
-#   "parallel",
-#   "pbmcapply",
-#   "plsgenomics",
-#   "SparseM",
-#   "DropletUtils",
-#   "Rtsne",
-#   "scater"))
-library(tidyverse)
-library(SingleCellExperiment)
-library(SummarizedExperiment)
-library(sctransform)
-library(broom)
-library(broom.mixed)
-library(DHARMa)
-library(glmmTMB)
-library(lmtest)
-library(parallel)
-library(pbmcapply)
-library(plsgenomics)
-library(scater)
-library(plyr)
+needed_packages <- c(
+  "optparse",
+  "tidyverse",
+  "SingleCellExperiment",
+  "SummarizedExperiment",
+  "sctransform",
+  "broom",
+  "broom.mixed",
+  "DHARMa",
+  "glmmTMB",
+  "lmtest",
+  "parallel",
+  "pbmcapply",
+  "plsgenomics",
+  "scater",
+  "plyr"
+)
+
+install_if_needed <- function(packages){
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+  sapply(
+    packages,
+    function(x) {
+      if (!requireNamespace(x, quietly = TRUE))
+        tryCatch({
+          BiocManager::install(x, update = F, ask = F)
+        }, error = function(e) {
+          devtools::install_github(x, upgrade = "never")
+        })
+      if (!stringr::str_detect(x, "/")){
+        library(x, character.only = TRUE)
+      } else {
+        library(stringr::str_replace(x, ".*/(.*)", "\\1"),
+                character.only = TRUE)
+      }
+    }
+  )
+  return(str_c(str_c(packages, collapse = ", "), " installed and loaded."))
+}
+install_if_needed(needed_packages)
 
 #' compute anscombe transform
 #' compute the anscombe transform of x (sqrt(x + 3/8))
@@ -286,7 +296,8 @@ DEA <- function(sce,
     zi_formula = zi_formula,
     zi_threshold = zi_threshold,
     mc.preschedule = F,
-    mc.cores = cpus
+    mc.cores = cpus,
+    ignore.interactive = T
   )
   names(results) <- rownames(sce)
   return(results)

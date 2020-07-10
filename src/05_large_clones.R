@@ -1,6 +1,19 @@
 source("src/00_functions.R")
 
 load(file = "results/sce_DEA_DEA_cell_type.Rdata")
+sce_test <- sce[,
+      sce$id %in% big_M_clone & sce$male_invivo
+    ]
+assays(sce_test)$counts_vst %>%
+  as.matrix() %>% 
+  as.data.frame() %>%
+  head(, 10) %>% 
+  write_csv("results/test_counts_matrix.csv")
+
+colData(sce_test) %>% 
+  as.data.frame() %>% 
+  write_csv("results/test_cells_matrix.csv")
+
 large_clone <-
   readxl::read_xlsx("data/2020_05_12_In_Vivo_Clones_DEA_Test_LM_May2020.xlsx") %>% 
     rename(c(
