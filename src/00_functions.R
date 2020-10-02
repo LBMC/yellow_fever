@@ -379,7 +379,7 @@ scale_zi_nb_sce <- function(sce,
   pbmcapply::pbmclapply(
     as.list((names(genes) <- genes)),
     function(x, sce, assay_name){
-      tibble(count = assay(sce, assay_name)[x, ]) %>%
+      tibble(count = assay(sce, assay_name)[x, ] %>% as.numeric()) %>%
         scale_zi_nb() %>%
         plyr::rename(x = ., replace = c("count" = x))
     },
@@ -437,6 +437,7 @@ PLS_filter <- function(sce,  group_by, genes , features = NULL,
     print(str_c(altExp_name, " altExp, found, skipping PLS filter & scalling"))
     colData(altExp(sce, altExp_name))$group_predict <- NA
     colData(altExp(sce, altExp_name))$group_predict <- 
+      !colData(altExp(sce, altExp_name))$group_train &
       !apply(assay(altExp(sce, altExp_name), "counts"), 2, anyNA)
     return(sce)
   }
@@ -450,6 +451,9 @@ PLS_filter <- function(sce,  group_by, genes , features = NULL,
   colData(altExp(sce, altExp_name))$group_name <- group_by
   colData(altExp(sce, altExp_name))$group_train <-
     !is.na(group_by) &
+    !apply(assay(altExp(sce, altExp_name), "counts"), 2, anyNA)
+  colData(altExp(sce, altExp_name))$group_predict <-
+    is.na(group_by) &
     !apply(assay(altExp(sce, altExp_name), "counts"), 2, anyNA)
   colData(altExp(sce, altExp_name))$group_by <-
     as.numeric(as.factor(group_by)) - 1
@@ -770,7 +774,7 @@ PLS_fit <- function(sce,
 #' }
 #' @import plsgenomics tidyverse SingleCellExperiment Matrix
 #' @export PLS_predict
-PLS_predict <- function(fit, sce, group_by, genes, features,
+PLS_predict <- function(fit, sce, group_by, genes, features = NULL,
                         assay_name = "counts",
                         altExp_name = "PLS_scaled",
                         cpus = 4) {
@@ -784,6 +788,14 @@ PLS_predict <- function(fit, sce, group_by, genes, features,
     altExp_name = altExp_name,
     cpus = cpus
   )
+  rowData(altExp(sce, altExp_name))$predictor_force <- rownames(
+    rowData(altExp(sce, altExp_name))
+  ) %in% rownames(
+    assay(altExp(sce, altExp_name))
+  )[
+    rowData(altExp(fit$sce, altExp_name))$predictor_force
+  ]
+  
   model <- assay(altExp(sce, altExp_name)[
           rowData(altExp(sce, altExp_name))$predictor_force,
           colData(altExp(sce, altExp_name))$group_train
