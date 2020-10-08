@@ -417,39 +417,6 @@ for (day in names(sce_day)) {
 save(sce_day, file = "results/2020_01_02_clonality_paper_sce.Rdata")
 load(file = "results/2020_01_02_clonality_paper_sce.Rdata")
 
-## heatmap
-
-
-  day <- "593"
-  sce_DEA_hm <- sce_day[[day]][
-      !is.na(rowData(sce_day[[day]])$pval_DEA_clone_cell_type_adj) &
-      rowData(sce_day[[day]])$pval_DEA_clone_cell_type_adj < 0.05
-    ]
-  rownames(sce_DEA_hm) <- rowData(sce_DEA_hm)$gene_name
-  sce_DEA_hm %>% dim()
-  colData(sce_DEA_hm) <- colData(sce_DEA_hm) %>% 
-    as_tibble() %>% 
-    left_join(
-      colData(sce_DEA_hm) %>%
-        as_tibble() %>%
-        group_by(clone_id) %>%
-        dplyr::summarise(clone_size = n())
-    ) %>%
-    select(clone_size) %>% 
-    cbind(colData(sce_DEA_hm), .)
-  sce_DEA_hm <- sce_DEA_hm[, colData(sce_DEA_hm)$clone_size >= 3]
-  colData(sce_DEA_hm)$clone_id <-  colData(sce_DEA_hm)$clone_id %>% as.factor()
-  plotHeatmap(
-    sce_DEA_hm,
-    features = rownames(sce_DEA_hm),
-    order_columns_by = c("clone_id", "p_PLS_DEA_cell_type"),
-    colour_columns_by = c("clone_id", "p_PLS_DEA_cell_type"),
-    center = TRUE,
-    symmetric = TRUE,
-    zlim = c(-5, 5),
-    main = day
-  ) 
-
 
 
 DEA_DEA_clone_cell_type_size <- list()
@@ -483,3 +450,222 @@ for (day in names(sce_day)) {
     file = "results/2020_01_01_DEA_DEA_clone_size.Rdata"
   )
 }
+
+genes_PLS <- read_csv("data/2017_11_28_List_Laurent_Genes_PLS.csv") %>% 
+  pivot_longer(cols = c("Genes_EFF", "Genes_MEM"),
+               names_to = "type",
+               values_to = "genes") %>% 
+  dplyr::rename(proteins = `Protein_Markers`) %>% 
+  pull(genes)
+
+DEA_clone_PCA_cell_type_size <- list()
+min_clone_size <- 3
+for (day in names(sce_day)) {
+  colData(sce_day[[day]])$clone_id <- colData(sce_day[[day]]) %>% 
+    as_tibble() %>% 
+    mutate(clone_id = ifelse(
+      clone_id == 0,
+      (max(clone_id) + 1):(max(clone_id) + length(which(clone_id == 0))),
+      clone_id)) %>% 
+    pull(clone_id)
+  colData(sce_day[[day]])$clone_size <- colData(sce_day[[day]]) %>% 
+    as_tibble() %>% 
+    left_join(
+      colData(sce_day[[day]]) %>%
+        as_tibble() %>%
+        group_by(clone_id) %>%
+        dplyr::summarise(clone_size = n())
+    ) %>%
+    pull(clone_size)
+  colData(sce_day[[day]])$cell_type_pca_a <- prcomp(
+    assay(sce_day[[day]], "counts_vst")[
+      rowData(sce_day[[day]])$gene_name %in% genes_PLS, 
+    ]
+  )$rotation[, 1]
+  colData(sce_day[[day]])$cell_type_pca_b <- prcomp(
+    assay(sce_day[[day]], "counts_vst")[
+      rowData(sce_day[[day]])$gene_name %in% genes_PLS, 
+    ]
+  )$rotation[, 2]
+  sce_tmp <- sce_day[[day]][,
+    colData(sce_day[[day]])$clone_size >= min_clone_size
+  ]
+  colData(sce_tmp)$clone_id <- as.factor(colData(sce_tmp)$clone_id)
+  DEA_clone_PCA_cell_type_size[[day]] <- DEA(
+    sce_tmp,
+    test = "~ (1|clone_id)",
+    formula = "count ~ cell_type_pca_a + cell_type_pca_b + (1|clone_id)",
+    assay_name = "counts_vst",
+    cpus = 10
+  )
+  save(
+    DEA_clone_PCA_cell_type_size,
+    file = "results/2020_01_01_DEA_clone_PCA_cell_type_size.Rdata"
+  )
+}
+
+## heatmap
+
+min_clone_size <- 3
+load(file = "results/2020_01_02_clonality_paper_sce.Rdata")
+load(file = "results/2020_01_01_DEA_DEA_clone_size.Rdata")
+
+## adj pvalue
+
+for (day in names(sce_day)) {
+  print(day)
+  rowData(sce_day[[day]])$pval_DEA_clone_cell_type_size <- NA
+  rowData(sce_day[[day]])$pval_DEA_clone_cell_type_size <- 
+    get_genes_pval(DEA_DEA_clone_cell_type_size[[day]], sce_day[[day]])
+  
+  rowData(sce_day[[day]])$pval_DEA_clone_cell_type_size %>% 
+    is.na() %>% 
+    table() %>%
+    print()
+  
+  rowData(sce_day[[day]])$pval_DEA_clone_cell_type_size_adj <- p.adjust(
+    rowData(sce_day[[day]])$pval_DEA_clone_cell_type_size,
+    method = "BH"
+  )
+  table(rowData(sce_day[[day]])$pval_DEA_clone_cell_type_size_adj < 0.05) %>% print()
+}
+  day <- "593"
+  assays(sce_day[[day]])$logcounts <- scater::logNormCounts(
+      sce_day[[day]],
+      exprs_values = "counts_raw",
+      log = T
+    ) %>% 
+    assay(., "logcounts") %>% 
+    Matrix::Matrix(sparse = T)
+  sce_DEA_hm <- sce_day[[day]][
+      !is.na(rowData(sce_day[[day]])$pval_DEA_clone_cell_type_size_adj) &
+      rowData(sce_day[[day]])$pval_DEA_clone_cell_type_size_adj < 0.05
+    ]
+  sce_DEA_hm %>% dim()
+  colData(sce_DEA_hm) <- colData(sce_DEA_hm) %>% 
+    as_tibble() %>% 
+    left_join(
+      colData(sce_DEA_hm) %>%
+        as_tibble() %>%
+        group_by(clone_id) %>%
+        dplyr::summarise(clone_size = n())
+    ) %>%
+    select(clone_size) %>% 
+    cbind(colData(sce_DEA_hm), .)
+  sce_DEA_hm <- sce_DEA_hm[, colData(sce_DEA_hm)$clone_size >= min_clone_size]
+  colData(sce_DEA_hm)$clone_id <-  colData(sce_DEA_hm)$clone_id %>% as.factor()
+  
+  library("tidymodels")
+  library("tidyverse")
+  library("glmnet")
+  library("furrr")
+  
+rm_genes <- readr::read_delim(
+    "data/2020_09_15_SmartSeq3/Genes_Exclude_Sept2020_LM.csv",
+    delim = ";"
+  ) %>% 
+  janitor::clean_names()
+
+  future::plan("multiprocess", workers = 10)
+  test <- assay(sce_DEA_hm, "logcounts") %>% 
+    log1p() %>% 
+    as.matrix() %>% 
+    as_tibble(rownames = "gene_name") %>% 
+    tidyr::nest(counts = !c(gene_name)) %>% 
+    mutate(
+      counts = purrr::map(.x = counts, .f = function(.x){
+        tibble(
+          id = colnames(.x),
+          count = t(.x)[, 1],
+          clone_id = colData(sce_DEA_hm)$clone_id)
+        }
+      )
+    ) %>%
+    mutate(
+      count_var = purrr::map(.x = counts, .f = function(.x){
+          var(.x$count)
+      })
+    ) %>%  
+    unnest(count_var) %>% 
+    filter(count_var > 0.2) %>% 
+    mutate(
+      model = furrr::future_map(.x = counts, .f = function(.x){
+        model.matrix(~-1 + clone_id, data = .x) %>% 
+        glmnet(
+          x = .,
+          y = (.x %>% pull(count)),
+          lambda = cv.glmnet(
+            .,
+            (.x %>% pull(count))
+          )$lambda.1se
+        )
+      },
+      .progress = TRUE)
+    ) %>%
+    mutate(coefs = map(model, tidy)) %>%
+    select(-c(counts, model)) %>%
+    tidyr::unnest(coefs)
+  
+  gene_name <- test %>% 
+    janitor::clean_names() %>% 
+    dplyr::filter(
+      dev_ratio > 0
+    ) %>% 
+    group_by(gene_name) %>% 
+    dplyr::summarize(
+      estimate = max(abs(estimate)),
+    ) %>% 
+    # filter(estimate >= quantile(estimate, 0.90)) %>% 
+    pull(gene_name)
+  
+  # cluster_row <- 
+    
+  test %>% 
+    janitor::clean_names() %>% 
+    filter(gene_name %in% gene_name) %>% 
+    mutate(term = ifelse(
+      term == "(Intercept)",
+      colData(sce_DEA_hm)$clone_id %>% as.factor() %>% levels() %>% .[1] %>% 
+        str_c("clone_id", .),
+      term)
+    ) %>% 
+    mutate(
+      term = str_replace(term, "clone_id(.*)", "\\1")
+    ) %>% 
+    select(gene_name, term, estimate) %>% 
+    mutate(id = 1:nrow(.),
+           estimate = ifelse(is.na(estimate), 0, estimate)) %>% 
+    group_by(c(gene_name, id) %>% 
+    summarise(estimate = sum(estimate))
+    summarize()
+    pivot_wider(
+      id_cols = c(id, gene_name),
+      names_from = term,
+      values_from = estimate
+    ) %>% 
+    select(-id) %>% 
+  
+  as.data.frame()
+  rownames(cluster_row) <- cluster_row$gene_name
+  
+  cluster_row %>% dim()
+  sce_DEA_hm %>% dim()
+  
+sce_DEA_hm_plot <- sce_DEA_hm[rownames(sce_DEA_hm) %in% gene_name, ]
+rowData(sce_DEA_hm_plot)$gene_order <- cluster_row[, -1] %>%
+  dist() %>% 
+  hclust() %>% .$order
+plotHeatmap(
+  sce_DEA_hm_plot,
+  features = rownames(sce_DEA_hm_plot),
+  order_columns_by = c("clone_id", "p_PLS_DEA_cell_type"),
+  colour_columns_by = c("clone_id", "p_PLS_DEA_cell_type"),
+  center = TRUE,
+  symmetric = TRUE,
+  zlim = c(-5, 5),
+  main = day,
+  cluster_rows = F,
+  # order_rows_by = c("gene_order")
+) 
+  
+  
