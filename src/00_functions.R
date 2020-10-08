@@ -243,7 +243,9 @@ LRT_zi_nb <- function(data, test, formula, zi_formula = formula, threshold = 0.0
     parameters = model %>%
       broom.mixed::tidy(),
     LRT = anova(model0, model) %>%
-      broom.mixed::tidy(),
+      as.tibble() %>% 
+      janitor::clean_names() %>% 
+      dplyr::rename(p.value = `pr_chisq`),
     residuals = model %>%
       residuals_zi_nb()
   )
@@ -260,8 +262,8 @@ DEA_data <- function(x, sce, assay_name, formula, zi_formula){
       any_of(
         str_split(
           str_c(formula, zi_formula),
-          "[ 1~+()|]"
-        )[[1]]
+          "[ ~+()|]"
+        )[[1]] %>% .[. != "1"]
       ),
       gene_name
     ) %>%
