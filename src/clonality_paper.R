@@ -424,9 +424,10 @@ genes_PLS <- read_csv("data/2017_11_28_List_Laurent_Genes_PLS.csv") %>%
   dplyr::rename(proteins = `Protein_Markers`) %>% 
   pull(genes)
 
+gc()
 DEA_clone_PCA_cell_type_size <- list()
-min_clone_size <- 3
-for (day in names(sce_day)) {
+min_clone_size <- 10 
+for (day in names(sce_day)[-1]) {
   colData(sce_day[[day]])$clone_id <- colData(sce_day[[day]]) %>% 
     as_tibble() %>% 
     mutate(clone_id = ifelse(
@@ -466,19 +467,120 @@ for (day in names(sce_day)) {
   )
   save(
     DEA_clone_PCA_cell_type_size,
-    file = "results/2020_01_01_DEA_clone_PCA_cell_type_size.Rdata"
+    file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_10.Rdata"
+  )
+}
+
+
+rm_genes <- readr::read_delim(
+    "data/2020_09_15_SmartSeq3/Genes_Exclude_Sept2020_LM.csv",
+    delim = ";"
+  ) %>% 
+  janitor::clean_names()
+load(file = "results/2020_01_02_clonality_paper_sce.Rdata", v = T)
+logit_DEA_clone_PCA_cell_type_size <- list()
+min_clone_size <- 10
+future::plan("multiprocess", workers = 10)
+for (day in names(sce_day)[-1]) {
+  colData(sce_day[[day]])$clone_id <- colData(sce_day[[day]]) %>% 
+    as_tibble() %>% 
+    mutate(clone_id = ifelse(
+      clone_id == 0,
+      (max(clone_id) + 1):(max(clone_id) + length(which(clone_id == 0))),
+      clone_id)) %>% 
+    pull(clone_id)
+  colData(sce_day[[day]])$clone_size <- colData(sce_day[[day]]) %>% 
+    as_tibble() %>% 
+    left_join(
+      colData(sce_day[[day]]) %>%
+        as_tibble() %>%
+        group_by(clone_id) %>%
+        dplyr::summarise(clone_size = n())
+    ) %>%
+    pull(clone_size)
+  colData(sce_day[[day]])$cell_type_pca_a <- prcomp(
+    assay(sce_day[[day]], "counts_vst")[
+      rowData(sce_day[[day]])$gene_name %in% genes_PLS, 
+    ]
+  )$rotation[, 1]
+  colData(sce_day[[day]])$cell_type_pca_b <- prcomp(
+    assay(sce_day[[day]], "counts_vst")[
+      rowData(sce_day[[day]])$gene_name %in% genes_PLS, 
+    ]
+  )$rotation[, 2]
+  sce_tmp <- sce_day[[day]][,
+    colData(sce_day[[day]])$clone_size >= min_clone_size
+  ]
+  colData(sce_tmp)$clone_id <- as.factor(colData(sce_tmp)$clone_id)
+  logi_DEA_clone_PCA_cell_type_size[[day]] <- assay(sce_tmp, "counts_vst") %>% 
+    as.matrix() %>% 
+    as_tibble(rownames = "gene_name") %>% 
+    filter(!(gene_name %in% rm_genes$geneid)) %>% 
+    tidyr::nest(counts = !c(gene_name)) %>% 
+    mutate(
+      counts = purrr::map(.x = counts, .f = function(.x){
+        tibble(
+          id = colnames(.x),
+          count = t(.x)[, 1],
+          cell_type_pca_a = colData(sce_tmp)$cell_type_pca_a,
+          cell_type_pca_b = colData(sce_tmp)$cell_type_pca_b,
+          clone_id = colData(sce_tmp)$clone_id
+          ) %>% 
+          mutate(expressed = count > 0)
+        }
+      )
+    ) %>%
+    mutate(
+      count_var = purrr::map(.x = counts, .f = function(.x){
+          var(.x$count)
+      }),
+    ) %>%  
+    unnest(count_var) %>% 
+    filter(count_var > 0) %>% 
+    mutate(
+      models = furrr::future_map(.x = counts, .f = function(.x){
+        list(model0 = glm(
+            expressed ~ cell_type_pca_a + cell_type_pca_b,
+            data = .x,
+            family = binomial
+          ),
+          model = lme4::glmer(
+            expressed ~ cell_type_pca_a + cell_type_pca_b + (1|clone_id),
+            data = .x,
+            family = binomial,
+            nAGQ = 0
+          )
+        )
+      },
+      .progress = TRUE)
+    ) %>%
+    mutate(
+      test = furrr::future_map(.x = models, .f = function(.x){
+        anova(.x$model, .x$model0, test = "Chisq") %>% 
+          as_tibble() %>% 
+          janitor::clean_names()
+      },
+      .progress = TRUE)
+    ) %>% 
+    tidyr::unnest(test) %>% 
+    filter(!is.na(chisq))
+  save(
+    logit_DEA_clone_PCA_cell_type_size,
+    file = "results/2020_01_01_logit_DEA_clone_PCA_cell_type_size_10.Rdata"
   )
 }
 
 ## heatmap
 
-min_clone_size <- 3
+min_clone_size <- 10
 load(file = "results/2020_01_02_clonality_paper_sce.Rdata")
 load(file = "results/2020_01_01_DEA_DEA_clone_size.Rdata")
 load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size.Rdata", v=T)
-## adj pvalue
+d()
+ e = "results/2020_01_01_DEA_clone_PCA_cell_type_size_10.Rdata"
+##) adj pvalue
 
-for (day in names(sce_day)) {
+for (day in names(sce_day)) {[-1]
   print(day)
   rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size <- NA
   rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size <- 
