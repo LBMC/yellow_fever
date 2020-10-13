@@ -426,7 +426,7 @@ genes_PLS <- read_csv("data/2017_11_28_List_Laurent_Genes_PLS.csv") %>%
 
 gc()
 DEA_clone_PCA_cell_type_size <- list()
-min_clone_size <- 10 
+min_clone_size <- 3
 for (day in names(sce_day)[-1]) {
   colData(sce_day[[day]])$clone_id <- colData(sce_day[[day]]) %>% 
     as_tibble() %>% 
@@ -467,11 +467,18 @@ for (day in names(sce_day)[-1]) {
   )
   save(
     DEA_clone_PCA_cell_type_size,
-    file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_10.Rdata"
+    file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_3.Rdata"
   )
 }
 
 
+
+genes_PLS <- read_csv("data/2017_11_28_List_Laurent_Genes_PLS.csv") %>% 
+  pivot_longer(cols = c("Genes_EFF", "Genes_MEM"),
+               names_to = "type",
+               values_to = "genes") %>% 
+  dplyr::rename(proteins = `Protein_Markers`) %>% 
+  pull(genes)
 rm_genes <- readr::read_delim(
     "data/2020_09_15_SmartSeq3/Genes_Exclude_Sept2020_LM.csv",
     delim = ";"
@@ -480,7 +487,10 @@ rm_genes <- readr::read_delim(
 load(file = "results/2020_01_02_clonality_paper_sce.Rdata", v = T)
 logit_DEA_clone_PCA_cell_type_size <- list()
 min_clone_size <- 10
-future::plan("multiprocess", workers = 10)
+options(future.globals.maxSize= 32000*1024^2)
+# future::plan("multicore", workers = 4)
+future::plan("sequential")
+
 for (day in names(sce_day)[-1]) {
   colData(sce_day[[day]])$clone_id <- colData(sce_day[[day]]) %>% 
     as_tibble() %>% 
@@ -512,13 +522,13 @@ for (day in names(sce_day)[-1]) {
     colData(sce_day[[day]])$clone_size >= min_clone_size
   ]
   colData(sce_tmp)$clone_id <- as.factor(colData(sce_tmp)$clone_id)
-  logi_DEA_clone_PCA_cell_type_size[[day]] <- assay(sce_tmp, "counts_vst") %>% 
+  logit_DEA_clone_PCA_cell_type_size[[day]] <- assay(sce_tmp, "counts_vst") %>% 
     as.matrix() %>% 
     as_tibble(rownames = "gene_name") %>% 
     filter(!(gene_name %in% rm_genes$geneid)) %>% 
     tidyr::nest(counts = !c(gene_name)) %>% 
     mutate(
-      counts = purrr::map(.x = counts, .f = function(.x){
+      counts = furrr::future_map(.x = counts, .f = function(.x){
         tibble(
           id = colnames(.x),
           count = t(.x)[, 1],
@@ -526,9 +536,9 @@ for (day in names(sce_day)[-1]) {
           cell_type_pca_b = colData(sce_tmp)$cell_type_pca_b,
           clone_id = colData(sce_tmp)$clone_id
           ) %>% 
-          mutate(expressed = count > 0)
+          mutate(expressed = as.numeric(count > 0))
         }
-      )
+      , .progress = T)
     ) %>%
     mutate(
       count_var = purrr::map(.x = counts, .f = function(.x){
@@ -539,36 +549,64 @@ for (day in names(sce_day)[-1]) {
     filter(count_var > 0) %>% 
     mutate(
       models = furrr::future_map(.x = counts, .f = function(.x){
-        list(model0 = glm(
-            expressed ~ cell_type_pca_a + cell_type_pca_b,
-            data = .x,
-            family = binomial
-          ),
-          model = lme4::glmer(
-            expressed ~ cell_type_pca_a + cell_type_pca_b + (1|clone_id),
-            data = .x,
-            family = binomial,
-            nAGQ = 0
+        tryCatch({
+          list(model0 = glm(
+              expressed ~ cell_type_pca_a + cell_type_pca_b,
+              data = .x,
+              family = binomial
+            ),
+            model = glm(
+              expressed ~ cell_type_pca_a + cell_type_pca_b + clone_id,
+              data = .x,
+              family = binomial,
+            )
           )
+        },
+        error = function(e){ list(model0 = NULL, model = NULL) }
         )
-      },
-      .progress = TRUE)
+      }, .progress = T)
     ) %>%
+    select(-c(counts, count_var)) %>%
     mutate(
       test = furrr::future_map(.x = models, .f = function(.x){
-        anova(.x$model, .x$model0, test = "Chisq") %>% 
+        if (is.null(.x$model0)) {
+          return(NULL)
+        }
+        anova(.x$model0, .x$model1, test = "Chisq") %>% 
           as_tibble() %>% 
           janitor::clean_names()
-      },
-      .progress = TRUE)
-    ) %>% 
-    tidyr::unnest(test) %>% 
-    filter(!is.na(chisq))
+      }, .progress = T)
+    ) %>%
+    select(c(gene_name, test)) %>%
+    unnest(test) %>%
+    filter(!is.na(pr_chi)) %>%
+    mutate(
+      pval_logit_DEA_clonality_PCA_cell_type_size_10 = pr_chi,
+      pval_logit_DEA_clonality_PCA_cell_type_size_10_adj = p.adjust(
+        pr_chi,
+        method = "BH"
+      )
+    ) %>%
+    select(c(gene_name, starts_with("pval")))
   save(
     logit_DEA_clone_PCA_cell_type_size,
-    file = "results/2020_01_01_logit_DEA_clone_PCA_cell_type_size_10.Rdata"
+    file = "results/2020_10_13_logit_DEA_clone_PCA_cell_type_size_10.Rdata"
   )
 }
+
+load(
+  file = "results/2020_10_13_logit_DEA_clone_PCA_cell_type_size_10.Rdata",
+  v = T
+)
+
+for (day in names(sce_day)[-1]) {
+  logit_DEA_clone_PCA_cell_type_size[[day]] %>%
+    mutate(signif = pval_logit_DEA_clonality_PCA_cell_type_size_10_adj < 0.05) %>%
+    summary() %>%
+    print()
+}
+
+
 
 ## heatmap
 
@@ -576,11 +614,10 @@ min_clone_size <- 10
 load(file = "results/2020_01_02_clonality_paper_sce.Rdata")
 load(file = "results/2020_01_01_DEA_DEA_clone_size.Rdata")
 load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size.Rdata", v=T)
-d()
- e = "results/2020_01_01_DEA_clone_PCA_cell_type_size_10.Rdata"
-##) adj pvalue
+load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_10.Rdata")
+## adj pvalue
 
-for (day in names(sce_day)) {[-1]
+for (day in names(sce_day)[-1]) {
   print(day)
   rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size <- NA
   rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size <- 
@@ -597,7 +634,8 @@ for (day in names(sce_day)) {[-1]
   )
   table(rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj < 0.05) %>% print()
 }
-  day <- "593"
+
+for (day in names(sce_day)[-1]) {
   assays(sce_day[[day]])$logcounts <- scater::logNormCounts(
       sce_day[[day]],
       exprs_values = "counts_raw",
@@ -628,60 +666,13 @@ for (day in names(sce_day)) {[-1]
   library("glmnet")
   library("furrr")
   
-rm_genes <- readr::read_delim(
-    "data/2020_09_15_SmartSeq3/Genes_Exclude_Sept2020_LM.csv",
-    delim = ";"
-  ) %>% 
-  janitor::clean_names()
+  rm_genes <- readr::read_delim(
+      "data/2020_09_15_SmartSeq3/Genes_Exclude_Sept2020_LM.csv",
+      delim = ";"
+    ) %>% 
+    janitor::clean_names()
 
-  future::plan("multiprocess", workers = 10)
-  test <- assay(sce_DEA_hm, "logcounts") %>% 
-    as.matrix() %>% 
-    as_tibble(rownames = "gene_name") %>% 
-    tidyr::nest(counts = !c(gene_name)) %>% 
-    mutate(
-      counts = purrr::map(.x = counts, .f = function(.x){
-        tibble(
-          id = colnames(.x),
-          count = t(.x)[, 1],
-          clone_id = colData(sce_DEA_hm)$clone_id)
-        }
-      )
-    ) %>%
-    mutate(
-      count_var = purrr::map(.x = counts, .f = function(.x){
-          var(.x$count)
-      }),
-      count_mean = purrr::map(.x = counts, .f = function(.x){
-          (.x$count)
-      })
-    ) %>%  
-    unnest(count_var) %>% 
-    unnest(count_mean) %>% 
-    select(count_var, count_mean) %>% summary()
-    filter(!(gene_name %in% rm_genes$geneid)) %>% 
-    filter(count_var > 0.1) %>% 
-    mutate(
-      model = furrr::future_map(.x = counts, .f = function(.x){
-        model.matrix(~-1 + clone_id, data = .x) %>% 
-        glmnet::glmnet(
-          x = .,
-          y = (.x %>% pull(count)),
-          lambda = glmnet::cv.glmnet(
-            .,
-            (.x %>% pull(count))
-          )$lambda.1se
-        )
-      },
-      .progress = TRUE)
-    ) %>%
-    mutate(coefs = map(model, tidy)) %>%
-    select(-c(counts, model)) %>%
-    tidyr::unnest(coefs)
-    
-    
-  
- cluster_row <- assay(sce_DEA_hm, "logcounts") %>% 
+  cluster_row <- assay(sce_DEA_hm, "logcounts") %>% 
     as.matrix() %>% 
     as_tibble(rownames = "gene_name") %>% 
     filter(!(gene_name %in% rm_genes$geneid)) %>% 
@@ -731,57 +722,32 @@ rm_genes <- readr::read_delim(
     as.data.frame()
   rownames(cluster_row) <- cluster_row$gene_name
   
-cluster_row <- 
-  assay(sce_DEA_hm, "logcounts") %>% 
-  as.matrix() %>% 
-  as_tibble(rownames = "gene_name") %>% 
-  filter(!(gene_name %in% rm_genes$geneid)) %>% 
-  tidyr::nest(counts = !c(gene_name)) %>% 
-  mutate(
-    counts = purrr::map(.x = counts, .f = function(.x){
-      tibble(
-        id = colnames(.x),
-        count = t(.x)[, 1],
-        clone_id = as.factor(colData(sce_DEA_hm)$clone_id)
-        ) %>% 
-        group_by(clone_id) %>% 
-        dplyr::summarise(
-          id = id,
-          count = count,
-          clone_id = clone_id,
-          count_mean = max(count)
-        ) %>% 
-        ungroup()
-      }
-    )
-  ) %>% 
-  tidyr::unnest(counts) %>% 
-  janitor::clean_names() %>% 
-  dplyr::select(gene_name, clone_id, count_mean) %>% 
-  tidyr::pivot_wider(
-    id_cols = gene_name,
-    names_from = clone_id,
-    values_from = count_mean,
-    values_fill = 0,
-    values_fn = sum
-  ) %>% 
-  as.data.frame()
-rownames(cluster_row) <- cluster_row$gene_name
+  sce_DEA_hm_plot <- sce_DEA_hm[rownames(sce_DEA_hm) %in% cluster_row$gene_name, ]
+  rowData(sce_DEA_hm_plot)$gene_order <- cluster_row[, -1] %>%
+    dist(method = "manhattan") %>% 
+    hclust() %>% .$order
+  rownames(sce_DEA_hm_plot) <- rowData(sce_DEA_hm_plot)$gene_name
+  sce_DEA_hm_plot <- sce_DEA_hm_plot[rowData(sce_DEA_hm_plot)$gene_order, ]
+  plotHeatmap(
+    sce_DEA_hm_plot[!(rowData(sce_DEA_hm_plot)$gene_name %in% rm_genes),],
+    features = rownames(sce_DEA_hm_plot),
+    order_columns_by = c("clone_id", "p_PLS_DEA_cell_type"),
+    colour_columns_by = c("clone_id", "p_PLS_DEA_cell_type"),
+    center = TRUE,
+    symmetric = TRUE,
+    zlim = c(-5, 5),
+    main = day,
+    cluster_rows = F,
+  ) 
+}
   
-sce_DEA_hm_plot <- sce_DEA_hm[rownames(sce_DEA_hm) %in% cluster_row$gene_name, ]
-rowData(sce_DEA_hm_plot)$gene_order <- cluster_row[, -1] %>%
-  dist(method = "canberra") %>% 
-  hclust() %>% .$order
-rownames(sce_DEA_hm_plot) <- rowData(sce_DEA_hm_plot)$gene_name
-sce_DEA_hm_plot <- sce_DEA_hm_plot[rowData(sce_DEA_hm_plot)$gene_order, ]
-plotHeatmap(
-  sce_DEA_hm_plot[!(rowData(sce_DEA_hm_plot)$gene_name %in% rm_genes),],
-  features = rownames(sce_DEA_hm_plot),
-  order_columns_by = c("clone_id", "p_PLS_DEA_cell_type"),
-  colour_columns_by = c("clone_id", "p_PLS_DEA_cell_type"),
-  center = TRUE,
-  symmetric = TRUE,
-  zlim = c(-5, 5),
-  main = day,
-  cluster_rows = F,
-) 
+for (day in names(sce_day)[-1]) {
+  rowData(sce_day[[day]]) %>% 
+    as_tibble(rownames = "id") %>% 
+    write_csv(
+      path = str_c(
+        "results/2020_10_08_DEA_",
+        day,
+        "_clone_PCA_cell_type_size_10.csv")
+    )
+}
