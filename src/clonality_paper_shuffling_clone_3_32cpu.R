@@ -51,7 +51,7 @@ for (day in names(sce_day)[-1]) {
     test = "~ (1|clone_id)",
     formula = "count ~ cell_type_pca_a + cell_type_pca_b + (1|clone_suffle)",
     assay_name = "counts_vst",
-    cpus = 128
+    cpus = 33
   )
   save(
     DEA_clone_PCA_cell_type_size,

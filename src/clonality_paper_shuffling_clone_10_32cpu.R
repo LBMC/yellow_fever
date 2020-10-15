@@ -10,7 +10,7 @@ genes_PLS <- read_csv("data/2017_11_28_List_Laurent_Genes_PLS.csv") %>%
 
 random_id <- runif(1) * 1e8
 DEA_clone_PCA_cell_type_size <- list()
-min_clone_size <- 3
+min_clone_size <- 10
 for (day in names(sce_day)[-1]) {
   colData(sce_day[[day]])$clone_id <- colData(sce_day[[day]]) %>% 
     as_tibble() %>% 
@@ -51,7 +51,7 @@ for (day in names(sce_day)[-1]) {
     test = "~ (1|clone_id)",
     formula = "count ~ cell_type_pca_a + cell_type_pca_b + (1|clone_suffle)",
     assay_name = "counts_vst",
-    cpus = 128
+    cpus = 32
   )
   save(
     DEA_clone_PCA_cell_type_size,

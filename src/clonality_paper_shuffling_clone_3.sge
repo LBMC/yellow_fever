@@ -6,9 +6,9 @@
 ### nom du job (a changer)
 #$ -N DEA_clone 
 ### file d'attente (a changer)
-#$ -q AMD7702deb512,CLG6242deb384A,CLG6242deb384B,CLG6242deb384C,CLG5218deb192A,CLG5218deb192B,CLG5218deb192C,CLG5218deb192D
+#$ -q AMD7702deb512
 ### parallel environment & nb cpu (NSLOTS)
-#$ -pe openmp32 32
+#$ -pe openmp128 128
 # aller dans le repertoire de travail/soumission
 # important, sinon, le programme est lancé depuis ~/
   
