@@ -4,7 +4,7 @@
 ### shell du job
 #$ -S /bin/bash
 ### nom du job (a changer)
-#$ -N SommeVecVecPAR
+#$ -N DEA_clone 
 ### file d'attente (a changer)
 #$ -q AMD7702deb512,CLG6242deb384A,CLG6242deb384B,CLG6242deb384C,CLG5218deb192A,CLG5218deb192B,CLG5218deb192C,CLG5218deb192D
 ### parallel environment & nb cpu (NSLOTS)
