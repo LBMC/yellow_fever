@@ -470,6 +470,77 @@ for (day in names(sce_day)[-1]) {
     file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_3.Rdata"
   )
 }
+load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_3.Rdata", v =T)
+
+################################################################################
+################## shuffling exp ###############################################
+
+load(file = "results/2020_01_02_clonality_paper_sce.Rdata", v = T)
+
+genes_PLS <- read_csv("data/2017_11_28_List_Laurent_Genes_PLS.csv") %>% 
+  pivot_longer(cols = c("Genes_EFF", "Genes_MEM"),
+               names_to = "type",
+               values_to = "genes") %>% 
+  dplyr::rename(proteins = `Protein_Markers`) %>% 
+  pull(genes)
+
+DEA_clone_PCA_cell_type_size <- list()
+for (min_clone_size in c(10, 3)) {
+  for (day in names(sce_day)[-1]) {
+    colData(sce_day[[day]])$clone_id <- colData(sce_day[[day]]) %>% 
+      as_tibble() %>% 
+      mutate(clone_id = ifelse(
+        clone_id == 0,
+        (max(clone_id) + 1):(max(clone_id) + length(which(clone_id == 0))),
+        clone_id)) %>% 
+      pull(clone_id)
+    colData(sce_day[[day]])$clone_size <- colData(sce_day[[day]]) %>% 
+      as_tibble() %>% 
+      left_join(
+        colData(sce_day[[day]]) %>%
+          as_tibble() %>%
+          group_by(clone_id) %>%
+          dplyr::summarise(clone_size = n())
+      ) %>%
+      pull(clone_size)
+    colData(sce_day[[day]])$cell_type_pca_a <- prcomp(
+      assay(sce_day[[day]], "counts_vst")[
+        rowData(sce_day[[day]])$gene_name %in% genes_PLS, 
+      ]
+    )$rotation[, 1]
+    colData(sce_day[[day]])$cell_type_pca_b <- prcomp(
+      assay(sce_day[[day]], "counts_vst")[
+        rowData(sce_day[[day]])$gene_name %in% genes_PLS, 
+      ]
+    )$rotation[, 2]
+    sce_tmp <- sce_day[[day]][,
+      colData(sce_day[[day]])$clone_size >= min_clone_size
+    ]
+    colData(sce_tmp)$clone_id <- as.factor(colData(sce_tmp)$clone_id)
+    colData(sce_tmp)$clone_suffle <- sample(
+      colData(sce_tmp)$clone_id,
+      size = length(colData(sce_tmp)$clone_id)
+    )
+    DEA_clone_PCA_cell_type_size[[day]] <- DEA(
+      sce_tmp,
+      test = "~ (1|clone_id)",
+      formula = "count ~ cell_type_pca_a + cell_type_pca_b + (1|clone_suffle)",
+      assay_name = "counts_vst",
+      cpus = 10
+    )
+    save(
+      DEA_clone_PCA_cell_type_size,
+      file = str_c(
+        "results/2020_01_01_DEA_clone_shuffled_PCA_cell_type_size_",
+        min_clone_size, 
+        ".Rdata"
+      )
+    )
+  }
+}
+
+
+################################################################################
 
 
 
@@ -522,6 +593,8 @@ for (day in names(sce_day)[-1]) {
     colData(sce_day[[day]])$clone_size >= min_clone_size
   ]
   colData(sce_tmp)$clone_id <- as.factor(colData(sce_tmp)$clone_id)
+  print(day)
+  print(table(colData(sce_tmp)$clone_id))
   logit_DEA_clone_PCA_cell_type_size[[day]] <- assay(sce_tmp, "counts_vst") %>% 
     as.matrix() %>% 
     as_tibble(rownames = "gene_name") %>% 
@@ -555,10 +628,11 @@ for (day in names(sce_day)[-1]) {
               data = .x,
               family = binomial
             ),
-            model = glm(
-              expressed ~ cell_type_pca_a + cell_type_pca_b + clone_id,
+            model = lme4::glmer(
+              expressed ~ cell_type_pca_a + cell_type_pca_b + (1|clone_id),
               data = .x,
               family = binomial,
+              nAGQ = 0 
             )
           )
         },
@@ -613,7 +687,7 @@ for (day in names(sce_day)[-1]) {
 min_clone_size <- 10
 load(file = "results/2020_01_02_clonality_paper_sce.Rdata")
 load(file = "results/2020_01_01_DEA_DEA_clone_size.Rdata")
-load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size.Rdata", v=T)
+load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_3.Rdata", v=T)
 load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_10.Rdata")
 ## adj pvalue
 
@@ -632,7 +706,7 @@ for (day in names(sce_day)[-1]) {
     rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size,
     method = "BH"
   )
-  table(rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj < 0.05) %>% print()
+  table(rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj[!is.na(rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj)] < 0.05) %>% print()
 }
 
 for (day in names(sce_day)[-1]) {
@@ -751,3 +825,42 @@ for (day in names(sce_day)[-1]) {
         "_clone_PCA_cell_type_size_10.csv")
     )
 }
+
+day <- "1100"
+genes <- c("ITGA6", "MOB4", "AC097639.8")
+genes_id <- rowData(sce_day[[day]])$id[rowData(sce_day[[day]])$gene_name %in% genes[2]]
+
+data <- DEA_clone_PCA_cell_type_size[[day]] %>% 
+  unlist(recursive = F) %>% 
+  tibble(
+    dea = .,
+    id = names(.)
+  ) %>% 
+  separate(
+    col = id,
+    into = c("id", "type")
+  ) %>% 
+  filter(!is.na(type)) %>% 
+  pivot_wider(
+    id_cols = id,
+    names_from = type,
+    values_from = dea,
+    values_fill = NA
+  ) %>% 
+  unnest(LRT) %>% 
+  janitor::clean_names() %>% 
+  filter(!is.na(p_value)) %>% 
+  mutate(bad = id %in% genes_id)
+
+data %>%
+  filter(bad) %>% 
+  unnest(parameters)
+
+data %>% 
+  filter(!is.na(intercept)) %>% 
+  ggplot() +
+  geom_point(aes(x = intercept, y = p_value, color = std_error)) +
+  # scale_x_log10() +
+  # scale_y_log10() +
+  facet_wrap(~bad, scales = "free_y") +
+  theme_bw()
