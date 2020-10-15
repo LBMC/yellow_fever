@@ -1,0 +1,38 @@
+#!/bin/bash
+#
+### variables SGE
+### shell du job
+#$ -S /bin/bash
+### nom du job (a changer)
+#$ -N SommeVecVecPAR
+### file d'attente (a changer)
+:q#$ -q AMD7702deb512, CLG6242deb384A, CLG6242deb384B, CLG6242deb384C, CLG5218deb192A, CLG5218deb192B, CLG5218deb192C, CLG5218deb192D
+### parallel environment & nb cpu (NSLOTS)
+#$ -pe openmp 32
+# aller dans le repertoire de travail/soumission
+# important, sinon, le programme est lancé depuis ~/
+  
+# init env (should be in ~/.profile)
+source /usr/share/lmod/lmod/init/bash
+### charger l'environnement utilisateur pour SGE
+#$ -cwd
+### exporter les variables d'environnement sur tous les noeuds d'execution
+#$ -V
+### mails en debut et fin d'execution
+#$ -m b
+#$ -m e
+  
+# donné par le système de batch
+HOSTFILE="${TMPDIR}/machines"
+WORKDIR="${SGE_O_WORKDIR}"
+echo $HOSTFILE
+echo $WORKDIR
+echo $HOSTNAME
+
+cd /scratch/Bio/lmodolo/yellow_fever/
+singularity exec --bind /Xnfs,/scratch /scratch/Bio/singularity/lbmc-r-base-4.0.2.img Rscript \
+src/clonality_paper_shuffling_clone.R
+  
+# fin
+
+
