@@ -6,7 +6,7 @@ needed_packages <- c(
   "sctransform",
   "broom",
   "broom.mixed",
-  "DHARMa",
+#  "DHARMa",
   "glmmTMB",
   "lmtest",
   "parallel",
