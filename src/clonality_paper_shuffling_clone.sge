@@ -30,7 +30,7 @@ echo $WORKDIR
 echo $HOSTNAME
 
 cd /scratch/Bio/lmodolo/yellow_fever/
-singularity exec --bind /Xnfs,/scratch /scratch/Bio/singularity/lbmc-r-base-4.0.2.img Rscript \
+singularity exec --bind /Xnfs,/scratch /scratch/Bio/singularity/lbmc-r-base-4.0.3.img Rscript \
 src/clonality_paper_shuffling_clone.R
   
 # fin
