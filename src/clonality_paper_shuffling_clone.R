@@ -10,6 +10,7 @@ genes_PLS <- read_csv("data/2017_11_28_List_Laurent_Genes_PLS.csv") %>%
 
 random_id <- runif(1) * 1e8
 DEA_clone_PCA_cell_type_size <- list()
+min_clone_size
 for (min_clone_size in c(10, 3)) {
   for (day in names(sce_day)[-1]) {
     colData(sce_day[[day]])$clone_id <- colData(sce_day[[day]]) %>% 
