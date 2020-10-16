@@ -13,7 +13,8 @@ needed_packages <- c(
   "pbmcapply",
   "plsgenomics",
   "scater",
-  "plyr"
+  "plyr",
+  "janitor"
 )
 
 install_if_needed <- function(packages){
