@@ -48,7 +48,7 @@ for (day in names(sce_day)[-1]) {
   )
   DEA_clone_PCA_cell_type_size[[day]] <- DEA(
     sce_tmp,
-    test = "~ (1|clone_id)",
+    test = "~ (1|clone_suffle)",
     formula = "count ~ cell_type_pca_a + cell_type_pca_b + (1|clone_suffle)",
     assay_name = "counts_vst",
     cpus = 32

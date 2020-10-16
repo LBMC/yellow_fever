@@ -521,12 +521,18 @@ for (min_clone_size in c(10, 3)) {
       colData(sce_tmp)$clone_id,
       size = length(colData(sce_tmp)$clone_id)
     )
+    cbind(
+      colData(sce_tmp)$clone_id,
+      colData(sce_tmp)$clone_suffle
+    )
+    table(colData(sce_tmp)$clone_id)
+    table(colData(sce_tmp)$clone_suffle)
     DEA_clone_PCA_cell_type_size[[day]] <- DEA(
-      sce_tmp,
-      test = "~ (1|clone_id)",
+      sce_tmp[1:3],
+      test = "~ (1|clone_suffle)",
       formula = "count ~ cell_type_pca_a + cell_type_pca_b + (1|clone_suffle)",
       assay_name = "counts_vst",
-      cpus = 10
+      cpus = 2
     )
     save(
       DEA_clone_PCA_cell_type_size,
@@ -539,6 +545,31 @@ for (min_clone_size in c(10, 3)) {
   }
 }
 
+# load results
+load(file = "results/2020_01_02_clonality_paper_sce.Rdata", v = T)
+files_results <- list.files(path = "results/") %>% 
+  .[str_detect(., "2020_01_01_DEA_clone_shuffled_PCA_cell_type_size_*")]
+for (file_results in files_results) {
+  for (day in names(sce_day)[-1]) {
+    print(file_results)
+    load(str_c("results/", file_results), v = T)
+    print(day)
+    rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size <- NA
+    rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size <- 
+      get_genes_pval(DEA_clone_PCA_cell_type_size[[day]], sce_day[[day]])
+    # print("NA")
+    # rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size %>% 
+    #   is.na() %>% 
+    #   table() %>%
+    #   print()
+    rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj <- p.adjust(
+      rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size,
+      method = "BH"
+    )
+    print("signif")
+    table(rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj[!is.na(rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj)] < 0.05) %>% print()
+  }
+}
 
 ################################################################################
 
@@ -687,10 +718,19 @@ for (day in names(sce_day)[-1]) {
 min_clone_size <- 10
 load(file = "results/2020_01_02_clonality_paper_sce.Rdata")
 load(file = "results/2020_01_01_DEA_DEA_clone_size.Rdata")
-load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_3.Rdata", v=T)
-load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_10.Rdata")
+load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_3.Rdata", v = T)
+load(file = "results/2020_01_01_DEA_clone_PCA_cell_type_size_10.Rdata", v = T)
 ## adj pvalue
 
+for (min_clone_size in c(3, 10)) {
+  load(
+    file = str_c(
+      "results/2020_01_01_DEA_clone_PCA_cell_type_size_", 
+      min_clone_size,
+      ".Rdata"
+      ), v = T
+  )
+  
 for (day in names(sce_day)[-1]) {
   print(day)
   rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size <- NA
@@ -810,9 +850,57 @@ for (day in names(sce_day)[-1]) {
     center = TRUE,
     symmetric = TRUE,
     zlim = c(-5, 5),
-    main = day,
+    main = str_c("DEG for clonality (size >= ",
+                 min_clone_size,
+                 ") accounting for cell_type",
+                 day),
     cluster_rows = F,
   ) 
+  
+  bet <- assay(sce_DEA_hm, "logcounts") %>% 
+    as.matrix() %>% 
+    as_tibble(rownames = "gene_name") %>% 
+    filter(!(gene_name %in% rm_genes$geneid)) %>% 
+    select(-gene_name) %>% 
+    as.matrix() %>% 
+    t() %>% 
+    ade4::dudi.pca(scannf = F, nf = 100) %>% 
+    ade4::bca(dudi, fac = colData(sce_DEA_hm)$clone_id, scannf = F, nf = 2)
+  bca <- bet$ls %>% 
+    janitor::clean_names() %>% 
+    tibble(rownames = colData(sce_DEA_hm)$id) %>% 
+    mutate(clone_id = colData(sce_DEA_hm)$clone_id) %>% 
+    group_by(clone_id) %>% 
+    nest() %>% 
+    mutate(
+      clone_x = map(data, function(x){
+        sum(x$cs1) / nrow(x)
+      }) %>% unlist(),
+      clone_y = map(data, function(x){
+        sum(x$cs2) / nrow(x)
+      }) %>% unlist())
+  bca <- bca %>%
+    unnest(data) %>% 
+    ggplot(aes(x = cs1, y = cs2, color = clone_id, group = clone_id)) +
+    geom_point() +
+    stat_ellipse(type = "t") +
+    geom_segment(
+      aes(x = cs1, y = cs2, xend = clone_x, yend = clone_y), color = "gray"
+    ) +
+    ggrepel::geom_label_repel(
+      data = bca,
+      aes(x = clone_x, y = clone_y, color = clone_id, group = clone_id, label = clone_id)
+    ) +
+    labs(
+      title = str_c("Between Class Analysis ", day, " (clone size >= ",
+                    min_clone_size, ")"),
+      x = "PC1",
+      y = "PC2"
+    ) +
+    theme_bw()
+  bca %>% print()
+  
+}
 }
   
 for (day in names(sce_day)[-1]) {
@@ -846,15 +934,20 @@ data <- DEA_clone_PCA_cell_type_size[[day]] %>%
     names_from = type,
     values_from = dea,
     values_fill = NA
-  ) %>% 
+  )
+  
+data %>% 
   unnest(LRT) %>% 
   janitor::clean_names() %>% 
-  filter(!is.na(p_value)) %>% 
+  # filter(!is.na(p_value)) %>% 
   mutate(bad = id %in% genes_id)
-
-data %>%
-  filter(bad) %>% 
-  unnest(parameters)
+  dplyr::filter(bad)
+  
+data %>% 
+  unnest(parameters) %>% 
+  janitor::clean_names() %>% 
+  filter(!is.na(group)) %>% 
+  pull(estimate)
 
 data %>% 
   filter(!is.na(intercept)) %>% 
