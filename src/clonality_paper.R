@@ -549,27 +549,60 @@ for (min_clone_size in c(10, 3)) {
 load(file = "results/2020_01_02_clonality_paper_sce.Rdata", v = T)
 files_results <- list.files(path = "results/") %>% 
   .[str_detect(., "2020_01_01_DEA_clone_shuffled_PCA_cell_type_size_*")]
+gene_to_keep <- read_csv("data/2020_10_19_JH_dex_Normalized_MW.csv") %>%
+  select(-X1) %>%
+  colnames()
+test_infos <- tibble()
 for (file_results in files_results) {
   for (day in names(sce_day)[-1]) {
     print(file_results)
-    load(str_c("results/", file_results), v = T)
+    load(str_c("results/", file_results))
     print(day)
-    rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size <- NA
-    rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size <- 
-      get_genes_pval(DEA_clone_PCA_cell_type_size[[day]], sce_day[[day]])
-    # print("NA")
-    # rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size %>% 
-    #   is.na() %>% 
-    #   table() %>%
-    #   print()
-    rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj <- p.adjust(
-      rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size,
-      method = "BH"
-    )
-    print("signif")
-    table(rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj[!is.na(rowData(sce_day[[day]])$pval_DEA_clone_PCA_cell_type_size_adj)] < 0.05) %>% print()
+    test_infos <- tibble(
+      p_value = get_genes_pval(DEA_clone_PCA_cell_type_size[[day]], sce_day[[day]])[
+        rownames(sce_day[[day]]) %in% gene_to_keep
+      ]
+    ) %>% 
+      mutate(
+        p_adj = p.adjust(p_value, method = "BH"),
+        converge = !is.na(p_value),
+        day = day,
+        min_clone_size = file_results %>% str_replace(".*size_(.*)_.*", "\\1"),
+        id =  file_results %>% str_replace(".*size_.*_(.*)\\..*", "\\1")
+      ) %>% 
+      bind_rows(test_infos)
   }
 }
+
+test <- test_infos %>%
+  filter(converge) %>% 
+  select(-c(converge, p_value)) %>% 
+  group_by(day, min_clone_size, id) %>% 
+  nest() %>% 
+  ungroup() %>%
+  bind_cols(
+    rep(seq(from = 0.01, to = 0.5, by = 0.01), time = nrow(.)) %>%
+      enframe() %>%
+      pivot_wider(id_col = value)
+  ) %>% 
+  pivot_longer(cols = !c(day:data), values_to = "fdr") %>% 
+  select(-name) %>% 
+  mutate(
+    error = lapply(X = as.list(1:nrow(.)), FUN = function(x, data, fdr){
+      mean(data[[x]]$p_adj < fdr[x], na.rm = T)
+    }, data = data, fdr = fdr)
+  ) %>% 
+  unnest(error)
+
+test %>% 
+  ggplot() +
+  geom_abline(slope = 1, intercept = 0) +
+  geom_line(aes(x = fdr, y = error, color = id)) +
+  facet_wrap(~day + min_clone_size) +
+  theme_bw()
+
+
+
 
 ################################################################################
 
@@ -900,9 +933,47 @@ for (day in names(sce_day)[-1]) {
     theme_bw()
   bca %>% print()
   
+  rowData(sce_day[[day]]) %>% 
+    as_tibble(rownames = "id") %>% 
+    write_csv(
+      path = str_c(
+        "results/2020_10_08_DEA_",
+        day,
+        "_clone_PCA_cell_type_size_",
+        min_clone_size,
+        ".csv")
+    )
 }
 }
-  
+
+load(file = "results/2020_01_02_clonality_paper_sce.Rdata", v = T)
+files_results <- list.files(path = "results/") %>% 
+  .[str_detect(., "2020_01_01_DEA_clone.*_PCA_cell_type_size_.*")]
+gene_to_keep <- read_csv("data/2020_10_19_JH_dex_Normalized_MW.csv") %>%
+  select(-X1) %>%
+  colnames()
+for (file_results in files_results) {
+  for (day in names(sce_day)[-1]) {
+    print(file_results)
+    load(str_c("results/", file_results))
+    print(day)
+    pval_name <- file_results %>%
+      str_replace(".*(DEA_.*)\\.Rdata", "\\1")
+    rowData(sce_day[[day]])[[str_c(pval_name, "_pval")]] <- get_genes_pval(
+      DEA_clone_PCA_cell_type_size[[day]], sce_day[[day]]
+    )
+    rowData(sce_day[[day]])[[str_c(pval_name, "_padj")]] <- NA
+    rowData(sce_day[[day]])[[str_c(pval_name, "_padj")]][
+        rownames(sce_day[[day]]) %in% gene_to_keep
+      ] <- p.adjust(
+          rowData(sce_day[[day]])[[str_c(pval_name, "_pval")]][
+            rownames(sce_day[[day]]) %in% gene_to_keep
+          ],
+          method = "BH"
+        )
+  }
+}
+
 for (day in names(sce_day)[-1]) {
   rowData(sce_day[[day]]) %>% 
     as_tibble(rownames = "id") %>% 
@@ -910,50 +981,6 @@ for (day in names(sce_day)[-1]) {
       path = str_c(
         "results/2020_10_08_DEA_",
         day,
-        "_clone_PCA_cell_type_size_10.csv")
+        "_clone_PCA_cell_type.csv")
     )
 }
-
-day <- "1100"
-genes <- c("ITGA6", "MOB4", "AC097639.8")
-genes_id <- rowData(sce_day[[day]])$id[rowData(sce_day[[day]])$gene_name %in% genes[2]]
-
-data <- DEA_clone_PCA_cell_type_size[[day]] %>% 
-  unlist(recursive = F) %>% 
-  tibble(
-    dea = .,
-    id = names(.)
-  ) %>% 
-  separate(
-    col = id,
-    into = c("id", "type")
-  ) %>% 
-  filter(!is.na(type)) %>% 
-  pivot_wider(
-    id_cols = id,
-    names_from = type,
-    values_from = dea,
-    values_fill = NA
-  )
-  
-data %>% 
-  unnest(LRT) %>% 
-  janitor::clean_names() %>% 
-  # filter(!is.na(p_value)) %>% 
-  mutate(bad = id %in% genes_id)
-  dplyr::filter(bad)
-  
-data %>% 
-  unnest(parameters) %>% 
-  janitor::clean_names() %>% 
-  filter(!is.na(group)) %>% 
-  pull(estimate)
-
-data %>% 
-  filter(!is.na(intercept)) %>% 
-  ggplot() +
-  geom_point(aes(x = intercept, y = p_value, color = std_error)) +
-  # scale_x_log10() +
-  # scale_y_log10() +
-  facet_wrap(~bad, scales = "free_y") +
-  theme_bw()
