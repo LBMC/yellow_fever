@@ -4,6 +4,7 @@ library("tidyverse")
 library("readxl")
 library("vegan")
 library("broom")
+library("pbmcapply")
 theme_set(theme_classic())
 pal = "Set1"
 scale_colour_discrete <-  function(palname=pal, ...){
@@ -391,3 +392,275 @@ fish_plot(data, timepoints=c(15,136,593), "Donor A A2", min_size = function(x){a
 data <- clone_size(clone=clone, select_donor="Donor D", select_antigen="A2") %>%
   select(D15, D90, D720)
 fish_plot(data, timepoints=c(15,90,720), "Donor D A2", min_size = function(x){any(x > 3)})
+
+
+library(lme4)
+
+# fisher alpha subsampling experiment
+data <- clone %>% 
+  mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  group_by(donor, day, antigen) %>% 
+  select(-percent) %>% 
+  nest() %>% 
+  mutate(alpha = lapply(data, function(x){
+      n_sample <- 100
+      tibble(
+        sampling = seq(from = 0.1, to = 1, by = 0.1) %>% rep(n_sample),
+        sample = rep(1:n_sample, each = 10)
+        ) %>%
+        mutate(
+          alpha = lapply(sampling, function(y, x){
+            x %>%
+            pull(n) %>%
+            sample(round(length(.) * y)) %>%
+            fisherfit(.) %>%
+            .$estimate
+          }, x = x) %>% unlist()
+        )
+    })
+  ) %>% 
+  unnest(alpha) %>% 
+  mutate(
+    sample = as.factor(sample),
+    percent = sampling * 100
+  ) %>% 
+  filter(alpha <= 2.0e9) %>% 
+  ggplot() +
+  geom_line(aes(
+    x = alpha,
+    y = percent,
+    color = day,
+    group = str_c(sample, day)
+    ),
+    alpha = 0.1
+  ) +
+  geom_smooth(aes(
+    x = alpha,
+    y = percent,
+    color = day,
+    group = day
+    ),
+    se = F
+  ) +
+  facet_wrap(~donor + antigen, scales = "free")
+  
+
+# abs number of cells
+clone %>%
+  mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  select(-percent) %>% 
+  group_by(donor, antigen, day) %>% 
+  nest() %>% 
+  mutate(alpha = pbmcapply::pbmclapply(data, function(data){
+      n_sample <- 10
+      tibble(
+        sampling = seq(
+          from = 20,
+          to = 2000,
+          length.out = 20) %>% rep(n_sample),
+        sample = rep(1:n_sample, each = 20)
+        ) %>%
+        mutate(
+          alpha = lapply(sampling, function(sampling, data){
+            data %>%
+            pull(n) %>%
+            sample(round(sampling), replace = T) %>%
+            fisherfit(.) %>%
+            .$estimate
+          }, data = data) %>% unlist()
+        )
+    },
+    mc.cores = 10,
+    ignore.interactive = T )) %>% 
+  unnest(alpha) %>% 
+  mutate(
+    sample = as.factor(sample),
+    n_cell = sampling
+  ) %>% 
+  filter(alpha <= 2.0e9) %>% 
+  ggplot() +
+  geom_line(aes(
+    x = alpha,
+    y = n_cell,
+    color = day,
+    group = str_c(sample, day)
+    ),
+    alpha = 0.1
+  ) +
+  geom_smooth(aes(
+    x = alpha,
+    y = n_cell,
+    color = day,
+    group = day
+    ),
+    se = F
+  ) +
+  facet_wrap(~donor + antigen, scales = "free")
+  
+
+# clone number subsampling experiment
+data <- clone %>% 
+  mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  group_by(donor, day, antigen) %>% 
+  select(-percent) %>% 
+  nest() %>% 
+  mutate(alpha = lapply(data, function(x){
+      n_sample <- 100
+      tibble(
+        sampling = seq(from = 0.1, to = 1, by = 0.1) %>% rep(n_sample),
+        sample = rep(1:n_sample, each = 10)
+        ) %>%
+        mutate(
+          alpha = lapply(sampling, function(y, x){
+            x %>%
+            pull(n) %>%
+            sample(round(length(.) * y)) %>%
+            fisherfit(.) %>%
+            .$estimate
+          }, x = x) %>% unlist()
+        )
+    })
+  ) %>% 
+  unnest(alpha) %>% 
+  mutate(
+    sample = as.factor(sample),
+    percent = sampling * 100
+  )
+data %>% 
+  ggplot() +
+  geom_line(aes(
+    x = alpha,
+    y = percent,
+    color = day,
+    group = str_c(sample, day)
+    ),
+    alpha = 0.1
+  ) +
+  geom_smooth(aes(
+    x = alpha,
+    y = percent,
+    color = day,
+    group = day
+    ),
+    se = F
+  ) +
+  facet_wrap(~donor + antigen, scales = "free")
+
+
+# abs number of cells
+clone
+data <- clone %>% 
+  mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  group_by(donor, day, antigen) %>% 
+  select(-percent) %>% 
+  nest() %>% 
+  mutate(detected_clone = lapply(data, function(data){
+      n_sample <- 1000
+      tibble(
+        n_cell = seq(
+          from = 100,
+          to = max(500, nrow(data) + 10),
+          step = 1) %>%
+          rep(n_sample),
+        sample = rep(
+          1:n_sample,
+          each = (
+            seq(
+              from = 100,
+              to = max(500, nrow(data) + 10),
+              step = 1) %>%
+                length()
+          )),
+        day_size = nrow(data)
+      ) %>%
+        mutate(
+          detected_clone = pbmcapply::pbmclapply(n_cell, function(n_cell, data){
+            data %>%  
+            select(clone) %>% 
+            .[sample(1:nrow(.), round(n_cell), replace = T), ] %>%
+            distinct() %>% 
+            nrow()
+          }, data = data,
+        mc.cores = 10,
+        ignore.interactive = T) %>% unlist(),
+          day_clone = data %>%  
+            select(clone) %>% 
+            distinct() %>% 
+            nrow()
+        )
+    }
+    )) %>% 
+  unnest(detected_clone) %>% 
+  mutate(
+    sample = as.factor(sample),
+  ) %>% 
+  group_by(donor, antigen, n_cell) %>% 
+  nest() %>% 
+  mutate(pval = lapply(data, function(data){
+    data %>% 
+    group_by(day) %>% 
+    mutate(
+      ecdf = ecdf(detected_clone)(detected_clone)
+      ) %>% 
+    filter(!duplicated(detected_clone)) %>% 
+    group_by(detected_clone) %>% 
+    mutate(
+      ecdf = ecdf / length(levels(day)),
+      s_ecdf = sum(ecdf)) %>% 
+    group_by(day) %>%
+    mutate(s_ecdf = s_ecdf - ecdf) %>%
+    group_by(detected_clone) %>% 
+    mutate(pval = max(sum(s_ecdf))) %>%
+    pull(pval) %>% 
+    max()
+  })) %>% 
+  unnest(data, pval) %>% 
+  group_by(donor, antigen) %>% 
+  mutate(pval_signif = max(n_cell[pval > 0.05])) %>% 
+  select(-data)
+
+save(data, file = "results/2020_10_30_clone_diversity_bootstrap.Rdata")
+
+
+p <- ggplot(data %>%
+         filter(n_cell < max(pval_signif, day_size))) +
+  geom_vline(
+    aes(
+      xintercept = pval_signif
+    ),
+    color = "gray50",
+    linetype = 1,
+    size = 1.5
+  ) +
+  geom_line(data = data %>% 
+              filter(n_cell < day_size),
+    aes(
+      x = n_cell,
+      y = detected_clone,
+      color = day,
+      group = str_c(sample, day)
+    ),
+    alpha = 0.1,
+  ) +
+  scale_fill_viridis_d() +
+  geom_smooth(data = data %>%
+         filter(n_cell < max(pval_signif, day_size) + 10),
+    aes(
+      x = n_cell,
+      y = detected_clone,
+      group = day
+    ),
+    method = "loess",
+    formula = 'y ~ x',
+    color = "black",
+    se = F
+  ) +
+  labs(x = "number of cells",
+       y = "number of clone detected") +
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  facet_wrap(~ antigen + donor, scales = "free", ncol = 4)
+
+ggsave(plot = p, filename = "results/2020_10_30_clone_diversity_bootstrap.png", width = 30, height = 15, units = "cm")
+ggsave(plot = p, filename = "results/2020_10_30_clone_diversity_bootstrap.pdf", width = 30, height = 15, units = "cm")
+
+load(file = "results/2020_10_29_clone_diversity_bootstrap.Rdata")
