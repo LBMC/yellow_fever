@@ -548,44 +548,50 @@ data %>%
 
 
 # abs number of cells
-clone
-data <- clone %>% 
+data <- clone %>%
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
   group_by(donor, day, antigen) %>% 
   select(-percent) %>% 
+  mutate(day_size = n()) %>%
+  group_by(donor, antigen) %>%
+  mutate(days_size = max(day_size)) %>%
+  group_by(donor, day, antigen) %>% 
   nest() %>% 
   mutate(detected_clone = lapply(data, function(data){
-      n_sample <- 1000
+      n_sample <- 20
       tibble(
         n_cell = seq(
-          from = 100,
-          to = max(500, nrow(data) + 10),
-          step = 1) %>%
+          from = 10,
+          to = max(500, (data %>% pull(days_size) %>% max()) + 10),
+          by = 1) %>%
           rep(n_sample),
         sample = rep(
           1:n_sample,
           each = (
             seq(
-              from = 100,
-              to = max(500, nrow(data) + 10),
-              step = 1) %>%
+              from = 10,
+              to = max(500, (data %>% pull(days_size) %>% max()) + 10),
+              by = 1) %>%
                 length()
           )),
-        day_size = nrow(data)
+        day_size = (data %>% pull(day_size) %>%  max()),
+        days_size = (data %>% pull(days_size) %>%  max())
       ) %>%
         mutate(
           detected_clone = pbmcapply::pbmclapply(n_cell, function(n_cell, data){
-            data %>%  
-            select(clone) %>% 
+            data %>%
+            select(clone) %>%
             .[sample(1:nrow(.), round(n_cell), replace = T), ] %>%
-            distinct() %>% 
+            distinct() %>%
             nrow()
-          }, data = data,
-        mc.cores = 10,
-        ignore.interactive = T) %>% unlist(),
-          day_clone = data %>%  
-            select(clone) %>% 
-            distinct() %>% 
+          },
+          data = data,
+          mc.cores = 10,
+          ignore.interactive = T
+        ) %>% unlist(),
+          day_clone = data %>%
+            select(clone) %>%
+            distinct() %>%
             nrow()
         )
     }
@@ -596,7 +602,7 @@ data <- clone %>%
   ) %>% 
   group_by(donor, antigen, n_cell) %>% 
   nest() %>% 
-  mutate(pval = lapply(data, function(data){
+  mutate(pval = pbmcapply::pbmclapply(data, function(data){
     data %>% 
     group_by(day) %>% 
     mutate(
@@ -613,17 +619,21 @@ data <- clone %>%
     mutate(pval = max(sum(s_ecdf))) %>%
     pull(pval) %>% 
     max()
-  })) %>% 
+  },
+  mc.cores = 10,
+  ignore.interactive = T)) %>% 
   unnest(data, pval) %>% 
   group_by(donor, antigen) %>% 
   mutate(pval_signif = max(n_cell[pval > 0.05])) %>% 
   select(-data)
 
-save(data, file = "results/2020_10_30_clone_diversity_bootstrap.Rdata")
+save(data, file = "results/2020_11_01_clone_diversity_bootstrap.Rdata")
+
+load(file = "results/2020_11_01_clone_diversity_bootstrap.Rdata")
 
 
 p <- ggplot(data %>%
-         filter(n_cell < max(pval_signif, day_size))) +
+         filter(n_cell < max(pval_signif, days_size))) +
   geom_vline(
     aes(
       xintercept = pval_signif
@@ -632,7 +642,7 @@ p <- ggplot(data %>%
     linetype = 1,
     size = 1.5
   ) +
-  geom_line(data = data %>% 
+  geom_point(data = data %>% 
               filter(n_cell < day_size),
     aes(
       x = n_cell,
@@ -640,9 +650,10 @@ p <- ggplot(data %>%
       color = day,
       group = str_c(sample, day)
     ),
-    alpha = 0.1,
+    binwidth = c(1, 1),
+    alpha = 0.01
   ) +
-  scale_fill_viridis_d() +
+  # scale_fill_viridis_d() +
   geom_smooth(data = data %>%
          filter(n_cell < max(pval_signif, day_size) + 10),
     aes(
@@ -658,9 +669,10 @@ p <- ggplot(data %>%
   labs(x = "number of cells",
        y = "number of clone detected") +
   guides(colour = guide_legend(override.aes = list(alpha = 1))) +
-  facet_wrap(~ antigen + donor, scales = "free", ncol = 4)
+  facet_wrap(~ antigen + donor, scales = "free", ncol = 4) +
+  theme_classic()
 
-ggsave(plot = p, filename = "results/2020_10_30_clone_diversity_bootstrap.png", width = 30, height = 15, units = "cm")
-ggsave(plot = p, filename = "results/2020_10_30_clone_diversity_bootstrap.pdf", width = 30, height = 15, units = "cm")
+ggsave(plot = p, filename = "results/2020_11_05_clone_diversity_bootstrap.pdf", width = 30, height = 15, units = "cm")
+ggsave(plot = p, filename = "results/2020_11_05_clone_diversity_bootstrap.png", width = 30, height = 15, units = "cm")
 
 load(file = "results/2020_10_29_clone_diversity_bootstrap.Rdata")
