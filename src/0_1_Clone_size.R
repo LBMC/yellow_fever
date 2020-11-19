@@ -1,5 +1,7 @@
 rm(list=ls())
 setwd("~/projects/mold/yellow_fever")
+
+########################### init ##############################################
 library("tidyverse")
 library("readxl")
 library("vegan")
@@ -72,6 +74,8 @@ clone <- clone %>% filter(donor %in% "YFV5") %>%
   bind_rows(clone %>% mutate(donor = as.vector(donor))) %>%
   mutate(donor = as.factor(donor))
 clone
+
+######################## optional #############################################
 # reconstruct missing clone
 # we create clone that are present at later time-point
 dig_clone <- function(infos, donor, antigen){
@@ -149,6 +153,8 @@ for (i in 1:length(donors)) {
     }
   }
 }
+
+####################################### end of init ###########################
 
 alpha_f %>% select(-alpha_prec) %>%
   drop_na() %>%
@@ -394,60 +400,186 @@ data <- clone_size(clone=clone, select_donor="Donor D", select_antigen="A2") %>%
 fish_plot(data, timepoints=c(15,90,720), "Donor D A2", min_size = function(x){any(x > 3)})
 
 
-library(lme4)
-
-# fisher alpha subsampling experiment
-clone %>% 
+####################### test for time differences accross donor / antigen #####
+# fisher alpha slopes analysis
+data <- clone %>%
+  group_by(donor, day, antigen, clone) %>% 
+  mutate(n = n()) %>% 
+  ungroup() %>% 
+  mutate(
+    time = ifelse(as.numeric(as.vector(day)) > 16, "late", "early"),
+    time = as.factor(time)
+    ) %>% 
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  filter(
+    !(donor %in% "Donor C" & antigen %in% "A2" & clone == 1)
+  ) %>% 
   group_by(donor, day, antigen) %>% 
   select(-percent) %>% 
+  mutate(day_size = n()) %>%
+  group_by(donor, antigen) %>%
+  mutate(days_size = max(day_size)) %>%
+  group_by(antigen, donor, time) %>% 
+  mutate(time_size = n(),
+         min_time_size = min(time_size)) %>% 
   nest() %>% 
-  mutate(alpha = lapply(data, function(x){
-      n_sample <- 10
+  mutate(alpha = lapply(data, function(data){
+      n_sample <- 10000
       tibble(
-        sampling = seq(from = 0.1, to = 1, by = 0.1) %>% rep(n_sample),
-        sample = rep(1:n_sample, each = 10)
-        ) %>%
+        sample = 1:n_sample,
+        min_time_size = data %>% pull(min_time_size) %>% .[1]
+      ) %>%
         mutate(
-          alpha = lapply(sampling, function(y, x){
-            x %>%
+          alpha = pbmcapply::pbmclapply(
+            sample, function(sample, data){
+            data %>%
             pull(n) %>%
-            sample(round(length(.) * y)) %>%
-            fisherfit(.) %>%
-            .$estimate
-          }, x = x) %>% unlist()
-        )
-    })
-  ) %>% 
+            sample(round(min_time_size), replace = T) %>%
+            fisher.alpha()
+          },
+          data = data,
+          mc.cores = 10,
+          ignore.interactive = T
+        ) %>% unlist()
+        ) %>% 
+        select(-min_time_size)
+    }
+    )) %>% 
+  ungroup() %>% 
+  unnest(data) %>% 
   unnest(alpha) %>% 
-  mutate(
-    sample = as.factor(sample),
-    percent = sampling * 100
-  ) %>% 
-  filter(alpha <= 2.0e9) %>% 
-  ggplot() +
-  geom_line(aes(
-    x = alpha,
-    y = percent,
-    color = day,
-    group = str_c(sample, day)
-    ),
-    alpha = 0.1
-  ) +
-  geom_smooth(aes(
-    x = alpha,
-    y = percent,
-    color = day,
-    group = day
-    ),
-    se = F
-  ) +
-  facet_wrap(~donor + antigen, scales = "free")
-  
+  filter(alpha < 2000)
 
-# abs number of cells
-data <- clone %>%
+# alpha table without boostrap
+clone %>%
+  group_by(donor, day, antigen, clone) %>% 
+  mutate(n = n()) %>% 
+  ungroup() %>% 
+  mutate(
+    time = ifelse(as.numeric(as.vector(day)) > 16, "late", "early"),
+    time = as.factor(time)
+    ) %>% 
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  filter(
+    !(donor %in% "Donor C" & antigen %in% "A2" & clone == 1)
+  ) %>% 
+  group_by(donor, day, antigen) %>% 
+  select(-percent) %>% 
+  mutate(day_size = n()) %>%
+  group_by(donor, antigen) %>%
+  mutate(days_size = max(day_size)) %>%
+  group_by(antigen, donor, time) %>% 
+  mutate(time_size = n(),
+         min_time_size = min(time_size)) %>%
+  nest() %>% 
+  mutate(alpha = lapply(data, function(data){
+      n_sample <- 1
+      tibble(
+        sample = 1:n_sample,
+        min_time_size = data %>% pull(min_time_size) %>% .[1]
+      ) %>%
+        mutate(
+          alpha = pbmcapply::pbmclapply(
+            sample, function(sample, data){
+            data %>%
+            pull(n) %>%
+            sample(round(min_time_size), replace = T) %>%
+            fisher.alpha()
+          },
+          data = data,
+          mc.cores = 10,
+          ignore.interactive = T
+        ) %>% unlist()
+        ) %>% 
+        select(-min_time_size)
+    }
+    )) %>% 
+  ungroup() %>% 
+  unnest(data) %>% 
+  unnest(alpha) %>% 
+  filter(alpha < 2000) %>% 
+  write_csv(
+    path = "results/2020_11_18_alpha_diversity.csv"
+  )
+data %>%
+  write_csv(
+    path = "results/2020_11_18_alpha_diversity_bootstrap.csv"
+  )
+
+qqplot_resid <- function(x){
+  x %>% 
+  broom.mixed::augment() %>% 
+  ggplot() +
+  geom_qq(aes(sample = .resid)) +
+  geom_qq_line(aes(sample = .resid))
+}
+
+fitted_vs_value <- function(x){
+  x %>% 
+  broom.mixed::augment() %>% 
+  janitor::clean_names() %>% 
+  ggplot() +
+  geom_point(
+    aes(
+      x = alpha,
+      y = fitted
+    )
+  )
+}
+
+# 3 way anova
+data %>% 
+  mutate(alpha = sqrt(alpha + 3/8)) %>% 
+  lm(alpha ~ time + antigen + donor, data = .) %>% 
+  broom::tidy() %>% 
+  mutate(
+    estimate = estimate^2 - 3/8,
+    std.error = std.error^2 - 3/8,
+  ) %>% 
+  write_csv(
+    path = "results/2020_11_18_alpha_diversity_model_intercept.csv"
+  )
+
+# histogram
+data %>% 
+  ggplot() +
+  geom_histogram(
+    aes(
+      x = alpha,
+      fill = time
+    ),
+    bins = 100
+  ) +
+  facet_wrap(~antigen + donor, scales = "free_x") +
+  scale_x_log10() +
+  theme_classic()
+ggsave(filename = "results/2020_11_18_alpha_diversity_bootstrap_hist.pdf", width = 30, height = 15, units = "cm")
+
+
+# boxplot
+data %>% 
+  ggplot() +
+  geom_boxplot(
+    aes(
+      x = time,
+      y = alpha,
+      fill = NA,
+      color = time
+    ),
+  ) +
+  facet_wrap(~antigen + donor, scales = "free_x") +
+  scale_y_log10() +
+  theme_classic()
+ggsave(filename = "results/2020_11_18_alpha_diversity_bootstrap_boxplot.pdf", width = 30, height = 15, units = "cm")
+
+
+###################### fisher alpha subsampling experiment ###################
+# boostrap
+data <-  clone %>%
+  mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  filter(
+    !(donor %in% "Donor C" & antigen %in% "A2" & clone == 1)
+  ) %>% 
   group_by(donor, day, antigen) %>% 
   select(-percent) %>% 
   mutate(day_size = n()) %>%
@@ -530,14 +662,50 @@ data <- clone %>%
     alpha_max = quantile(alpha, 0.95)
   )
 
-save(data, file = "results/2020_11_10_fisher_diversity_bootstrap.Rdata")
-load(file = "results/2020_11_10_fisher_diversity_bootstrap.Rdata")
+# p-value computation between early and late
+data <- data %>%
+  mutate(
+    time = ifelse(as.vector(day) > 16, "late", "early"),
+    time = as.factor(time)
+    ) %>% 
+  group_by(donor, antigen, n_cell) %>% 
+  nest() %>% 
+  mutate(pval_early_late = pbmcapply::pbmclapply(
+    data, function(data){
+    data %>% 
+    group_by(time) %>% 
+    mutate(
+      ecdf = ecdf(alpha)(alpha)
+      ) %>% 
+    filter(!duplicated(alpha)) %>% 
+    group_by(alpha) %>% 
+    mutate(
+      ecdf = ecdf / length(levels(time)),
+      s_ecdf = sum(ecdf)) %>% 
+    group_by(day) %>%
+    mutate(s_ecdf = s_ecdf - ecdf) %>%
+    group_by(alpha) %>% 
+    mutate(pval = max(sum(s_ecdf))) %>%
+    pull(pval) %>% 
+    max()
+  },
+  mc.cores = 11,
+  ignore.interactive = T)) %>% 
+  unnest(c(data, pval_early_late)) %>% 
+  group_by(donor, antigen) %>% 
+  mutate(pval_early_late_signif = max(n_cell[pval_early_late > 1.05]))
+
+save(data, file = "results/2021_11_13_fisher_diversity_bootstrap.Rdata")
+load(file = "results/2020_11_13_fisher_diversity_bootstrap.Rdata")
+
+# plot
 
 p <- ggplot(data %>%
          ungroup() %>%
-         filter(n_cell < max(pval_signif, days_size)) %>%
+         filter(n_cell < day_size + 10) %>%
          filter(n_cell > 20) %>%
-          slice_sample(n = 100000))+
+         filter(alpha < 1e9) %>% 
+          slice_sample(n = 10000))+
   geom_vline(
     aes(
       xintercept = pval_signif
@@ -546,11 +714,20 @@ p <- ggplot(data %>%
     linetype = 1,
     size = 1.5
   ) +
+  geom_vline(
+    aes(
+      xintercept = pval_early_late_signif
+    ),
+    color = "black",
+    linetype = 1,
+    size = 0.5
+  ) +
   geom_smooth(data = data %>%
          ungroup() %>%
-         filter(alpha < max(pval_signif, day_size) + 10) %>%
+         filter(n_cell < day_size + 10) %>%
          filter(n_cell > 20) %>%
-         slice_sample(n = 100000),
+         filter(alpha < 1e9) %>% 
+         slice_sample(n = 10000),
     aes(
       x = n_cell,
       y = alpha,
@@ -559,13 +736,15 @@ p <- ggplot(data %>%
     method = "loess",
     formula = 'y ~ x',
     color = "black",
-    se = F
+    se = F,
+    size = 1.5
   ) +
   geom_ribbon(data = data %>% 
          ungroup() %>%
          filter(n_cell < day_size) %>%
          filter(n_cell > 20) %>%
-          slice_sample(n = 100000),
+         filter(alpha < 1e9) %>% 
+          slice_sample(n = 10000),
     aes(
       x = n_cell,
       ymin = alpha_min,
@@ -575,24 +754,45 @@ p <- ggplot(data %>%
     ),
     alpha = 0.6
   ) +
+  geom_smooth(data = data %>%
+         ungroup() %>%
+         filter(n_cell < day_size + 10) %>%
+         filter(n_cell > 20) %>%
+         filter(alpha < 1e9) %>% 
+         slice_sample(n = 10000),
+    aes(
+      x = n_cell,
+      y = alpha,
+      color = day,
+      group = day
+    ),
+    method = "loess",
+    formula = 'y ~ x',
+    se = F,
+    size = 0.5
+  ) +
   labs(x = "number of cells",
        y = "Fisher's Alpha") +
   guides(
     colour = guide_legend(override.aes = list(alpha = 1)),
     fill = guide_legend(override.aes = list(alpha = 1))
     ) +
-  facet_wrap(~ antigen + donor, scales = "free", ncol = 4) +
+  facet_wrap(~ antigen + donor, ncol = 4) +
   theme_classic()
+print(p)
 
-ggsave(plot = p, filename = "results/2020_11_10_alpha_diversity_bootstrap.png", width = 30, height = 15, units = "cm")
-ggsave(plot = p, filename = "results/2020_11_10_alpha_diversity_bootstrap.pdf", width = 30, height = 15, units = "cm")
+ggsave(plot = p, filename = "results/2020_11_13_alpha_diversity_bootstrap.png", width = 30, height = 15, units = "cm")
+ggsave(plot = p, filename = "results/2020_11_13_alpha_diversity_bootstrap.pdf", width = 30, height = 15, units = "cm")
   
 
-# clone number subsampling experiment
+###################### clone number subsampling experiment ###################
 
-# abs number of cells
+# boostrap
 data <- clone %>%
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  filter(
+    !(donor %in% "Donor C" & antigen %in% "A2" & clone == 1)
+  ) %>% 
   group_by(donor, day, antigen) %>% 
   select(-percent) %>% 
   mutate(day_size = n()) %>%
@@ -675,9 +875,44 @@ data <- clone %>%
     detected_clone_max = quantile(detected_clone, 0.95)
   )
 
-save(data, file = "results/2020_11_10_clone_diversity_bootstrap.Rdata")
-load(file = "results/2020_11_10_clone_diversity_bootstrap.Rdata")
+# p-value computation between early and late
+data <- data %>%
+  mutate(
+    time = ifelse(as.vector(day) > 15, "late", "early"),
+    time = as.factor(time)
+    ) %>% 
+  group_by(donor, antigen, n_cell) %>% 
+  nest() %>% 
+  mutate(pval_early_late = pbmcapply::pbmclapply(
+    data, function(data){
+    data %>% 
+    group_by(time) %>% 
+    mutate(
+      ecdf = ecdf(detected_clone)(detected_clone)
+      ) %>% 
+    filter(!duplicated(detected_clone)) %>% 
+    group_by(detected_clone) %>% 
+    mutate(
+      ecdf = ecdf / length(levels(time)),
+      s_ecdf = sum(ecdf)) %>% 
+    group_by(day) %>%
+    mutate(s_ecdf = s_ecdf - ecdf) %>%
+    group_by(detected_clone) %>% 
+    mutate(pval = max(sum(s_ecdf))) %>%
+    pull(pval) %>% 
+    max()
+  },
+  mc.cores = 10,
+  ignore.interactive = T)) %>% 
+  unnest(c(data, pval_early_late)) %>% 
+  group_by(donor, antigen) %>% 
+  mutate(pval_early_late_signif = max(n_cell[pval_early_late > 0.05]))
 
+save(data, file = "results/2020_11_13_clone_diversity_bootstrap.Rdata")
+load(file = "results/2020_11_13_clone_diversity_bootstrap.Rdata")
+
+
+# plot
 p <- ggplot(data %>%
          ungroup() %>%
          filter(n_cell < max(pval_signif, days_size)) %>%
@@ -689,6 +924,14 @@ p <- ggplot(data %>%
     color = "gray50",
     linetype = 1,
     size = 1.5
+  ) +
+  geom_vline(
+    aes(
+      xintercept = pval_early_late_signif
+    ),
+    color = "black",
+    linetype = 1,
+    size = 0.5
   ) +
   geom_smooth(data = data %>%
          ungroup() %>%
@@ -702,7 +945,8 @@ p <- ggplot(data %>%
     method = "loess",
     formula = 'y ~ x',
     color = "black",
-    se = F
+    se = F,
+    size = 1.5
   ) +
   geom_ribbon(data = data %>% 
               ungroup() %>%
@@ -717,17 +961,33 @@ p <- ggplot(data %>%
     ),
     alpha = 0.6
   ) +
+  geom_smooth(data = data %>%
+         ungroup() %>%
+         filter(n_cell < max(pval_signif, day_size) + 10) %>%
+         slice_sample(n = 100000),
+    aes(
+      x = n_cell,
+      y = detected_clone,
+      color = day,
+      group = day
+    ),
+    method = "loess",
+    formula = 'y ~ x',
+    se = F,
+    size = 0.5
+  ) +
   labs(x = "number of cells",
        y = "number of clone detected") +
   guides(colour = guide_legend(override.aes = list(alpha = 1)),
          fill = guide_legend(override.aes = list(alpha = 1))) +
-  facet_wrap(~ antigen + donor, scales = "free", ncol = 4) +
+  facet_wrap(~ antigen + donor, scales = "free_y", ncol = 4) +
   theme_classic()
+print(p)
 
-ggsave(plot = p, filename = "results/2020_11_10_clone_diversity_bootstrap.pdf", width = 30, height = 15, units = "cm")
-ggsave(plot = p, filename = "results/2020_11_10_clone_diversity_bootstrap.png", width = 30, height = 15, units = "cm")
+ggsave(plot = p, filename = "results/2020_11_13_clone_diversity_bootstrap.pdf", width = 30, height = 15, units = "cm")
+ggsave(plot = p, filename = "results/2020_11_13_clone_diversity_bootstrap.png", width = 30, height = 15, units = "cm")
 
-# FIg 1 boostraped
+############################### FIg 1 boostraped ##############################
 
 clone %>%
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
