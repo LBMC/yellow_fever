@@ -403,6 +403,7 @@ fish_plot(data, timepoints=c(15,90,720), "Donor D A2", min_size = function(x){an
 ####################### test for time differences accross donor / antigen #####
 # fisher alpha slopes analysis
 data <- clone %>%
+  mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
   group_by(donor, day, antigen, clone) %>% 
   mutate(n = n()) %>% 
   ungroup() %>% 
@@ -1096,8 +1097,9 @@ ggsave(plot = p, filename = "results/2020_11_20_clone_diversity_bootstrap.png", 
 
 data <- clone %>%
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
-  group_by(donor, day, antigen) %>% 
+  group_by(donor, day, antigen, clone) %>% 
   mutate(n = n()) %>%
+  group_by(donor, day, antigen) %>% 
   group_by(donor, day, antigen, percent) %>% 
   nest() %>% 
   mutate(alpha = pbmcapply::pbmclapply(data, function(data){
@@ -1124,6 +1126,7 @@ data <- clone %>%
     ignore.interactive = T)
   ) %>% 
   unnest(alpha) %>% 
+  unnest(data)
   mutate(percent = as.numeric(as.vector(percent)))
 
 data %>%
@@ -1144,8 +1147,9 @@ ggsave("results/survival/2020_11_05_fisher_vs_sampling_vs_time.pdf")
 
 data <- clone %>%
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
-  group_by(donor, day, antigen) %>% 
+  group_by(donor, day, antigen, clone) %>% 
   mutate(n = n()) %>%
+  group_by(donor, day, antigen) %>% 
   group_by(donor, day, antigen, percent) %>% 
   nest() %>% 
   mutate(alpha = pbmcapply::pbmclapply(data, function(data){
@@ -1171,6 +1175,7 @@ data <- clone %>%
     mc.cores = 10,
     ignore.interactive = T )) %>% 
   unnest(alpha) %>% 
+  unnest(data) %>%
   mutate(percent = as.numeric(as.vector(percent)))
 
 data %>%
@@ -1195,9 +1200,9 @@ ggsave("results/survival/2020_11_05_fisher_vs_sampling_log10.pdf")
 
 data <- clone %>%
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
-  group_by(donor, day, antigen) %>% 
+  group_by(donor, day, antigen, clone) %>% 
   mutate(n = n()) %>%
-  group_by(donor, day, antigen, percent) %>% 
+  group_by(donor, day, antigen) %>% 
   filter(day == 15) %>% 
   nest() %>% 
   mutate(alpha = pbmcapply::pbmclapply(data, function(data){
@@ -1223,6 +1228,7 @@ data <- clone %>%
     mc.cores = 10,
     ignore.interactive = T )) %>% 
   unnest(alpha) %>% 
+  unnest(data) %>%
   mutate(percent = as.numeric(as.vector(percent)))
 
 data %>%
