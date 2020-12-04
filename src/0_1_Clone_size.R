@@ -1094,8 +1094,10 @@ ggsave(plot = p, filename = "results/2020_11_20_clone_diversity_bootstrap.png", 
 
 ############################### FIg 1 boostraped ##############################
 
-clone %>%
+data <- clone %>%
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  group_by(donor, day, antigen) %>% 
+  mutate(n = n()) %>%
   group_by(donor, day, antigen, percent) %>% 
   nest() %>% 
   mutate(alpha = pbmcapply::pbmclapply(data, function(data){
@@ -1107,23 +1109,27 @@ clone %>%
         mutate(
           alpha = data %>%
             pull(n) %>%
-            fisherfit(.) %>%
-            .$estimate,
+            fisher.alpha(),
           alpha_boot = lapply(sampling, function(sampling, data){
             data %>%
             pull(n) %>%
             sample(round(sampling), replace = T) %>%
-            fisherfit(.) %>%
-            .$estimate
+            fisher.alpha()
           }, data = data) %>% unlist(),
           alpha_min = quantile(alpha_boot, 0.05),
-          alpha_max = quantile(alpha_boot, 0.95),
+          alpha_max = quantile(alpha_boot, 0.95)
         )
     },
     mc.cores = 10,
-    ignore.interactive = T )) %>% 
+    ignore.interactive = T)
+  ) %>% 
   unnest(alpha) %>% 
-  mutate(percent = as.numeric(as.vector(percent))) %>%
+  mutate(percent = as.numeric(as.vector(percent)))
+
+data %>%
+  write.csv(file="results/survival/2020_12_04_fisher_vs_sampling_vs_time.csv")
+
+data  %>%
   ggplot() +
   geom_point(aes(x = day, y = alpha, group = donor, color = antigen, shape = donor), size = 4) +
   geom_linerange(
@@ -1136,8 +1142,10 @@ clone %>%
   labs(y = "Fisher's Alpha")
 ggsave("results/survival/2020_11_05_fisher_vs_sampling_vs_time.pdf")
 
-clone %>%
+data <- clone %>%
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  group_by(donor, day, antigen) %>% 
+  mutate(n = n()) %>%
   group_by(donor, day, antigen, percent) %>% 
   nest() %>% 
   mutate(alpha = pbmcapply::pbmclapply(data, function(data){
@@ -1149,14 +1157,12 @@ clone %>%
         mutate(
           alpha = data %>%
             pull(n) %>%
-            fisherfit(.) %>%
-            .$estimate,
+            fisher.alpha(),
           alpha_boot = lapply(sampling, function(sampling, data){
             data %>%
             pull(n) %>%
             sample(round(sampling), replace = T) %>%
-            fisherfit(.) %>%
-            .$estimate
+            fisher.alpha()
           }, data = data) %>% unlist(),
           alpha_min = quantile(alpha_boot, 0.05),
           alpha_max = quantile(alpha_boot, 0.95),
@@ -1165,7 +1171,12 @@ clone %>%
     mc.cores = 10,
     ignore.interactive = T )) %>% 
   unnest(alpha) %>% 
-  mutate(percent = as.numeric(as.vector(percent))) %>%
+  mutate(percent = as.numeric(as.vector(percent)))
+
+data %>%
+  write.csv(file="results/survival/2020_12_04_fisher_vs_sampling_log10.csv")
+
+data %>%
   ggplot() +
   geom_point(aes(y = alpha, x = percent, group = donor, color = antigen, shape = donor), size = 4) +
   geom_linerange(
@@ -1182,8 +1193,10 @@ clone %>%
   )
 ggsave("results/survival/2020_11_05_fisher_vs_sampling_log10.pdf")
 
-clone %>%
+data <- clone %>%
   mutate(day = fct_reorder(day, as.numeric(as.vector(day)))) %>% 
+  group_by(donor, day, antigen) %>% 
+  mutate(n = n()) %>%
   group_by(donor, day, antigen, percent) %>% 
   filter(day == 15) %>% 
   nest() %>% 
@@ -1196,14 +1209,12 @@ clone %>%
         mutate(
           alpha = data %>%
             pull(n) %>%
-            fisherfit(.) %>%
-            .$estimate,
+            fisher.alpha(),
           alpha_boot = lapply(sampling, function(sampling, data){
             data %>%
             pull(n) %>%
             sample(round(sampling), replace = T) %>%
-            fisherfit(.) %>%
-            .$estimate
+            fisher.alpha()
           }, data = data) %>% unlist(),
           alpha_min = quantile(alpha_boot, 0.05),
           alpha_max = quantile(alpha_boot, 0.95),
@@ -1212,7 +1223,12 @@ clone %>%
     mc.cores = 10,
     ignore.interactive = T )) %>% 
   unnest(alpha) %>% 
-  mutate(percent = as.numeric(as.vector(percent))) %>%
+  mutate(percent = as.numeric(as.vector(percent)))
+
+data %>%
+  write.csv(file="results/survival/2020_12_04_fisher_vs_sampling_log10_D15.csv")
+
+data %>%
   ggplot() +
   geom_point(aes(y = alpha, x = percent, group = donor, color = antigen, shape = donor), size = 4) +
   geom_linerange(
