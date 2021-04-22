@@ -151,6 +151,13 @@ rowData(sce) %>%
 save(sce, file = "results/sce_DEA_surface_cell_type.Rdata")
 load(file = "results/sce_DEA_surface_cell_type.Rdata")
 
+colData(sce) %>% 
+  as_tibble() %>% 
+  write_csv(path = "results/2020_12_15_sce_DEA_cell_type_cellData.csv")
+rowData(sce) %>% 
+  as_tibble(rownames = "id") %>% 
+  write_csv(path = "results/2020_12_15_sce_DEA_cell_type_geneData.csv")
+
 sce <- logNormCounts(sce, exprs_values = "counts_vst")
 sce_DEA <- runPCA(sce[
     rowData(sce)$pval_DEA_p_PLS_surface_cell_type_male_invivo_adj <= 0.05 &

@@ -870,7 +870,7 @@ data <- clone %>%
       tibble(
         n_cell = seq(
           from = 20,
-          to = max(1000, (data %>% pull(days_size) %>% max()) + 10),
+          to = (data %>% pull(days_size) %>% max()) * 1.1,
           by = 1) %>%
           rep(n_sample),
         sample = rep(
@@ -878,7 +878,7 @@ data <- clone %>%
           each = (
             seq(
               from = 20,
-              to = max(1000, (data %>% pull(days_size) %>% max()) + 10),
+              to = (data %>% pull(days_size) %>% max()) * 1.1,
               by = 1) %>%
                 length()
           )),
@@ -942,7 +942,6 @@ data <- clone %>%
 
 # p-value computation between early and late
 data <- data %>%
-  select(-c(pval_early_late)) %>%
   group_by(donor, antigen) %>% 
   mutate(
     time = as.numeric(as.vector(day)),
@@ -1039,6 +1038,18 @@ p <- ggplot() +
     ),
     check_overlap = T
   ) +
+  geom_ribbon(data = data %>% 
+              ungroup() %>%
+              filter(n_cell < day_size),
+    aes(
+      x = n_cell,
+      ymin = detected_clone_min,
+      ymax = detected_clone_max,
+      fill = day,
+      group = day
+    ),
+    alpha = 0.6
+  ) +
   geom_smooth(data = data %>%
          ungroup() %>%
          filter(n_cell < days_size * 1.1) %>%
@@ -1053,19 +1064,6 @@ p <- ggplot() +
     color = "black",
     se = F,
     size = 1.5
-  ) +
-  geom_ribbon(data = data %>% 
-              ungroup() %>%
-              filter(n_cell < day_size) %>%
-              slice_sample(n = 1000000),
-    aes(
-      x = n_cell,
-      ymin = detected_clone_min,
-      ymax = detected_clone_max,
-      fill = day,
-      group = day
-    ),
-    alpha = 0.6
   ) +
   geom_smooth(data = data %>%
          ungroup() %>%
