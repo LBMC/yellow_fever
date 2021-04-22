@@ -25,23 +25,12 @@ sudo apt-get install -y r-base r-base-dev libcurl4-gnutls-dev libxml2-dev libssl
 Then go in the repository folder and install the following packages in R:
 
 ```R
-install.packages("devtools")
-devtools::install_github("rhondabacher/SCnorm")
-devtools::install_github("lme4/lme4")
-devtools::install_github("BatzoglouLabSU/SIMLR")
-devtools::install_github("rhondabacher/SCnorm", ref = "v1.1.3")
-source('http://bioconductor.org/biocLite.R')
-biocLite(c("tximport", "readr", "pCMF", "sva", "ComplexHeatmap", "scran"))
-install.packages("R2admb")
-install.packages("glmmADMB", 
-    repos=c("http://glmmadmb.r-forge.r-project.org/repos",
-            getOption("repos")),
-    type="source")
-devtools::install("pkg/")
+source("src/00_functions.R")
 ```
 
 ## Analysis
 
 All the scripts used for the analyses can be found in the `src/` folder.
 
-The scripts are numbered from 0 to 12 in execution order with `1_QC.R` the first script for scRNASeq data analysis.
+The scripts are numbered from `0_1`, `01` to `05` in execution order with `01_QC.R` the first script for scRNASeq data analysis (the `0_1`, is independent from the rest of the pipeline).
+The scirpt numbered from `1` to `12` correspond to an old version of the pipeline not using `SingleCellExperiment` object.
